@@ -1,4 +1,4 @@
-﻿using Koren.Async;
+using Koren.Async;
 using Koren.Core;
 using Koren.Localization;
 using Koren.Resource;
@@ -27,6 +27,7 @@ namespace Koren.UI;
 public enum OriginalMenuState {
     Status,
     Settings,
+    Reorganize,
     Credits,
 }
 
@@ -65,6 +66,20 @@ public static class UICore {
         ResizeHandle.CreateResizeHandles(Panel);
         Tooltip.Initialize(canvasObj.transform);
 
+        CreateExitReorganizeButton();
+
+        MenuFactory.OnStateChanged += state => {
+            bool isReorg = state == (int)OriginalMenuState.Reorganize;
+            
+            if(Panel != null) {
+                Panel.gameObject.SetActive(!isReorg);
+            }
+            
+            if(exitReorganizeObj != null) {
+                exitReorganizeObj.SetActive(isReorg);
+            }
+        };
+
         _onPageSettings = state => {
             if(state == TranslationFailState.Success) {
                 PageSettings.OnTranslatorLoadEnd();
@@ -91,6 +106,48 @@ public static class UICore {
         if(MainCore.Conf.ShowOnStartup) {
             Open(true);
         }
+    }
+
+    private static void CreateExitReorganizeButton() {
+        exitReorganizeObj = new GameObject("ExitReorganizeButton");
+        exitReorganizeObj.transform.SetParent(canvasObj.transform, false);
+
+        var rect = exitReorganizeObj.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 1f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.sizeDelta = new Vector2(240f, 60f);
+        rect.anchoredPosition = new Vector2(0f, -40f);
+
+        var img = exitReorganizeObj.AddComponent<Image>();
+        img.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P1024);
+        img.type = Image.Type.Sliced;
+        img.color = UIColors.MenuHighlight;
+
+        var btn = exitReorganizeObj.AddComponent<Button>();
+        btn.onClick.AddListener(() => {
+            MenuFactory.SetState((int)OriginalMenuState.Status);
+        });
+
+        GameObject textObj = new("Text");
+        textObj.transform.SetParent(rect, false);
+        var textRect = textObj.AddComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
+
+        var label = textObj.AddComponent<TextMeshProUGUI>();
+        label.text = "Exit Reorganize";
+        label.font = FontManager.Current;
+        label.fontSize = 24f;
+        label.color = Color.white;
+        label.alignment = TextAlignmentOptions.Center;
+        
+        label.gameObject.AddComponent<TextLocalization>()
+            .Init("EXIT_REORGANIZE", "Exit Reorganize");
+
+        exitReorganizeObj.SetActive(false);
     }
 
     private static bool firstRunHelperActivated = false;
@@ -211,6 +268,7 @@ public static class UICore {
     public static RectTransform MenuContent;
     private static RectTransform Page;
     private static CanvasGroup menuCanvasGroup;
+    private static GameObject exitReorganizeObj;
 
     public static float PanelScale {
         get;
@@ -488,6 +546,7 @@ public static class UICore {
     private static GTween resetSequence;
 
     private static bool isOpen = false;
+    public static bool IsOpen => isOpen;
 
     public static Vector2 LastPanelPosition;
     public static Vector2 LastPanelSize;
@@ -600,7 +659,7 @@ public static class UICore {
 
         canvasObj.SetActive(true);
 
-        panelTweener = Panel.GTAnchorPos(LastPanelPosition, 0.1f)
+        panelTweener = Panel.GTAnchorPos(LastPanelPosition, 0.25f)
             .SetEasing(Easing.OutExpo);
         MainCore.TC.Play(panelTweener);
 
@@ -645,7 +704,7 @@ public static class UICore {
         Vector2 targetPos = GetRandomOffscreenPosition();
 
         panelTweener = Panel
-            .GTAnchorPos(targetPos, 0.1f)
+            .GTAnchorPos(targetPos, 0.25f)
             .SetEasing(Easing.OutExpo)
             .OnComplete(() => canvasObj.SetActive(false));
         MainCore.TC.Play(panelTweener);

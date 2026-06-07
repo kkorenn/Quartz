@@ -11,7 +11,14 @@ public static class GameStats {
         get {
             try {
                 scrController c = scrController.instance;
-                return c != null && c.gameworld;
+                if (c == null || !c.gameworld || c.paused) return false;
+
+                if (ADOBase.isLevelEditor) {
+                    scnEditor ed = scnEditor.instance;
+                    if (ed != null && ed.inStrictlyEditingMode) return false;
+                }
+
+                return true;
             } catch {
                 return false;
             }
@@ -22,7 +29,9 @@ public static class GameStats {
         get {
             try {
                 scrController c = scrController.instance;
-                return c != null ? c.percentComplete : 0f;
+                if (c == null) return 0f;
+                if (c.currentSeqID == 0) return 0f;
+                return c.percentComplete;
             } catch {
                 return 0f;
             }

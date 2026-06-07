@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Koren.Loader.ML")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("2.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3f9c1f86be3494e0bf2ec38b33ef9da1ee6eb997")]
 [assembly: System.Reflection.AssemblyProductAttribute("Koren.Loader.ML")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Koren.Loader.ML")]
 [assembly: System.Reflection.AssemblyVersionAttribute("2.0.0.0")]

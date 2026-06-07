@@ -26,6 +26,7 @@ public static class StatusOverlay {
 
     private static GameObject canvasObj;
     private static RectTransform panel;
+    private static GameObject dragObj;
     private static Image background;
     private static TextMeshProUGUI text;
     private static Updater updater;
@@ -85,6 +86,7 @@ public static class StatusOverlay {
 
         // Drag area (full-stretch, receives pointer; drags the parent panel).
         GameObject drag = new("Drag");
+        dragObj = drag;
         drag.transform.SetParent(panel, false);
         RectTransform dragRect = drag.AddComponent<RectTransform>();
         dragRect.anchorMin = Vector2.zero;
@@ -151,6 +153,7 @@ public static class StatusOverlay {
         Object.Destroy(canvasObj);
         canvasObj = null;
         panel = null;
+        dragObj = null;
         background = null;
         text = null;
         updater = null;
@@ -166,9 +169,15 @@ public static class StatusOverlay {
                 return;
             }
 
-            bool show = Conf.Enabled && GameStats.InGame;
+            bool isReorganizing = UICore.IsOpen && UICore.CurrentMenuState == (int)OriginalMenuState.Reorganize;
+            bool show = (Conf.Enabled && GameStats.InGame) || isReorganizing;
+            
             if(panel.gameObject.activeSelf != show) {
                 panel.gameObject.SetActive(show);
+            }
+
+            if(dragObj != null && dragObj.activeSelf != isReorganizing) {
+                dragObj.SetActive(isReorganizing);
             }
 
             if(!show) {

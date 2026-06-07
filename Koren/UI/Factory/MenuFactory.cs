@@ -1,4 +1,4 @@
-﻿using Koren.Core;
+using Koren.Core;
 using Koren.Localization;
 using Koren.Resource;
 using Koren.UI.Transition;
@@ -37,13 +37,17 @@ public static class MenuFactory {
 
         var status = CreateItem(parent, "Status", MainCore.Spr.Get(UISprite.Monitor128), 0);
         var settings = CreateItem(parent, "Settings", MainCore.Spr.Get(UISprite.Gear128), 1);
-        var credits = CreateItem(parent, "Credits", MainCore.Spr.Get(UISprite.Star128), 2);
+        var reorganize = CreateItem(parent, "Reorganize", MainCore.Spr.Get(UISprite.ToggleCircle128), 2);
+        var credits = CreateItem(parent, "Credits", MainCore.Spr.Get(UISprite.Star128), 3);
 
         status.label.gameObject.AddComponent<TextLocalization>()
             .Init("STATUS", "Status");
 
         settings.label.gameObject.AddComponent<TextLocalization>()
             .Init("SETTINGS", "Settings");
+
+        reorganize.label.gameObject.AddComponent<TextLocalization>()
+            .Init("REORGANIZE", "Reorganize");
 
         credits.label.gameObject.AddComponent<TextLocalization>()
             .Init("CREDITS", "Credits");
@@ -148,7 +152,7 @@ public static class MenuFactory {
         return menuItem;
     }
 
-    private static void SetState(int to) {
+    public static void SetState(int to) {
         int from = UICore.CurrentMenuState;
 
         if(from == to) {

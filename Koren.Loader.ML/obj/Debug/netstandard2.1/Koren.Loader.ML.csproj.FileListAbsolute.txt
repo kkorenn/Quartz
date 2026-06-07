@@ -128,3 +128,4 @@
 /Users/koren/Documents/KorenResourcePack_v2/Koren.Loader.ML/bin/Debug/netstandard2.1/UnityEngine.ARModule.dll
 /Users/koren/Documents/KorenResourcePack_v2/Koren.Loader.ML/bin/Debug/netstandard2.1/UnityEngine.InputModule.dll
 /Users/koren/Documents/KorenResourcePack_v2/Koren.Loader.ML/bin/Debug/netstandard2.1/Unity.Services.Core.dll
+/Users/koren/Documents/KorenResourcePack_v2/Koren.Loader.ML/obj/Debug/netstandard2.1/Koren.Loader.ML.sourcelink.json

@@ -108,3 +108,4 @@
 /Users/koren/Documents/KorenResourcePack_v2/Koren/bin/Debug/netstandard2.1/Unity.Services.Core.Internal.dll
 /Users/koren/Documents/KorenResourcePack_v2/Koren/bin/Debug/netstandard2.1/Microsoft.Bcl.AsyncInterfaces.dll
 /Users/koren/Documents/KorenResourcePack_v2/Koren/bin/Debug/netstandard2.1/Unity.Services.Core.dll
+/Users/koren/Documents/KorenResourcePack_v2/Koren/obj/Debug/netstandard2.1/Koren.sourcelink.json
