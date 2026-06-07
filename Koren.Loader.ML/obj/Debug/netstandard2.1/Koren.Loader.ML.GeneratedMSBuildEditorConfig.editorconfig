@@ -1,6 +1,6 @@
 is_global = true
 build_property.RootNamespace = Koren.Loader.ML
-build_property.ProjectDir = /Users/koren/Documents/KorenResourcePack_v2/Koren.Loader.ML/
+build_property.ProjectDir = /Users/preluminance/Coding/KorenResourcePack_v2/Koren.Loader.ML/
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.CsWinRTUseWindowsUIXamlProjections = false

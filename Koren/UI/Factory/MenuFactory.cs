@@ -35,13 +35,17 @@ public static class MenuFactory {
     public static void CreateMenu(Transform parent) {
         items.Clear();
 
-        var status = CreateItem(parent, "Status", MainCore.Spr.Get(UISprite.Monitor128), 0);
-        var settings = CreateItem(parent, "Settings", MainCore.Spr.Get(UISprite.Gear128), 1);
-        var reorganize = CreateItem(parent, "Reorganize", MainCore.Spr.Get(UISprite.ToggleCircle128), 2);
-        var credits = CreateItem(parent, "Credits", MainCore.Spr.Get(UISprite.Star128), 3);
+        var status = CreateItem(parent, "Status", MainCore.Spr.Get(UISprite.Monitor128), (int)OriginalMenuState.Status);
+        var progressBar = CreateItem(parent, "Progress Bar", MainCore.Spr.Get(UISprite.Triangle128), (int)OriginalMenuState.ProgressBar);
+        var settings = CreateItem(parent, "Settings", MainCore.Spr.Get(UISprite.Gear128), (int)OriginalMenuState.Settings);
+        var reorganize = CreateItem(parent, "Reorganize", MainCore.Spr.Get(UISprite.ToggleCircle128), (int)OriginalMenuState.Reorganize);
+        var credits = CreateItem(parent, "Credits", MainCore.Spr.Get(UISprite.Star128), (int)OriginalMenuState.Credits);
 
         status.label.gameObject.AddComponent<TextLocalization>()
             .Init("STATUS", "Status");
+
+        progressBar.label.gameObject.AddComponent<TextLocalization>()
+            .Init("PROGRESS_BAR", "Progress Bar");
 
         settings.label.gameObject.AddComponent<TextLocalization>()
             .Init("SETTINGS", "Settings");

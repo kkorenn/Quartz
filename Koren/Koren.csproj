@@ -24,6 +24,7 @@
 
 	<ItemGroup>
 		<Reference Include="Newtonsoft.Json"><HintPath>$(GamePath)/$(GameData)/Managed/Newtonsoft.Json.dll</HintPath></Reference>
+		<Reference Include="0Harmony"><HintPath>$(GamePath)/MelonLoader/net35/0Harmony.dll</HintPath></Reference>
 	</ItemGroup>
 
 	<ItemGroup Condition="!$(Configuration.Contains('IL2CPP'))">
@@ -34,6 +35,7 @@
 		<Reference Include="UnityEngine"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.CoreModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.CoreModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.AnimationModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.AnimationModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.AudioModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.AudioModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.IMGUIModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.IMGUIModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.ImageConversionModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
@@ -57,6 +59,7 @@
 		<Reference Include="UnityEngine"><HintPath>$(Il2CppPath)/UnityEngine.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.CoreModule"><HintPath>$(Il2CppPath)/UnityEngine.CoreModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.AnimationModule"><HintPath>$(Il2CppPath)/UnityEngine.AnimationModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.AudioModule"><HintPath>$(Il2CppPath)/UnityEngine.AudioModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.IMGUIModule"><HintPath>$(Il2CppPath)/UnityEngine.IMGUIModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(Il2CppPath)/UnityEngine.ImageConversionModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(Il2CppPath)/UnityEngine.InputLegacyModule.dll</HintPath></Reference>

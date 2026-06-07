@@ -26,6 +26,7 @@ namespace Koren.UI;
 
 public enum OriginalMenuState {
     Status,
+    ProgressBar,
     Settings,
     Reorganize,
     Credits,

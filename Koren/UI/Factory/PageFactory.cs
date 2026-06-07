@@ -29,6 +29,7 @@ public static class PageFactory {
         PageCredits.Create(UICore.Pages[(int)OriginalMenuState.Credits]);
         PageSettings.Create(UICore.Pages[(int)OriginalMenuState.Settings]);
         PageStatus.Create(UICore.Pages[(int)OriginalMenuState.Status]);
+        PageProgressBar.Create(UICore.Pages[(int)OriginalMenuState.ProgressBar]);
         PageReorganize.Create(UICore.Pages[(int)OriginalMenuState.Reorganize]);
 
         return PagesContaner;

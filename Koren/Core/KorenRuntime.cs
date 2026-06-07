@@ -3,6 +3,8 @@ using Koren.Async;
 using Koren.Compat;
 using Koren.Compat.Interface;
 using Koren.Core.Service;
+using Koren.Features.PlayCount;
+using Koren.Features.ProgressBar;
 using Koren.Features.Status;
 using Koren.IO;
 using Koren.Resource;
@@ -45,6 +47,8 @@ public sealed class KorenRuntime {
 
     private UIService uiService;
     private TweenService tweenService;
+    private HarmonyService harmonyService;
+    private PlayCount playCount;
 
     public KorenRuntime(IKorenHost host) {
         Host = host;
@@ -87,10 +91,16 @@ public sealed class KorenRuntime {
 
         uiService = new UIService();
         tweenService = new TweenService(TweensContext);
+        harmonyService = new HarmonyService();
+        playCount = new PlayCount();
 
         services.Add(Localization);
         services.Add(uiService);
         services.Add(tweenService);
+        services.Add(playCount);
+        services.Add(harmonyService);
+
+        ticks.Add(playCount);
 
         ticks.Add(uiService);
         ticks.Add(tweenService);
@@ -137,6 +147,7 @@ public sealed class KorenRuntime {
 
         if(enabled) {
             StatusOverlay.Initialize(RootObject);
+            ProgressBarOverlay.Initialize(RootObject);
 
             OnModEnabledChanged?.Invoke(true, isDispose);
 
@@ -144,6 +155,7 @@ public sealed class KorenRuntime {
         } else {
             OnModEnabledChanged?.Invoke(false, isDispose);
 
+            ProgressBarOverlay.Dispose();
             StatusOverlay.Dispose();
 
             Logger.Msg("Mod Disabled");

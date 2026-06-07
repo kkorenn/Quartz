@@ -91,6 +91,22 @@
           }
         }
       },
+      "Assembly-CSharp/0.0.0.0": {
+        "runtime": {
+          "Assembly-CSharp.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.4.3.0"
+          }
+        }
+      },
+      "UnityEngine.AudioModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.AudioModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
       "UnityEngine.InputLegacyModule/0.0.0.0": {
         "runtime": {
           "UnityEngine.InputLegacyModule.dll": {
@@ -283,6 +299,214 @@
           }
         }
       },
+      "SkyHook.Unity/0.0.0.0": {
+        "runtime": {
+          "SkyHook.Unity.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Unity.ResourceManager/0.0.0.0": {
+        "runtime": {
+          "Unity.ResourceManager.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Assembly-CSharp-firstpass/0.0.0.0": {
+        "runtime": {
+          "Assembly-CSharp-firstpass.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.UnityWebRequestModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.UnityWebRequestModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "DOTween/1.0.0.0": {
+        "runtime": {
+          "DOTween.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.ParticleSystemModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.ParticleSystemModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "com.rlabrecque.steamworks.net/0.0.0.0": {
+        "runtime": {
+          "com.rlabrecque.steamworks.net.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "RDTools/1.0.8630.31434": {
+        "runtime": {
+          "RDTools.dll": {
+            "assemblyVersion": "1.0.8630.31434",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.VideoModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.VideoModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "DOTweenPro/1.0.0.0": {
+        "runtime": {
+          "DOTweenPro.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.SpriteMaskModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.SpriteMaskModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Unity.Purchasing/0.0.0.0": {
+        "runtime": {
+          "Unity.Purchasing.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Unity.Purchasing.Security/0.0.0.0": {
+        "runtime": {
+          "Unity.Purchasing.Security.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Unity.Purchasing.SecurityCore/0.0.0.0": {
+        "runtime": {
+          "Unity.Purchasing.SecurityCore.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Rewired_Core/1.0.0.0": {
+        "runtime": {
+          "Rewired_Core.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "System.Text.Json/8.0.0.3": {
+        "runtime": {
+          "System.Text.Json.dll": {
+            "assemblyVersion": "8.0.0.3",
+            "fileVersion": "8.0.324.11423"
+          }
+        }
+      },
+      "Unity.Addressables/0.0.0.0": {
+        "runtime": {
+          "Unity.Addressables.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityFileDialog/0.0.0.0": {
+        "runtime": {
+          "UnityFileDialog.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.CrashReportingModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.CrashReportingModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.UnityAnalyticsModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.UnityAnalyticsModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.UnityAnalyticsCommonModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.UnityAnalyticsCommonModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Rewired_OSX/1.0.0.0": {
+        "runtime": {
+          "Rewired_OSX.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "System.Text.Encodings.Web/10.0.0.6": {
+        "runtime": {
+          "System.Text.Encodings.Web.dll": {
+            "assemblyVersion": "10.0.0.6",
+            "fileVersion": "10.0.626.17701"
+          }
+        }
+      },
+      "UnityEngine.UnityWebRequestAudioModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.UnityWebRequestAudioModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.UnityWebRequestTextureModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.UnityWebRequestTextureModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.ScreenCaptureModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.ScreenCaptureModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
       "MonoMod.ILHelpers/1.1.0.0": {
         "runtime": {
           "MonoMod.ILHelpers.dll": {
@@ -346,6 +570,358 @@
             "fileVersion": "0.0.0.0"
           }
         }
+      },
+      "UnityEngine.UnityWebRequestAssetBundleModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.UnityWebRequestAssetBundleModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.AssetBundleModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.AssetBundleModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.AndroidJNIModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.AndroidJNIModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.UnityWebRequestWWWModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.UnityWebRequestWWWModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Unity.Purchasing.Utilities/0.0.0.0": {
+        "runtime": {
+          "Unity.Purchasing.Utilities.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Unity.Services.Core.Internal/0.0.0.0": {
+        "runtime": {
+          "Unity.Services.Core.Internal.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Microsoft.Bcl.AsyncInterfaces/8.0.0.0": {
+        "runtime": {
+          "Microsoft.Bcl.AsyncInterfaces.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        }
+      },
+      "UnityEngine.VectorGraphicsModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.VectorGraphicsModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.DSPGraphModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.DSPGraphModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.UnityCurlModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.UnityCurlModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.HierarchyModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.HierarchyModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.ContentLoadModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.ContentLoadModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.MultiplayerModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.MultiplayerModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.TLSModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.TLSModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.MarshallingModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.MarshallingModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.AccessibilityModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.AccessibilityModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.AdaptivePerformanceModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.AdaptivePerformanceModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.UnityConnectModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.UnityConnectModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.AIModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.AIModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.PerformanceReportingModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.PerformanceReportingModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.ClothModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.ClothModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.ClusterInputModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.ClusterInputModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.ClusterRendererModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.ClusterRendererModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.TerrainModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.TerrainModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.VFXModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.VFXModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.VRModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.VRModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.IdentifiersModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.IdentifiersModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.SubsystemsModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.SubsystemsModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.LocalizationModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.LocalizationModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.DirectorModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.DirectorModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.RenderAs2DModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.RenderAs2DModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.VirtualTexturingModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.VirtualTexturingModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.ShaderRuntimeModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.ShaderRuntimeModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.GameCenterModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.GameCenterModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.StreamingModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.StreamingModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.TerrainPhysicsModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.TerrainPhysicsModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.UnityConsentModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.UnityConsentModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.VehiclesModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.VehiclesModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.WindModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.WindModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.XRModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.XRModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.ARModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.ARModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "UnityEngine.InputModule/0.0.0.0": {
+        "runtime": {
+          "UnityEngine.InputModule.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Unity.Services.Core/0.0.0.0": {
+        "runtime": {
+          "Unity.Services.Core.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
       }
     }
   },
@@ -398,6 +974,16 @@
       "sha512": ""
     },
     "Newtonsoft.Json/13.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Assembly-CSharp/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.AudioModule/0.0.0.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""
@@ -522,6 +1108,136 @@
       "serviceable": false,
       "sha512": ""
     },
+    "SkyHook.Unity/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Unity.ResourceManager/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Assembly-CSharp-firstpass/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.UnityWebRequestModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "DOTween/1.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.ParticleSystemModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "com.rlabrecque.steamworks.net/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "RDTools/1.0.8630.31434": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.VideoModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "DOTweenPro/1.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.SpriteMaskModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Unity.Purchasing/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Unity.Purchasing.Security/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Unity.Purchasing.SecurityCore/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Rewired_Core/1.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "System.Text.Json/8.0.0.3": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Unity.Addressables/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityFileDialog/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.CrashReportingModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.UnityAnalyticsModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.UnityAnalyticsCommonModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Rewired_OSX/1.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "System.Text.Encodings.Web/10.0.0.6": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.UnityWebRequestAudioModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.UnityWebRequestTextureModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.ScreenCaptureModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
     "MonoMod.ILHelpers/1.1.0.0": {
       "type": "reference",
       "serviceable": false,
@@ -558,6 +1274,226 @@
       "sha512": ""
     },
     "UnityEngine.GridModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.UnityWebRequestAssetBundleModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.AssetBundleModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.AndroidJNIModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.UnityWebRequestWWWModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Unity.Purchasing.Utilities/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Unity.Services.Core.Internal/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.Bcl.AsyncInterfaces/8.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.VectorGraphicsModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.DSPGraphModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.UnityCurlModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.HierarchyModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.ContentLoadModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.MultiplayerModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.TLSModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.MarshallingModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.AccessibilityModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.AdaptivePerformanceModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.UnityConnectModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.AIModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.PerformanceReportingModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.ClothModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.ClusterInputModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.ClusterRendererModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.TerrainModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.VFXModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.VRModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.IdentifiersModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.SubsystemsModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.LocalizationModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.DirectorModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.RenderAs2DModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.VirtualTexturingModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.ShaderRuntimeModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.GameCenterModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.StreamingModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.TerrainPhysicsModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.UnityConsentModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.VehiclesModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.WindModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.XRModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.ARModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "UnityEngine.InputModule/0.0.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Unity.Services.Core/0.0.0.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""

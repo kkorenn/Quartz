@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "msF+V/VFqOE=",
+  "dgSpecHash": "ZvxpxSchXZA=",
   "success": true,
-  "projectFilePath": "/Users/koren/Documents/KorenResourcePack_v2/Koren.Loader.ML/Koren.Loader.ML.csproj",
+  "projectFilePath": "/Users/preluminance/Coding/KorenResourcePack_v2/Koren.Loader.ML/Koren.Loader.ML.csproj",
   "expectedPackageFiles": [
-    "/Users/koren/.nuget/packages/microsoft.csharp/4.7.0/microsoft.csharp.4.7.0.nupkg.sha512"
+    "/Users/preluminance/.nuget/packages/microsoft.csharp/4.7.0/microsoft.csharp.4.7.0.nupkg.sha512",
+    "/Users/preluminance/.nuget/packages/netstandard.library.ref/2.1.0/netstandard.library.ref.2.1.0.nupkg.sha512"
   ],
   "logs": []
 }

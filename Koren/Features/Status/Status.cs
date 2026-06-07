@@ -17,25 +17,23 @@ using TMPro;
 
 namespace Koren.Features.Status;
 
-// First feature: a draggable on-screen HUD showing live status (FPS, frame time,
-// mod state). Self-contained — its own canvas + settings, no tag/text engine.
-// Driven entirely by StatusSettings, edited live from PageStatus.
+// Two-panel HUD showing live ADOFAI stats. Each stat has its own enable
+// toggle and an OnRight flag that routes it to either the left- or right-
+// anchored panel. Both panels are independently draggable in Reorganize
+// mode and persist their positions separately. Each panel hugs its own
+// text content (only sized while visible).
 public static class StatusOverlay {
     public static SettingsFile<StatusSettings> ConfMgr { get; private set; }
     public static StatusSettings Conf => ConfMgr.Data;
 
     private static GameObject canvasObj;
-    private static RectTransform panel;
-    private static GameObject dragObj;
-    private static Image background;
-    private static TextMeshProUGUI text;
+    private static Panel left;
+    private static Panel right;
     private static Updater updater;
 
     private const float PadX = 14f;
     private const float PadY = 10f;
 
-    // Loads the settings file without building the canvas. Lets PageStatus read
-    // config even while the mod is disabled (canvas not yet created).
     public static void EnsureConf() {
         if(ConfMgr != null) {
             return;
@@ -59,7 +57,6 @@ public static class StatusOverlay {
 
         Canvas canvas = canvasObj.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        // Below the settings panel (32767) so the menu always draws on top.
         canvas.sortingOrder = 32760;
 
         CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
@@ -69,25 +66,34 @@ public static class StatusOverlay {
 
         canvasObj.AddComponent<GraphicRaycaster>();
 
-        // Panel — top-left anchored, draggable.
-        GameObject panelObj = new("StatusPanel");
+        left = CreatePanel("StatusPanelLeft", anchorRight: false, Conf.LeftPosX, Conf.LeftPosY);
+        right = CreatePanel("StatusPanelRight", anchorRight: true, Conf.RightPosX, Conf.RightPosY);
+
+        updater = canvasObj.AddComponent<Updater>();
+
+        Apply();
+    }
+
+    private static Panel CreatePanel(string name, bool anchorRight, float posX, float posY) {
+        GameObject panelObj = new(name);
         panelObj.transform.SetParent(canvasObj.transform, false);
-        panel = panelObj.AddComponent<RectTransform>();
-        panel.anchorMin = new Vector2(0f, 1f);
-        panel.anchorMax = new Vector2(0f, 1f);
-        panel.pivot = new Vector2(0f, 1f);
-        panel.anchoredPosition = new Vector2(Conf.PosX, Conf.PosY);
 
-        background = panelObj.AddComponent<Image>();
-        background.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P1024);
-        background.type = Image.Type.Sliced;
-        background.color = UIColors.PanelBG;
-        background.raycastTarget = false;
+        Vector2 anchor = anchorRight ? new Vector2(1f, 1f) : new Vector2(0f, 1f);
 
-        // Drag area (full-stretch, receives pointer; drags the parent panel).
+        RectTransform rect = panelObj.AddComponent<RectTransform>();
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
+        rect.pivot = anchor;
+        rect.anchoredPosition = new Vector2(posX, posY);
+
+        Image bg = panelObj.AddComponent<Image>();
+        bg.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P1024);
+        bg.type = Image.Type.Sliced;
+        bg.color = UIColors.PanelBG;
+        bg.raycastTarget = false;
+
         GameObject drag = new("Drag");
-        dragObj = drag;
-        drag.transform.SetParent(panel, false);
+        drag.transform.SetParent(rect, false);
         RectTransform dragRect = drag.AddComponent<RectTransform>();
         dragRect.anchorMin = Vector2.zero;
         dragRect.anchorMax = Vector2.one;
@@ -95,45 +101,75 @@ public static class StatusOverlay {
         dragRect.offsetMax = Vector2.zero;
         drag.AddComponent<EmptyGraphic>().raycastTarget = true;
         drag.AddComponent<DragHandler>();
+        drag.SetActive(false);
 
-        // Text.
         GameObject textObj = new("Text");
-        textObj.transform.SetParent(panel, false);
+        textObj.transform.SetParent(rect, false);
         RectTransform textRect = textObj.AddComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
         textRect.anchorMax = Vector2.one;
         textRect.offsetMin = new Vector2(PadX, PadY);
         textRect.offsetMax = new Vector2(-PadX, -PadY);
 
-        text = textObj.AddComponent<TextMeshProUGUI>();
+        TextMeshProUGUI text = textObj.AddComponent<TextMeshProUGUI>();
         text.font = FontManager.Current;
-        text.alignment = TextAlignmentOptions.TopLeft;
+        text.alignment = anchorRight ? TextAlignmentOptions.TopRight : TextAlignmentOptions.TopLeft;
         text.color = Color.white;
         text.raycastTarget = false;
         text.text = "";
 
-        updater = canvasObj.AddComponent<Updater>();
-
-        Apply();
+        return new Panel {
+            Rect = rect,
+            Background = bg,
+            DragObj = drag,
+            Text = text,
+            AnchorRight = anchorRight,
+        };
     }
 
-    // Pushes settings into the live visuals. Called on init + whenever PageStatus
-    // changes a value.
     public static void Apply() {
-        if(panel == null) {
+        if(left == null && right == null) {
             return;
         }
 
-        // Visibility (Enabled + in-game) is owned by the per-frame Updater; Apply
-        // only pushes look settings.
-        if(text != null) {
-            text.fontSize = Conf.FontSize;
-            text.color = Conf.GetTextColor();
+        ApplyPanel(left);
+        ApplyPanel(right);
+    }
+
+    private static void ApplyPanel(Panel p) {
+        if(p == null) {
+            return;
         }
 
-        if(background != null) {
-            background.enabled = Conf.BackgroundEnabled;
+        if(p.Text != null) {
+            p.Text.fontSize = Conf.FontSize;
+            p.Text.color = Conf.GetTextColor();
+            p.Text.lineSpacing = Conf.LineSpacing;
         }
+
+        if(p.Background != null) {
+            p.Background.enabled = Conf.BackgroundEnabled;
+        }
+    }
+
+    public static void ResetLeftPosition() {
+        StatusSettings def = new();
+        Conf.LeftPosX = def.LeftPosX;
+        Conf.LeftPosY = def.LeftPosY;
+        if(left?.Rect != null) {
+            left.Rect.anchoredPosition = new Vector2(def.LeftPosX, def.LeftPosY);
+        }
+        Save();
+    }
+
+    public static void ResetRightPosition() {
+        StatusSettings def = new();
+        Conf.RightPosX = def.RightPosX;
+        Conf.RightPosY = def.RightPosY;
+        if(right?.Rect != null) {
+            right.Rect.anchoredPosition = new Vector2(def.RightPosX, def.RightPosY);
+        }
+        Save();
     }
 
     public static void Save() => ConfMgr?.Save();
@@ -143,81 +179,188 @@ public static class StatusOverlay {
             return;
         }
 
-        if(panel != null) {
-            Conf.PosX = panel.anchoredPosition.x;
-            Conf.PosY = panel.anchoredPosition.y;
+        if(left?.Rect != null) {
+            Conf.LeftPosX = left.Rect.anchoredPosition.x;
+            Conf.LeftPosY = left.Rect.anchoredPosition.y;
+        }
+
+        if(right?.Rect != null) {
+            Conf.RightPosX = right.Rect.anchoredPosition.x;
+            Conf.RightPosY = right.Rect.anchoredPosition.y;
         }
 
         ConfMgr?.Save();
 
         Object.Destroy(canvasObj);
         canvasObj = null;
-        panel = null;
-        dragObj = null;
-        background = null;
-        text = null;
+        left = null;
+        right = null;
         updater = null;
     }
 
-    // Per-frame HUD refresh. Hidden unless enabled AND actually in a level; shows
-    // the live ADOFAI stats while playing.
+    private sealed class Panel {
+        public RectTransform Rect;
+        public Image Background;
+        public GameObject DragObj;
+        public TextMeshProUGUI Text;
+        public bool AnchorRight;
+    }
+
     private sealed class Updater : MonoBehaviour {
-        private readonly StringBuilder sb = new();
+        private readonly StringBuilder sbLeft = new();
+        private readonly StringBuilder sbRight = new();
 
         private void Update() {
-            if(text == null) {
+            if(left?.Text == null || right?.Text == null) {
                 return;
             }
 
             bool isReorganizing = UICore.IsOpen && UICore.CurrentMenuState == (int)OriginalMenuState.Reorganize;
             bool show = (Conf.Enabled && GameStats.InGame) || isReorganizing;
-            
-            if(panel.gameObject.activeSelf != show) {
-                panel.gameObject.SetActive(show);
+
+            sbLeft.Clear();
+            sbRight.Clear();
+
+            if(show) {
+                if(!string.IsNullOrEmpty(Conf.Prefix)) {
+                    sbLeft.AppendLine(Conf.Prefix);
+                }
+
+                if(Conf.ShowProgress) {
+                    string val = GameStats.RunHasStartProgress
+                        ? Pct(GameStats.RunStartProgress) + " - " + Pct(GameStats.Progress)
+                        : Pct(GameStats.Progress);
+                    Line(Conf.ProgressOnRight, "Progress", val);
+                }
+
+                if(Conf.ShowAccuracy) {
+                    Line(Conf.AccuracyOnRight, "Accuracy", Pct(GameStats.Accuracy));
+                }
+
+                if(Conf.ShowXAccuracy) {
+                    Line(Conf.XAccuracyOnRight, "XAccuracy", Pct(GameStats.XAccuracy));
+                }
+
+                if(Conf.ShowMaxAccuracy) {
+                    Line(Conf.MaxAccuracyOnRight, "Max Acc", Pct(GameStats.MaxAccuracy));
+                }
+
+                if(Conf.ShowMaxXAccuracy) {
+                    Line(Conf.MaxXAccuracyOnRight, "Max XAcc", Pct(GameStats.MaxXAccuracy));
+                }
+
+                if(Conf.ShowMusicTime) {
+                    Line(Conf.MusicTimeOnRight, "Music Time", GameStats.MusicTimeText);
+                }
+
+                if(Conf.ShowMapTime) {
+                    Line(Conf.MapTimeOnRight, "Map Time", GameStats.MapTimeText);
+                }
+
+                if(Conf.ShowCheckpoint) {
+                    Line(Conf.CheckpointOnRight, "Checkpoints",
+                        GameStats.CheckpointCount.ToString(CultureInfo.InvariantCulture));
+                }
+
+                if(Conf.ShowTbpm || Conf.ShowCbpm || Conf.ShowKps) {
+                    GameStats.GetBpm(out float tbpm, out float cbpm);
+                    if(Conf.ShowTbpm) {
+                        Line(Conf.TbpmOnRight, "TBPM",
+                            tbpm.ToString("0.##", CultureInfo.InvariantCulture));
+                    }
+                    if(Conf.ShowCbpm) {
+                        Line(Conf.CbpmOnRight, "CBPM",
+                            cbpm.ToString("0.##", CultureInfo.InvariantCulture));
+                    }
+                    if(Conf.ShowKps) {
+                        Line(Conf.KpsOnRight, "KPS",
+                            (cbpm / 60f).ToString("0.##", CultureInfo.InvariantCulture));
+                    }
+                }
+
+                if(Conf.ShowHold) {
+                    string hold = GameStats.HoldBehaviorLabel;
+                    if(!string.IsNullOrEmpty(hold)) {
+                        Line(Conf.HoldOnRight, "Holds", hold);
+                    }
+                }
+
+                if(Conf.ShowTimingScale) {
+                    Line(Conf.TimingScaleOnRight, "Timing Scale",
+                        (GameStats.MarginScale * 100f).ToString("0.##", CultureInfo.InvariantCulture) + "%");
+                }
+
+                if(Conf.ShowCombo) {
+                    Line(Conf.ComboOnRight, "Combo",
+                        GameStats.Combo.ToString(CultureInfo.InvariantCulture));
+                }
+
+                if(Conf.ShowAttempt) {
+                    Line(Conf.AttemptOnRight, "Attempt",
+                        GameStats.SessionAttempts.ToString(CultureInfo.InvariantCulture));
+                }
+
+                if(Conf.ShowTotalAttempt) {
+                    Line(Conf.TotalAttemptOnRight, "Total Attempts",
+                        GameStats.TotalAttempts.ToString(CultureInfo.InvariantCulture));
+                }
+
+                if(Conf.ShowBest) {
+                    Line(Conf.BestOnRight, "Best", Pct(GameStats.Best));
+                }
+
+                if(Conf.ShowFps) {
+                    Line(Conf.FpsOnRight, "FPS",
+                        GameStats.Fps.ToString(CultureInfo.InvariantCulture));
+                }
             }
 
-            if(dragObj != null && dragObj.activeSelf != isReorganizing) {
-                dragObj.SetActive(isReorganizing);
-            }
+            ApplyPanel(left, sbLeft, isReorganizing);
+            ApplyPanel(right, sbRight, isReorganizing);
+        }
 
-            if(!show) {
+        private static void ApplyPanel(Panel p, StringBuilder sb, bool isReorganizing) {
+            if(p?.Text == null) {
                 return;
             }
 
-            sb.Clear();
-
-            if(!string.IsNullOrEmpty(Conf.Prefix)) {
-                sb.AppendLine(Conf.Prefix);
+            string body = sb.Length == 0 ? "" : sb.ToString().TrimEnd();
+            // Reorganize mode forces the empty panel to render its name so the
+            // user has a hit target to grab.
+            if(isReorganizing && body.Length == 0) {
+                body = p.AnchorRight ? "Status (Right)" : "Status (Left)";
             }
 
-            if(Conf.ShowProgress) {
-                Line("Progress", GameStats.Progress);
+            bool active = body.Length > 0 || isReorganizing;
+            if(p.Rect.gameObject.activeSelf != active) {
+                p.Rect.gameObject.SetActive(active);
             }
 
-            if(Conf.ShowAccuracy) {
-                Line("Accuracy", GameStats.Accuracy);
+            if(p.DragObj != null && p.DragObj.activeSelf != isReorganizing) {
+                p.DragObj.SetActive(isReorganizing);
             }
 
-            if(Conf.ShowXAccuracy) {
-                Line("XAccuracy", GameStats.XAccuracy);
+            if(!active) {
+                return;
             }
 
-            if(Conf.ShowMaxXAccuracy) {
-                Line("Max XAcc", GameStats.MaxXAccuracy);
+            p.Text.text = body;
+
+            Vector2 pref = p.Text.GetPreferredValues(p.Text.text);
+            p.Rect.sizeDelta = new Vector2(pref.x + PadX * 2f, pref.y + PadY * 2f);
+
+            if(p.AnchorRight) {
+                Conf.RightPosX = p.Rect.anchoredPosition.x;
+                Conf.RightPosY = p.Rect.anchoredPosition.y;
+            } else {
+                Conf.LeftPosX = p.Rect.anchoredPosition.x;
+                Conf.LeftPosY = p.Rect.anchoredPosition.y;
             }
-
-            text.text = sb.ToString().TrimEnd();
-
-            // Hug the text + keep the live position in settings (saved on Dispose).
-            Vector2 pref = text.GetPreferredValues(text.text);
-            panel.sizeDelta = new Vector2(pref.x + PadX * 2f, pref.y + PadY * 2f);
-
-            Conf.PosX = panel.anchoredPosition.x;
-            Conf.PosY = panel.anchoredPosition.y;
         }
 
-        private void Line(string label, float ratio) {
-            sb.Append(label).Append("  ").AppendLine(Pct(ratio));
+        private void Line(bool onRight, string label, string value) {
+            StringBuilder sb = onRight ? sbRight : sbLeft;
+            sb.Append(label).Append(Conf.LabelSeparator).AppendLine(value);
         }
 
         private static string Pct(float ratio) {
