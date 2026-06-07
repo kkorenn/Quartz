@@ -1,0 +1,96 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>netstandard2.1</TargetFramework>
+		<PlatformTarget>x64</PlatformTarget>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>disable</Nullable>
+		<RootNamespace>Koren</RootNamespace>
+		<AssemblyName>Koren</AssemblyName>
+		<LangVersion>latest</LangVersion>
+		<IsPackable>false</IsPackable>
+		<AssemblyVersion>2.0.0.0</AssemblyVersion>
+		<FileVersion>2.0.0.0</FileVersion>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+		<Configurations>Debug;Release;Release_IL2CPP;Debug_IL2CPP</Configurations>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="$(Configuration.Contains('IL2CPP'))">
+		<DefineConstants>$(DefineConstants);IL2CPP</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Reference Include="Newtonsoft.Json"><HintPath>$(GamePath)/$(GameData)/Managed/Newtonsoft.Json.dll</HintPath></Reference>
+	</ItemGroup>
+
+	<ItemGroup Condition="!$(Configuration.Contains('IL2CPP'))">
+		<Reference Include="Assembly-CSharp"><HintPath>$(GamePath)/$(GameData)/Managed/Assembly-CSharp.dll</HintPath></Reference>
+		<Reference Include="Assembly-CSharp-firstpass"><HintPath>$(GamePath)/$(GameData)/Managed/Assembly-CSharp-firstpass.dll</HintPath></Reference>
+		<Reference Include="RDTools"><HintPath>$(GamePath)/$(GameData)/Managed/RDTools.dll</HintPath></Reference>
+		<Reference Include="Unity.TextMeshPro"><HintPath>$(GamePath)/$(GameData)/Managed/Unity.TextMeshPro.dll</HintPath></Reference>
+		<Reference Include="UnityEngine"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.CoreModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.CoreModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.AnimationModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.AnimationModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.IMGUIModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.IMGUIModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.ImageConversionModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.PhysicsModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.PhysicsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.Physics2DModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.Physics2DModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.SharedInternalsModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.SharedInternalsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextCoreFontEngineModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.TextCoreFontEngineModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextCoreTextEngineModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.TextCoreTextEngineModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.TextRenderingModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UI"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.UI.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UIElementsModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.UIElementsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UIModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.UIModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.PropertiesModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.PropertiesModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.JSONSerializeModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.JSONSerializeModule.dll</HintPath></Reference>
+	</ItemGroup>
+
+	<ItemGroup Condition="$(Configuration.Contains('IL2CPP'))">
+		<Reference Include="Assembly-CSharp"><HintPath>$(Il2CppPath)/Assembly-CSharp.dll</HintPath></Reference>
+		<Reference Include="RDTools"><HintPath>$(Il2CppPath)/RDTools.dll</HintPath></Reference>
+		<Reference Include="Unity.TextMeshPro"><HintPath>$(Il2CppPath)/Unity.TextMeshPro.dll</HintPath></Reference>
+		<Reference Include="UnityEngine"><HintPath>$(Il2CppPath)/UnityEngine.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.CoreModule"><HintPath>$(Il2CppPath)/UnityEngine.CoreModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.AnimationModule"><HintPath>$(Il2CppPath)/UnityEngine.AnimationModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.IMGUIModule"><HintPath>$(Il2CppPath)/UnityEngine.IMGUIModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(Il2CppPath)/UnityEngine.ImageConversionModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(Il2CppPath)/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.PhysicsModule"><HintPath>$(Il2CppPath)/UnityEngine.PhysicsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.Physics2DModule"><HintPath>$(Il2CppPath)/UnityEngine.Physics2DModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.SharedInternalsModule"><HintPath>$(Il2CppPath)/UnityEngine.SharedInternalsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextCoreFontEngineModule"><HintPath>$(Il2CppPath)/UnityEngine.TextCoreFontEngineModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextCoreTextEngineModule"><HintPath>$(Il2CppPath)/UnityEngine.TextCoreTextEngineModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(Il2CppPath)/UnityEngine.TextRenderingModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UI"><HintPath>$(Il2CppPath)/UnityEngine.UI.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UIElementsModule"><HintPath>$(Il2CppPath)/UnityEngine.UIElementsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UIModule"><HintPath>$(Il2CppPath)/UnityEngine.UIModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.PropertiesModule"><HintPath>$(Il2CppPath)/UnityEngine.PropertiesModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.JSONSerializeModule"><HintPath>$(Il2CppPath)/UnityEngine.JSONSerializeModule.dll</HintPath></Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Resource\Embedded\**\*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+	</ItemGroup>
+
+	<!-- Auto-install: drop Koren.dll into UserLibs and export language files to UserData/Koren -->
+	<Target Name="PostBuild" AfterTargets="Build">
+		<MakeDir Directories="$(GamePath)/UserLibs" Condition="'$(TargetPath)' != ''" />
+		<Copy Condition="'$(TargetPath)' != ''" SourceFiles="$(TargetPath)" DestinationFolder="$(GamePath)/UserLibs" SkipUnchangedFiles="true" />
+
+		<ItemGroup>
+			<ExportFiles Include="Resource/Export/**/*.*" />
+		</ItemGroup>
+
+		<MakeDir Directories="$(GamePath)/UserData/Koren" />
+		<Copy SourceFiles="@(ExportFiles)" DestinationFiles="@(ExportFiles->'$(GamePath)/UserData/Koren/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+	</Target>
+</Project>

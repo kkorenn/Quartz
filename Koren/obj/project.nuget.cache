@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "uz4A1SLR2/k=",
+  "success": true,
+  "projectFilePath": "/Users/koren/Documents/KorenResourcePack_v2/Koren/Koren.csproj",
+  "expectedPackageFiles": [
+    "/Users/koren/.nuget/packages/microsoft.csharp/4.7.0/microsoft.csharp.4.7.0.nupkg.sha512"
+  ],
+  "logs": []
+}

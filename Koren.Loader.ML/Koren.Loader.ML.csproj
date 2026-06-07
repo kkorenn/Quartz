@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>disable</Nullable>
+        <RootNamespace>Koren.Loader.ML</RootNamespace>
+        <AssemblyName>Koren.Loader.ML</AssemblyName>
+        <LangVersion>latest</LangVersion>
+        <IsPackable>false</IsPackable>
+        <AssemblyVersion>2.0.0.0</AssemblyVersion>
+        <FileVersion>2.0.0.0</FileVersion>
+        <NeutralLanguage>en-US</NeutralLanguage>
+        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+        <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+        <Configurations>Debug;Release;Release_IL2CPP;Debug_IL2CPP</Configurations>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Koren\Koren.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Reference Include="MelonLoader">
+            <HintPath>$(GamePath)/MelonLoader/net35/MelonLoader.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+    <!-- Auto-install: drop the MelonLoader entry DLL into the game's Mods folder -->
+    <Target Name="PostBuild" AfterTargets="Build">
+        <MakeDir Directories="$(GamePath)/Mods" Condition="'$(TargetPath)' != ''" />
+        <Copy Condition="'$(TargetPath)' != ''" SourceFiles="$(TargetPath)" DestinationFolder="$(GamePath)/Mods" SkipUnchangedFiles="true" />
+   </Target>
+</Project>

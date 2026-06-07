@@ -1,0 +1,20 @@
+<!-- Directory.Build.props.example — copy to Directory.Build.props and edit paths -->
+<Project>
+    <PropertyGroup>
+        <!--
+            macOS (Steam) — Managed is inside the .app bundle:
+              GamePath = ~/Library/Application Support/Steam/steamapps/common/A Dance of Fire and Ice
+              GameData = ADanceOfFireAndIce.app/Contents/Resources/Data
+
+            Windows (Steam):
+              GamePath = C:/Program Files (x86)/Steam/steamapps/common/A Dance of Fire and Ice
+              GameData = A Dance of Fire and Ice_Data
+
+            Linux (Steam):
+              GamePath = ~/.local/share/Steam/steamapps/common/A Dance of Fire and Ice
+              GameData = A Dance of Fire and Ice_Data
+        -->
+        <GamePath>/path/to/A Dance of Fire and Ice</GamePath>
+        <GameData>A Dance of Fire and Ice_Data</GameData>
+    </PropertyGroup>
+</Project>

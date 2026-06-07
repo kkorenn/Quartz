@@ -1,0 +1,7 @@
+<Project>
+    <PropertyGroup>
+        <!-- macOS (Steam) — Managed lives inside the .app bundle -->
+        <GamePath>/Users/koren/Library/Application Support/Steam/steamapps/common/A Dance of Fire and Ice</GamePath>
+        <GameData>ADanceOfFireAndIce.app/Contents/Resources/Data</GameData>
+    </PropertyGroup>
+</Project>

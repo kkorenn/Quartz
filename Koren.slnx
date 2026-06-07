@@ -1,0 +1,10 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Debug_IL2CPP" />
+    <BuildType Name="Release" />
+    <BuildType Name="Release_IL2CPP" />
+  </Configurations>
+  <Project Path="Koren.Loader.ML\Koren.Loader.ML.csproj" />
+  <Project Path="Koren/Koren.csproj" />
+</Solution>
