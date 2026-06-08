@@ -1,2 +1,25 @@
+# Build output
+bin/
+obj/
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userprefs
+*.swp
+*.swo
+*~
+
+# Local machine config (per-developer GamePath — use Directory.Build.example.props as template)
+Directory.Build.props
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Misc
 *.cache
+*.log
