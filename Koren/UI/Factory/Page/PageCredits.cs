@@ -55,7 +55,7 @@ internal static class PageCredits {
         subtitleRect.anchoredPosition = new Vector2(0, -60);
 
         var subtitleTmp = subtitle.AddComponent<TextMeshProUGUI>();
-        subtitleTmp.text = "A Dance of Fire and Ice — by koren";
+        subtitleTmp.text = "by koren, sbrothers7, and more.";
         subtitleTmp.font = FontManager.Current;
         subtitleTmp.fontSize = 20;
         subtitleTmp.color = new Color(1f, 1f, 1f, 0.45f);

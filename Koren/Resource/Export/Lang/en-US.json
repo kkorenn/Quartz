@@ -5,11 +5,15 @@
     "0TRANSLATORS": [
       "OVERLAYER"
     ],
+    "COMBO": "Combo",
+    "COMING_SOON": "Coming soon",
     "CREDITS": "Credits",
+    "OVERLAY": "Overlay",
     "DESC_MIDDLE_CLICK_TO_SET_AS_DEFAULT": "Setting that restores an item to its default value when you middle-click on it.\nYou can identify it by a small dot at the top-left of the item",
     "DESC_SHOW_TOOLTIP": "This is a Tooltip!",
     "DOCS": "Docs",
     "FIND": "Find",
+    "GAMEPLAY": "Gameplay",
     "LANGUAGE": "Language",
     "MIDDLE_CLICK_TO_SET_AS_DEFAULT": "Middle-click to set as default",
     "ONLY_AVAILABLE_WHEN_ENABLED": "Only available when the Mod is Enabled!",
@@ -17,7 +21,7 @@
     "RELOAD": "Reload",
     "RELOADING": "Reloading...",
     "SETTINGS": "Settings",
-    "SHOW_OVERLAYER_PANEL_AT_STARTUP": "Show Overlayer Panel at Startup",
+    "SHOW_OVERLAYER_PANEL_AT_STARTUP": "Show KorenResourcePack Settings at Startup",
     "SHOW_TOOLTIP": "Show Tooltip",
     "UI_SCALE": "UI Scale"
   }

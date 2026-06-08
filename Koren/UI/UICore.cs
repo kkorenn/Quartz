@@ -25,10 +25,9 @@ using TMPro;
 namespace Koren.UI;
 
 public enum OriginalMenuState {
-    Status,
-    ProgressBar,
+    Overlay,
+    Gameplay,
     Settings,
-    Reorganize,
     Credits,
 }
 
@@ -38,7 +37,12 @@ public static class UICore {
     private static CanvasScaler canvasScaler;
 
     public static readonly Dictionary<int, RectTransform> Pages = [];
-    public static int CurrentMenuState = (int)OriginalMenuState.Status;
+    public static int CurrentMenuState = (int)OriginalMenuState.Overlay;
+
+    // Reorganize is a mode (not a tab): it hides the settings panel and lets
+    // the on-screen overlay elements be dragged. Entered from a button on the
+    // Overlay page, exited via the floating Exit button.
+    public static bool IsReorganizing { get; private set; }
     public static readonly Vector2 ReferenceResolution = new(1920, 1080);
 
     private static Action<TranslationFailState> _onPageSettings;
@@ -68,18 +72,6 @@ public static class UICore {
         Tooltip.Initialize(canvasObj.transform);
 
         CreateExitReorganizeButton();
-
-        MenuFactory.OnStateChanged += state => {
-            bool isReorg = state == (int)OriginalMenuState.Reorganize;
-            
-            if(Panel != null) {
-                Panel.gameObject.SetActive(!isReorg);
-            }
-            
-            if(exitReorganizeObj != null) {
-                exitReorganizeObj.SetActive(isReorg);
-            }
-        };
 
         _onPageSettings = state => {
             if(state == TranslationFailState.Success) {
@@ -120,14 +112,16 @@ public static class UICore {
         rect.sizeDelta = new Vector2(240f, 60f);
         rect.anchoredPosition = new Vector2(0f, -40f);
 
+        exitReorganizeCanvasGroup = exitReorganizeObj.AddComponent<CanvasGroup>();
+
         var img = exitReorganizeObj.AddComponent<Image>();
         img.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P1024);
         img.type = Image.Type.Sliced;
-        img.color = UIColors.MenuHighlight;
+        img.color = Color.Lerp(UIColors.MenuHighlight, UIColors.MenuSelected, 0.5f);
 
         var btn = exitReorganizeObj.AddComponent<Button>();
         btn.onClick.AddListener(() => {
-            MenuFactory.SetState((int)OriginalMenuState.Status);
+            ExitReorganize();
         });
 
         GameObject textObj = new("Text");
@@ -149,6 +143,71 @@ public static class UICore {
             .Init("EXIT_REORGANIZE", "Exit Reorganize");
 
         exitReorganizeObj.SetActive(false);
+    }
+
+    // Enter reorganize mode: fade the settings panel out (then hide it),
+    // reveal the on-screen draggable overlay elements and fade the floating
+    // Exit button in.
+    public static void EnterReorganize() {
+        if(IsReorganizing) {
+            return;
+        }
+
+        IsReorganizing = true;
+
+        if(panelCanvasGroup != null) {
+            panelCanvasGroup.interactable = false;
+            panelCanvasGroup.blocksRaycasts = false;
+        }
+
+        if(exitReorganizeObj != null) {
+            exitReorganizeObj.SetActive(true);
+        }
+
+        if(exitReorganizeCanvasGroup != null) {
+            exitReorganizeCanvasGroup.alpha = 0f;
+        }
+
+        reorganizeSeq?.Kill();
+        reorganizeSeq = GTweenSequenceBuilder.New()
+            .Join(panelCanvasGroup.GTFade(0f, 0.2f).SetEasing(Easing.OutSine))
+            .Join(exitReorganizeCanvasGroup.GTFade(1f, 0.2f).SetEasing(Easing.OutSine))
+            .AppendCallback(() => {
+                if(IsReorganizing && Panel != null) {
+                    Panel.gameObject.SetActive(false);
+                }
+            })
+            .Build();
+        MainCore.TC.Play(reorganizeSeq);
+    }
+
+    public static void ExitReorganize() {
+        if(!IsReorganizing) {
+            return;
+        }
+
+        IsReorganizing = false;
+
+        if(Panel != null) {
+            Panel.gameObject.SetActive(true);
+        }
+
+        if(panelCanvasGroup != null) {
+            panelCanvasGroup.interactable = true;
+            panelCanvasGroup.blocksRaycasts = true;
+        }
+
+        reorganizeSeq?.Kill();
+        reorganizeSeq = GTweenSequenceBuilder.New()
+            .Join(panelCanvasGroup.GTFade(1f, 0.2f).SetEasing(Easing.OutSine))
+            .Join(exitReorganizeCanvasGroup.GTFade(0f, 0.2f).SetEasing(Easing.OutSine))
+            .AppendCallback(() => {
+                if(!IsReorganizing && exitReorganizeObj != null) {
+                    exitReorganizeObj.SetActive(false);
+                }
+            })
+            .Build();
+        MainCore.TC.Play(reorganizeSeq);
     }
 
     private static bool firstRunHelperActivated = false;
@@ -269,6 +328,9 @@ public static class UICore {
     public static RectTransform MenuContent;
     private static RectTransform Page;
     private static CanvasGroup menuCanvasGroup;
+    private static CanvasGroup panelCanvasGroup;
+    private static CanvasGroup exitReorganizeCanvasGroup;
+    private static GTween reorganizeSeq;
     private static GameObject exitReorganizeObj;
 
     public static float PanelScale {
@@ -304,6 +366,7 @@ public static class UICore {
         LastPanelPosition = Panel.position;
 
         panel.AddComponent<RectMask2D>();
+        panelCanvasGroup = panel.AddComponent<CanvasGroup>();
 
         {
             var outline = panel.AddComponent<Outline>();
@@ -632,6 +695,16 @@ public static class UICore {
 
         isOpen = true;
 
+        // Make sure a previous reorganize session left the panel fully visible.
+        if(Panel != null) {
+            Panel.gameObject.SetActive(true);
+        }
+        if(panelCanvasGroup != null) {
+            panelCanvasGroup.alpha = 1f;
+            panelCanvasGroup.interactable = true;
+            panelCanvasGroup.blocksRaycasts = true;
+        }
+
         Cursor.visible = true;
         Cursor.lockState = CursorLockMode.None;
 
@@ -674,6 +747,9 @@ public static class UICore {
         if(!isOpen) {
             return;
         }
+
+        // Leaving reorganize restores the panel so the next open is clean.
+        ExitReorganize();
 
         isOpen = false;
 

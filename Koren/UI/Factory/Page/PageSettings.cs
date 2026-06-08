@@ -195,10 +195,10 @@ internal static class PageSettings {
                 MainCore.Conf.ShowOnStartup = toggle;
                 MainCore.ConfMgr.RequestSave();
             },
-            "Show Koren Panel at Startup",
+            "Show KorenResourcePack Settings at Startup",
             "show_on_startup"
         );
-        var startupToggleTr = startupToggle.Label.gameObject.AddComponent<TextLocalization>().Init("SHOW_OVERLAYER_PANEL_AT_STARTUP", "Show Koren Panel at Startup");
+        var startupToggleTr = startupToggle.Label.gameObject.AddComponent<TextLocalization>().Init("SHOW_OVERLAYER_PANEL_AT_STARTUP", "Show KorenResourcePack Settings at Startup");
         objects[startupToggleTr] = (overlayerText.gameObject, startupRow.gameObject);
 
         var tooltipRow = GenerateUI.Row(content.transform);

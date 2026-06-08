@@ -26,6 +26,10 @@ public static class StatusOverlay {
     public static SettingsFile<StatusSettings> ConfMgr { get; private set; }
     public static StatusSettings Conf => ConfMgr.Data;
 
+    // Master Overlay enable, null-safe for other features that gate on it
+    // before this overlay has initialized its config.
+    public static bool IsEnabled => ConfMgr?.Data is { Enabled: true };
+
     private static GameObject canvasObj;
     private static Panel left;
     private static Panel right;
@@ -215,7 +219,7 @@ public static class StatusOverlay {
                 return;
             }
 
-            bool isReorganizing = UICore.IsOpen && UICore.CurrentMenuState == (int)OriginalMenuState.Reorganize;
+            bool isReorganizing = UICore.IsReorganizing;
             bool show = (Conf.Enabled && GameStats.InGame) || isReorganizing;
 
             sbLeft.Clear();
@@ -290,11 +294,6 @@ public static class StatusOverlay {
                         (GameStats.MarginScale * 100f).ToString("0.##", CultureInfo.InvariantCulture) + "%");
                 }
 
-                if(Conf.ShowCombo) {
-                    Line(Conf.ComboOnRight, "Combo",
-                        GameStats.Combo.ToString(CultureInfo.InvariantCulture));
-                }
-
                 if(Conf.ShowAttempt) {
                     Line(Conf.AttemptOnRight, "Attempt",
                         GameStats.SessionAttempts.ToString(CultureInfo.InvariantCulture));
@@ -328,7 +327,7 @@ public static class StatusOverlay {
             // Reorganize mode forces the empty panel to render its name so the
             // user has a hit target to grab.
             if(isReorganizing && body.Length == 0) {
-                body = p.AnchorRight ? "Status (Right)" : "Status (Left)";
+                body = p.AnchorRight ? "Overlay (Right)" : "Overlay (Left)";
             }
 
             bool active = body.Length > 0 || isReorganizing;

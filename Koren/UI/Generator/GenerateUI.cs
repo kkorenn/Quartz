@@ -273,7 +273,9 @@ public static partial class GenerateUI {
         IReadOnlyList<T> values,
         Func<T, string> display,
         Action<T> onChanged,
-        string id
+        string id,
+        float width = 0f,
+        string leftLabel = null
     ) {
         GameObject root = new("Dropdown");
         root.transform.SetParent(parent, false);
@@ -291,6 +293,22 @@ public static partial class GenerateUI {
         rect.anchorMin = new(rect.anchorMin.x, 1f);
         rect.anchorMax = new(rect.anchorMax.x, 1f);
         rect.sizeDelta = new(rect.sizeDelta.x, 50f);
+
+        if(width > 0f) {
+            // Compact: a right-aligned fixed-width bar with a leading label,
+            // instead of filling the whole row. Used for small enum pickers.
+            rect.anchorMin = new(1f, 1f);
+            rect.anchorMax = new(1f, 1f);
+            rect.pivot = new(1f, 1f);
+            rect.sizeDelta = new(width, 50f);
+            rect.anchoredPosition = new(-250f, 0f);
+
+            if(leftLabel != null) {
+                TextMeshProUGUI lead = AddText(root.transform);
+                lead.text = leftLabel;
+                lead.raycastTarget = false;
+            }
+        }
 
         TextMeshProUGUI tmp = AddText(rect);
         tmp.text = display(value);
@@ -320,6 +338,15 @@ public static partial class GenerateUI {
         listRect.pivot = new(0.5f, 1f);
         listRect.offsetMin = new(0f, -62f);
         listRect.offsetMax = new(-250f, -62f);
+
+        if(width > 0f) {
+            // Align the popup under the compact bar.
+            listRect.anchorMin = new(1f, 1f);
+            listRect.anchorMax = new(1f, 1f);
+            listRect.pivot = new(1f, 1f);
+            listRect.sizeDelta = new(width, listRect.sizeDelta.y);
+            listRect.anchoredPosition = new(-250f, -62f);
+        }
 
         Image listBg = list.AddComponent<Image>();
         listBg.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P2048);

@@ -1,6 +1,9 @@
 using Koren.Core;
+using Koren.Features.Combo;
+using Koren.Features.ProgressBar;
 using Koren.Features.Status;
 using Koren.Resource;
+using Koren.UI;
 using Koren.UI.Generator;
 using Koren.UI.Objects.Impl;
 using Koren.UI.Utility;
@@ -9,10 +12,14 @@ using UnityEngine.UI;
 
 namespace Koren.UI.Factory.Page;
 
-// Settings page for the Status HUD feature. Stats are grouped into
+// Settings page for the Overlay HUD feature. Stats are grouped into
 // collapsible category sections. Each stat row has a "Show X" toggle plus
 // a Left | Right side selector.
-internal static class PageStatus {
+internal static class PageOverlay {
+    // Side selector options for the per-stat Left|Right dropdowns
+    // (true = Left, false = Right).
+    private static readonly bool[] SideOptions = { true, false };
+
     public static void Create(RectTransform parent) {
         StatusOverlay.EnsureConf();
         StatusSettings conf = StatusOverlay.Conf;
@@ -65,8 +72,6 @@ internal static class PageStatus {
 
         void Save() => StatusOverlay.Save();
 
-        // Per-stat row: existing "Show X" toggle plus a Left | Right radio
-        // for which panel renders it. Both fed straight into Conf and saved.
         void StatRow(
             Transform body, string id, string label,
             bool defShow, bool show, System.Action<bool> setShow,
@@ -77,27 +82,42 @@ internal static class PageStatus {
                 defShow, show,
                 v => { setShow(v); Save(); },
                 "Show " + label,
-                "status_" + id
+                "overlay_" + id
             );
 
-            GenerateUI.SideRadio(
+            GenerateUI.DropDown(
                 GenerateUI.Row(body),
-                "Side",
+                defLeft,
                 isLeft,
-                v => { setLeft(v); Save(); }
+                SideOptions,
+                v => v ? "Left" : "Right",
+                v => { setLeft(v); Save(); },
+                "overlay_" + id + "_side",
+                140f,
+                "Side"
             );
         }
 
-        GenerateUI.AddTextH1(GenerateUI.Row(content.transform)).text = "Status HUD";
+        GenerateUI.Button(
+            GenerateUI.Row(content.transform),
+            () => UICore.EnterReorganize(),
+            "Reorganize",
+            "overlay_reorganize"
+        );
+
+        GenerateUI.AddTextH1(GenerateUI.Row(content.transform)).text = "Overlay";
 
         GenerateUI.Toggle(
             GenerateUI.Row(content.transform),
             def.Enabled,
             conf.Enabled,
             v => { conf.Enabled = v; StatusOverlay.Apply(); Save(); },
-            "Enable Status HUD",
-            "status_enabled"
-        ).Rect.AddToolTip("DESC_STATUS_ENABLED", "Show a draggable HUD with live game status.");
+            "Enable Overlay HUD",
+            "overlay_enabled"
+        ).Rect.AddToolTip("DESC_OVERLAY_ENABLED", "Show a draggable HUD with live game status.");
+
+        PageProgressBar.AppendTo(content.transform);
+        PageCombo.AppendTo(content.transform);
 
         // === Accuracy ===
         {
@@ -141,7 +161,7 @@ internal static class PageStatus {
         {
             var sec = GenerateUI.Collapsible(content.transform, "BPM", startExpanded: false);
 
-            StatRow(sec.Body, "tbpm", "True BPM",
+            StatRow(sec.Body, "tbpm", "Tile BPM",
                 def.ShowTbpm, conf.ShowTbpm, v => conf.ShowTbpm = v,
                 !def.TbpmOnRight, !conf.TbpmOnRight, v => conf.TbpmOnRight = !v);
 
@@ -175,24 +195,6 @@ internal static class PageStatus {
                 !def.BestOnRight, !conf.BestOnRight, v => conf.BestOnRight = !v);
         }
 
-        // === Combo ===
-        {
-            var sec = GenerateUI.Collapsible(content.transform, "Combo", startExpanded: false);
-
-            StatRow(sec.Body, "combo", "Combo",
-                def.ShowCombo, conf.ShowCombo, v => conf.ShowCombo = v,
-                !def.ComboOnRight, !conf.ComboOnRight, v => conf.ComboOnRight = !v);
-
-            GenerateUI.Toggle(
-                GenerateUI.Row(sec.Body),
-                def.ComboCountAuto,
-                conf.ComboCountAuto,
-                v => { conf.ComboCountAuto = v; Save(); },
-                "Combo Counts Auto Hits",
-                "status_combo_auto"
-            );
-        }
-
         // === Other ===
         {
             var sec = GenerateUI.Collapsible(content.transform, "Other", startExpanded: false);
@@ -221,7 +223,7 @@ internal static class PageStatus {
                 v => { conf.Prefix = v; Save(); },
                 "Prefix",
                 MainCore.Spr.Get(UISprite.Text128),
-                "status_prefix"
+                "overlay_prefix"
             );
             prefix.InputField.characterLimit = 32;
 
@@ -232,7 +234,7 @@ internal static class PageStatus {
                 v => { conf.LabelSeparator = v; Save(); },
                 "Label Separator",
                 MainCore.Spr.Get(UISprite.Text128),
-                "status_separator"
+                "overlay_separator"
             );
             sep.InputField.characterLimit = 8;
 
@@ -241,7 +243,7 @@ internal static class PageStatus {
                 GenerateUI.Row(sec.Body),
                 def.FontSize,
                 12f, 48f, conf.FontSize, fontFilter, null, null,
-                "Font Size", "status_fontsize"
+                "Font Size", "overlay_fontsize"
             );
             font.Format = "0 px";
             font.OnChanged = v => { conf.FontSize = v; StatusOverlay.Apply(); };
@@ -252,7 +254,7 @@ internal static class PageStatus {
                 GenerateUI.Row(sec.Body),
                 def.LineSpacing,
                 -50f, 50f, conf.LineSpacing, lineFilter, null, null,
-                "Line Spacing", "status_linespacing"
+                "Line Spacing", "overlay_linespacing"
             );
             line.Format = "0.#";
             line.OnChanged = v => { conf.LineSpacing = v; StatusOverlay.Apply(); };
@@ -265,7 +267,7 @@ internal static class PageStatus {
                 c => { conf.SetTextColor(c); StatusOverlay.Apply(); },
                 c => { conf.SetTextColor(c); StatusOverlay.Apply(); Save(); },
                 "Text Color",
-                "status_textcolor"
+                "overlay_textcolor"
             );
 
             GenerateUI.Toggle(
@@ -274,7 +276,7 @@ internal static class PageStatus {
                 conf.BackgroundEnabled,
                 v => { conf.BackgroundEnabled = v; StatusOverlay.Apply(); Save(); },
                 "Background Panel",
-                "status_background"
+                "overlay_background"
             );
         }
 
@@ -286,14 +288,28 @@ internal static class PageStatus {
                 GenerateUI.Row(sec.Body),
                 () => StatusOverlay.ResetLeftPosition(),
                 "Reset Left Panel Position",
-                "status_resetleft"
+                "overlay_resetleft"
             );
 
             GenerateUI.Button(
                 GenerateUI.Row(sec.Body),
                 () => StatusOverlay.ResetRightPosition(),
                 "Reset Right Panel Position",
-                "status_resetright"
+                "overlay_resetright"
+            );
+
+            GenerateUI.Button(
+                GenerateUI.Row(sec.Body),
+                () => ProgressBarOverlay.ResetPosition(),
+                "Reset Progress Bar Position",
+                "overlay_resetprogressbar"
+            );
+
+            GenerateUI.Button(
+                GenerateUI.Row(sec.Body),
+                () => ComboOverlay.ResetPosition(),
+                "Reset Combo Position",
+                "overlay_resetcombo"
             );
         }
     }

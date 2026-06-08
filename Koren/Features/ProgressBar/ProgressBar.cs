@@ -226,14 +226,16 @@ public static class ProgressBarOverlay {
                 return;
             }
 
-            bool isReorganizing = UICore.IsOpen && UICore.CurrentMenuState == (int)OriginalMenuState.Reorganize;
-            bool show = (Conf.Enabled && GameStats.InGame) || isReorganizing;
+            // Progress Bar is anchored to the top and is not part of reorganize
+            // mode, so it never becomes draggable. Gated by the master Overlay
+            // enable as well as its own toggle.
+            bool show = StatusOverlay.IsEnabled && Conf.Enabled && GameStats.InGame;
             if(bar.gameObject.activeSelf != show) {
                 bar.gameObject.SetActive(show);
             }
 
-            if(dragObj != null && dragObj.activeSelf != isReorganizing) {
-                dragObj.SetActive(isReorganizing);
+            if(dragObj != null && dragObj.activeSelf) {
+                dragObj.SetActive(false);
             }
 
             if(!show) {

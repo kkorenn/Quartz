@@ -112,19 +112,19 @@
     ]
   },
   "packageFolders": {
-    "/Users/preluminance/.nuget/packages/": {}
+    "/Users/koren/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/preluminance/Coding/KorenResourcePack_v2/Koren.Loader.ML/Koren.Loader.ML.csproj",
+      "projectUniqueName": "/Users/koren/Documents/KorenResourcePack_v2/Koren.Loader.ML/Koren.Loader.ML.csproj",
       "projectName": "Koren.Loader.ML",
-      "projectPath": "/Users/preluminance/Coding/KorenResourcePack_v2/Koren.Loader.ML/Koren.Loader.ML.csproj",
-      "packagesPath": "/Users/preluminance/.nuget/packages/",
-      "outputPath": "/Users/preluminance/Coding/KorenResourcePack_v2/Koren.Loader.ML/obj/",
+      "projectPath": "/Users/koren/Documents/KorenResourcePack_v2/Koren.Loader.ML/Koren.Loader.ML.csproj",
+      "packagesPath": "/Users/koren/.nuget/packages/",
+      "outputPath": "/Users/koren/Documents/KorenResourcePack_v2/Koren.Loader.ML/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/preluminance/.nuget/NuGet/NuGet.Config"
+        "/Users/koren/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "netstandard2.1"
@@ -137,8 +137,8 @@
         "netstandard2.1": {
           "targetAlias": "netstandard2.1",
           "projectReferences": {
-            "/Users/preluminance/Coding/KorenResourcePack_v2/Koren/Koren.csproj": {
-              "projectPath": "/Users/preluminance/Coding/KorenResourcePack_v2/Koren/Koren.csproj"
+            "/Users/koren/Documents/KorenResourcePack_v2/Koren/Koren.csproj": {
+              "projectPath": "/Users/koren/Documents/KorenResourcePack_v2/Koren/Koren.csproj"
             }
           }
         }
@@ -169,12 +169,6 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "NETStandard.Library.Ref",
-            "version": "[2.1.0, 2.1.0]"
-          }
-        ],
         "frameworkReferences": {
           "NETStandard.Library": {
             "privateAssets": "all"

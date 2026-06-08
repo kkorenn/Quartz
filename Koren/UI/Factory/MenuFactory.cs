@@ -35,23 +35,19 @@ public static class MenuFactory {
     public static void CreateMenu(Transform parent) {
         items.Clear();
 
-        var status = CreateItem(parent, "Status", MainCore.Spr.Get(UISprite.Monitor128), (int)OriginalMenuState.Status);
-        var progressBar = CreateItem(parent, "Progress Bar", MainCore.Spr.Get(UISprite.Triangle128), (int)OriginalMenuState.ProgressBar);
+        var overlay = CreateItem(parent, "Overlay", MainCore.Spr.Get(UISprite.Monitor128), (int)OriginalMenuState.Overlay);
+        var gameplay = CreateItem(parent, "Gameplay", MainCore.Spr.Get(UISprite.Gamepad128), (int)OriginalMenuState.Gameplay);
         var settings = CreateItem(parent, "Settings", MainCore.Spr.Get(UISprite.Gear128), (int)OriginalMenuState.Settings);
-        var reorganize = CreateItem(parent, "Reorganize", MainCore.Spr.Get(UISprite.ToggleCircle128), (int)OriginalMenuState.Reorganize);
         var credits = CreateItem(parent, "Credits", MainCore.Spr.Get(UISprite.Star128), (int)OriginalMenuState.Credits);
 
-        status.label.gameObject.AddComponent<TextLocalization>()
-            .Init("STATUS", "Status");
+        overlay.label.gameObject.AddComponent<TextLocalization>()
+            .Init("OVERLAY", "Overlay");
 
-        progressBar.label.gameObject.AddComponent<TextLocalization>()
-            .Init("PROGRESS_BAR", "Progress Bar");
+        gameplay.label.gameObject.AddComponent<TextLocalization>()
+            .Init("GAMEPLAY", "Gameplay");
 
         settings.label.gameObject.AddComponent<TextLocalization>()
             .Init("SETTINGS", "Settings");
-
-        reorganize.label.gameObject.AddComponent<TextLocalization>()
-            .Init("REORGANIZE", "Reorganize");
 
         credits.label.gameObject.AddComponent<TextLocalization>()
             .Init("CREDITS", "Credits");

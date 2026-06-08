@@ -222,3 +222,5 @@
 /Users/preluminance/Coding/KorenResourcePack_v2/Koren/obj/Debug/netstandard2.1/Koren.csproj.Up2Date
 /Users/preluminance/Coding/KorenResourcePack_v2/Koren/bin/Debug/netstandard2.1/0Harmony.dll
 /Users/preluminance/Coding/KorenResourcePack_v2/Koren/bin/Debug/netstandard2.1/Mono.Cecil.dll
+/Users/koren/Documents/KorenResourcePack_v2/Koren/bin/Debug/netstandard2.1/0Harmony.dll
+/Users/koren/Documents/KorenResourcePack_v2/Koren/bin/Debug/netstandard2.1/Mono.Cecil.dll

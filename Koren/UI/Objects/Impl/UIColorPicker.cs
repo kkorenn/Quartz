@@ -1,8 +1,13 @@
 ﻿using Koren.Core;
 using Koren.Resource;
+using Koren.Tween;
 using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
+using GTweens.Builders;
+using GTweens.Easings;
+using GTweens.Extensions;
+using GTweens.Tweens;
 
 #if IL2CPP
 using Il2CppTMPro;
@@ -44,6 +49,8 @@ public sealed class UIColorPicker : UIObject {
 
     private readonly LayoutElement rowLayout;
     private readonly GameObject body;
+    private readonly CanvasGroup bodyCanvasGroup;
+    private GTween expandSeq;
     private readonly RectTransform rootRect;
     private readonly RectTransform svRect;
     private readonly RectTransform hueRect;
@@ -69,6 +76,7 @@ public sealed class UIColorPicker : UIObject {
         RectTransform rect,
         LayoutElement rowLayout,
         GameObject body,
+        CanvasGroup bodyCanvasGroup,
         TextMeshProUGUI label,
         TextMeshProUGUI valueText,
         Image swatchImage,
@@ -91,6 +99,7 @@ public sealed class UIColorPicker : UIObject {
         rootRect = rect;
         this.rowLayout = rowLayout;
         this.body = body;
+        this.bodyCanvasGroup = bodyCanvasGroup;
         Label = label;
         ValueText = valueText;
         SwatchImage = swatchImage;
@@ -141,19 +150,65 @@ public sealed class UIColorPicker : UIObject {
 
     public void SetExpanded(bool expanded, bool noAnimate = false) {
         Expanded = expanded;
-        if(body != null) {
-            body.SetActive(expanded);
+
+        // Kept active and faded via the CanvasGroup so the open/close animates
+        // both ways (alpha 0 hides the panel while it overflows the row).
+        if(body != null && !body.activeSelf) {
+            body.SetActive(true);
         }
+
+        float targetHeight = expanded ? expandedHeight : 50f;
+        float targetAlpha = expanded ? 1f : 0f;
+
+        if(bodyCanvasGroup != null) {
+            bodyCanvasGroup.blocksRaycasts = expanded;
+            bodyCanvasGroup.interactable = expanded;
+        }
+
+        expandSeq?.Kill();
+
+        if(noAnimate) {
+            if(rowLayout != null) {
+                rowLayout.preferredHeight = targetHeight;
+                rowLayout.minHeight = 50f;
+            }
+            if(bodyCanvasGroup != null) {
+                bodyCanvasGroup.alpha = targetAlpha;
+            }
+            if(rootRect != null) {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+            }
+            return;
+        }
+
+        GTweenSequenceBuilder builder = GTweenSequenceBuilder.New();
 
         if(rowLayout != null) {
-            float height = expanded ? expandedHeight : 50f;
-            rowLayout.preferredHeight = height;
-            rowLayout.minHeight = height;
+            rowLayout.minHeight = 50f;
+            builder.Join(GTweenExtensions.Tween(
+                () => rowLayout.preferredHeight,
+                x => {
+                    rowLayout.preferredHeight = Mathf.Max(50f, x);
+                    if(rootRect != null) {
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+                    }
+                },
+                targetHeight,
+                0.16f
+            ).SetEasing(Easing.OutBack));
         }
 
-        if(rootRect != null) {
-            LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+        if(bodyCanvasGroup != null) {
+            builder.Join(GTweenExtensions.Tween(
+                () => bodyCanvasGroup.alpha,
+                x => bodyCanvasGroup.alpha = x,
+                targetAlpha,
+                0.16f
+            ).SetEasing(Easing.OutSine));
         }
+
+        expandSeq = builder.Build();
+        MainCore.TC.Play(expandSeq);
     }
 
     public void SetFromSvPointer(Vector2 screenPosition) {

@@ -101,7 +101,7 @@ public static class GameStats {
         }
     }
 
-    // True BPM (chart tempo * pitch * speed) and Current BPM (derived from the
+    // Tile BPM (chart tempo * pitch * speed) and Current BPM (derived from the
     // current floor's nextfloor entry time). See Bpm.cs for details.
     public static void GetBpm(out float tileBpm, out float currentBpm) {
         Bpm.GetBpmValues(out tileBpm, out currentBpm);
@@ -111,7 +111,7 @@ public static class GameStats {
 
     public static float MarginScale => TimingScale.CurrentMarginScale;
 
-    public static int Combo => Status.Combo.Count;
+    public static int Combo => Koren.Features.Combo.Combo.Count;
 
     // True when the current run started mid-level (via checkpoint). The HUD
     // can use this to render Progress as a "start% - now%" range.

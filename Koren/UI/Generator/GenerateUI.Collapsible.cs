@@ -1,10 +1,15 @@
 using Koren.Core;
 using Koren.Resource;
+using Koren.Tween;
 using Koren.UI.Utility;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using static UnityEngine.EventSystems.PointerEventData;
+using GTweens.Builders;
+using GTweens.Easings;
+using GTweens.Extensions;
+using GTweens.Tweens;
 
 #if IL2CPP
 using Il2CppTMPro;
@@ -14,12 +19,8 @@ using TMPro;
 
 namespace Koren.UI.Generator;
 
-// Two compound widgets used to organize the Status HUD settings page:
-//   • Collapsible  — a header bar that toggles a body container visible/
-//                    hidden. Body has its own VerticalLayoutGroup so caller
-//                    just adds child Rows to it.
-//   • SideRadio    — Left | Right two-button radio with a leading label;
-//                    fills one Row.
+// Collapsible — a header bar that toggles a body container visible/hidden.
+// Body has its own VerticalLayoutGroup so caller just adds child Rows to it.
 public static partial class GenerateUI {
 
     public sealed class CollapsibleSection {
@@ -71,32 +72,42 @@ public static partial class GenerateUI {
         headerLE.preferredHeight = 44f;
         headerLE.minHeight = 44f;
 
-        Image headerBg = headerObj.AddComponent<Image>();
+        // Inset bar so the header lines up with the rows below it — everything
+        // else (toggles, dropdowns) stops 250px short of the right edge.
+        GameObject barObj = new("Bar");
+        barObj.transform.SetParent(headerObj.transform, false);
+        RectTransform barRect = barObj.AddComponent<RectTransform>();
+        barRect.anchorMin = new Vector2(0f, 0f);
+        barRect.anchorMax = new Vector2(1f, 1f);
+        barRect.offsetMin = Vector2.zero;
+        barRect.offsetMax = new Vector2(-250f, 0f);
+
+        Image headerBg = barObj.AddComponent<Image>();
         headerBg.color = UIColors.ObjectBG;
         headerBg.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P2048);
         headerBg.type = Image.Type.Sliced;
         headerBg.raycastTarget = true;
 
         GameObject arrowObj = new("Arrow");
-        arrowObj.transform.SetParent(headerObj.transform, false);
+        arrowObj.transform.SetParent(barObj.transform, false);
         RectTransform arrowRect = arrowObj.AddComponent<RectTransform>();
-        arrowRect.anchorMin = new Vector2(0f, 0.5f);
-        arrowRect.anchorMax = new Vector2(0f, 0.5f);
+        arrowRect.anchorMin = new Vector2(1f, 0.5f);
+        arrowRect.anchorMax = new Vector2(1f, 0.5f);
         arrowRect.pivot = new Vector2(0.5f, 0.5f);
-        arrowRect.anchoredPosition = new Vector2(20f, 0f);
-        arrowRect.sizeDelta = new Vector2(14f, 14f);
+        arrowRect.anchoredPosition = new Vector2(-23f, 0f);
+        arrowRect.sizeDelta = new Vector2(26f, 26f);
         Image arrowImg = arrowObj.AddComponent<Image>();
         arrowImg.sprite = MainCore.Spr.Get(UISprite.Triangle128);
-        arrowImg.color = Color.white;
+        arrowImg.color = UIColors.ObjectInactive;
         arrowImg.raycastTarget = false;
 
         GameObject labelObj = new("Label");
-        labelObj.transform.SetParent(headerObj.transform, false);
+        labelObj.transform.SetParent(barObj.transform, false);
         RectTransform labelRect = labelObj.AddComponent<RectTransform>();
         labelRect.anchorMin = new Vector2(0f, 0f);
         labelRect.anchorMax = new Vector2(1f, 1f);
-        labelRect.offsetMin = new Vector2(42f, 0f);
-        labelRect.offsetMax = new Vector2(-12f, 0f);
+        labelRect.offsetMin = new Vector2(16f, 0f);
+        labelRect.offsetMax = new Vector2(-44f, 0f);
         TextMeshProUGUI label = labelObj.AddComponent<TextMeshProUGUI>();
         label.font = MainCore.Res.Get<TMP_FontAsset>(Asset.SUIT_Medium);
         label.fontSize = 20f;
@@ -107,7 +118,10 @@ public static partial class GenerateUI {
         label.characterSpacing = -3f;
         label.raycastTarget = false;
 
-        // Body.
+        // Body: lays out the caller's rows and sizes to them. A RectMask2D
+        // clips the slide during the open/close animation; once open we hand
+        // sizing back to the ContentSizeFitter so nested widgets (dropdowns,
+        // color pickers) can still grow the section naturally.
         GameObject bodyObj = new("Body");
         bodyObj.transform.SetParent(sectionRect, false);
         RectTransform bodyRect = bodyObj.AddComponent<RectTransform>();
@@ -123,6 +137,10 @@ public static partial class GenerateUI {
         ContentSizeFitter bodyFitter = bodyObj.AddComponent<ContentSizeFitter>();
         bodyFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
+        LayoutElement bodyLE = bodyObj.AddComponent<LayoutElement>();
+        bodyObj.AddComponent<RectMask2D>();
+        CanvasGroup bodyCg = bodyObj.AddComponent<CanvasGroup>();
+
         CollapsibleSection c = new() {
             Section = sectionRect,
             HeaderObj = headerObj,
@@ -131,112 +149,99 @@ public static partial class GenerateUI {
             arrow = arrowImg,
         };
 
-        c.applyState = () => {
-            bodyObj.SetActive(c.Expanded);
-            // Triangle128 default points up; -90° = right (collapsed),
-            // 180° = down (expanded).
-            arrowObj.transform.localRotation =
-                Quaternion.Euler(0f, 0f, c.Expanded ? 180f : -90f);
-        };
-        c.applyState();
+        GTween openSeq = null;
 
-        AddButton(headerObj, btn => {
+        // Open/close like a dropdown: slide the section height + fade, rotate
+        // the arrow (down collapsed / up expanded) and recolor it.
+        void Apply(bool animate) {
+            bool exp = c.Expanded;
+            Vector3 targetRot = exp ? new Vector3(0f, 0f, 180f) : Vector3.zero;
+            Color targetCol = exp ? UIColors.ObjectActive : UIColors.ObjectInactive;
+
+            bodyCg.blocksRaycasts = exp;
+            bodyCg.interactable = exp;
+
+            openSeq?.Kill();
+
+            if(!animate) {
+                bodyObj.SetActive(exp);
+                bodyLayout.enabled = exp;
+                bodyFitter.enabled = exp;
+                bodyLE.preferredHeight = exp ? -1f : 0f;
+                bodyCg.alpha = exp ? 1f : 0f;
+                arrowRect.localRotation = Quaternion.Euler(targetRot);
+                arrowImg.color = targetCol;
+                LayoutRebuilder.ForceRebuildLayoutImmediate(sectionRect);
+                return;
+            }
+
+            // Lay the content out once, then freeze the layout group so the
+            // hand-driven LayoutElement height isn't overridden by the group's
+            // own preferred height. The RectMask2D clips the frozen rows as the
+            // section slides; sizing is handed back once open.
+            //
+            // Rebuild from the SECTION (with the height override cleared) so the
+            // body first gets its real width — the section's layout controls it.
+            // Rebuilding only the body lays the rows out at zero width on the
+            // first open, so their backgrounds and the side bars don't show.
+            bodyObj.SetActive(true);
+            bodyLayout.enabled = true;
+            bodyFitter.enabled = true;
+            bodyLE.preferredHeight = -1f;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(sectionRect);
+            float content = bodyRect.rect.height;
+
+            bodyLayout.enabled = false;
+            bodyFitter.enabled = false;
+
+            float to = exp ? content : 0f;
+            bodyLE.preferredHeight = exp ? 0f : content;
+
+            openSeq = GTweenSequenceBuilder.New()
+                .Join(GTweenExtensions.Tween(
+                    () => bodyLE.preferredHeight,
+                    x => {
+                        bodyLE.preferredHeight = Mathf.Max(0f, x);
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(sectionRect);
+                    },
+                    to,
+                    0.16f
+                ).SetEasing(Easing.OutBack))
+                .Join(GTweenExtensions.Tween(
+                    () => bodyCg.alpha,
+                    x => bodyCg.alpha = x,
+                    exp ? 1f : 0f,
+                    0.16f
+                ).SetEasing(Easing.OutSine))
+                .Join(arrowRect.GTRotate(targetRot, 0.4f).SetEasing(Easing.OutBack))
+                .Join(arrowImg.GTColor(targetCol, 0.2f).SetEasing(Easing.OutSine))
+                .AppendCallback(() => {
+                    if(c.Expanded) {
+                        // Hand sizing back so nested widgets can grow the body.
+                        bodyLayout.enabled = true;
+                        bodyFitter.enabled = true;
+                        bodyLE.preferredHeight = -1f;
+                        LayoutRebuilder.ForceRebuildLayoutImmediate(sectionRect);
+                    }
+                    else {
+                        bodyObj.SetActive(false);
+                        bodyLE.preferredHeight = 0f;
+                    }
+                })
+                .Build();
+
+            MainCore.TC.Play(openSeq);
+        }
+
+        c.applyState = () => Apply(true);
+        Apply(false);
+
+        AddButton(barObj, btn => {
             if(btn == InputButton.Left) {
                 c.SetExpanded(!c.Expanded);
             }
-        }, outline: false);
+        });
 
         return c;
-    }
-
-    // Left | Right two-button radio with a leading label. Fills one Row.
-    // initialLeft = current state (true = Left selected). onChanged is fired
-    // with the new value (true = Left, false = Right) when the user picks.
-    public static void SideRadio(
-        Transform parent,
-        string label,
-        bool initialLeft,
-        Action<bool> onChanged
-    ) {
-        GameObject bgObj = new("SideRadioBg");
-        bgObj.transform.SetParent(parent, false);
-        RectTransform bg = bgObj.AddComponent<RectTransform>();
-        bg.anchorMin = Vector2.zero;
-        bg.anchorMax = Vector2.one;
-        bg.offsetMin = Vector2.zero;
-        bg.offsetMax = Vector2.zero;
-
-        Image bgImg = bgObj.AddComponent<Image>();
-        bgImg.color = UIColors.ObjectBG;
-        bgImg.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P2048);
-        bgImg.type = Image.Type.Sliced;
-
-        TextMeshProUGUI labelTmp = AddText(bg);
-        labelTmp.text = label;
-
-        Image leftImg = CreateMiniButton(bg, "Left", -134f, out GameObject leftBtnObj);
-        Image rightImg = CreateMiniButton(bg, "Right", -34f, out GameObject rightBtnObj);
-
-        bool current = initialLeft;
-
-        void ApplySelection() {
-            leftImg.color = current ? UIColors.ObjectActive : UIColors.ObjectButton;
-            rightImg.color = !current ? UIColors.ObjectActive : UIColors.ObjectButton;
-        }
-        ApplySelection();
-
-        EventTrigger leftTrigger = leftBtnObj.AddComponent<EventTrigger>();
-        UnityUtils.AddEvent(EventTriggerType.PointerClick, _ => {
-            if(!current) {
-                current = true;
-                ApplySelection();
-                onChanged?.Invoke(true);
-            }
-        }, leftTrigger);
-
-        EventTrigger rightTrigger = rightBtnObj.AddComponent<EventTrigger>();
-        UnityUtils.AddEvent(EventTriggerType.PointerClick, _ => {
-            if(current) {
-                current = false;
-                ApplySelection();
-                onChanged?.Invoke(false);
-            }
-        }, rightTrigger);
-    }
-
-    private static Image CreateMiniButton(Transform parent, string text, float rightX, out GameObject obj) {
-        obj = new GameObject("MiniBtn_" + text);
-        obj.transform.SetParent(parent, false);
-
-        RectTransform rt = obj.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(1f, 0.5f);
-        rt.anchorMax = new Vector2(1f, 0.5f);
-        rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = new Vector2(rightX, 0f);
-        rt.sizeDelta = new Vector2(90f, 32f);
-
-        Image img = obj.AddComponent<Image>();
-        img.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P2048);
-        img.type = Image.Type.Sliced;
-        img.color = UIColors.ObjectButton;
-        img.raycastTarget = true;
-
-        GameObject textObj = new("Text");
-        textObj.transform.SetParent(rt, false);
-        RectTransform textRect = textObj.AddComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = Vector2.zero;
-        textRect.offsetMax = Vector2.zero;
-
-        TextMeshProUGUI tmp = textObj.AddComponent<TextMeshProUGUI>();
-        tmp.font = MainCore.Res.Get<TMP_FontAsset>(Asset.SUIT_Regular);
-        tmp.fontSize = 16f;
-        tmp.color = Color.white;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.text = text;
-        tmp.raycastTarget = false;
-
-        return img;
     }
 }

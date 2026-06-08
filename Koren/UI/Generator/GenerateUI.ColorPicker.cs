@@ -91,6 +91,9 @@ public static partial class GenerateUI {
         bodyBg.type = Image.Type.Sliced;
         bodyBg.color = UIColors.ObjectBG;
 
+        // Fades the body in/out during the expand animation.
+        CanvasGroup bodyCg = body.AddComponent<CanvasGroup>();
+
         GameObject sv = new("SaturationValue");
         sv.transform.SetParent(body.transform, false);
         RectTransform svRect = sv.AddComponent<RectTransform>();
@@ -289,6 +292,7 @@ public static partial class GenerateUI {
             rootRect,
             parent.GetComponent<LayoutElement>(),
             body,
+            bodyCg,
             label,
             valueText,
             swatchImg,

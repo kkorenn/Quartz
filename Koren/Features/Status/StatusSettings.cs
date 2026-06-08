@@ -30,8 +30,6 @@ public sealed class StatusSettings : ISettingsFile {
     public bool ShowKps = false;
     public bool ShowHold = false;
     public bool ShowTimingScale = false;
-    public bool ShowCombo = false;
-    public bool ComboCountAuto = true;
     public bool ShowAttempt = false;
     public bool ShowTotalAttempt = false;
     public bool ShowBest = false;
@@ -52,7 +50,6 @@ public sealed class StatusSettings : ISettingsFile {
     public bool KpsOnRight = true;
     public bool HoldOnRight = false;
     public bool TimingScaleOnRight = false;
-    public bool ComboOnRight = false;
     public bool AttemptOnRight = false;
     public bool TotalAttemptOnRight = false;
     public bool BestOnRight = false;
@@ -105,8 +102,6 @@ public sealed class StatusSettings : ISettingsFile {
             [nameof(ShowKps)] = ShowKps,
             [nameof(ShowHold)] = ShowHold,
             [nameof(ShowTimingScale)] = ShowTimingScale,
-            [nameof(ShowCombo)] = ShowCombo,
-            [nameof(ComboCountAuto)] = ComboCountAuto,
             [nameof(ShowAttempt)] = ShowAttempt,
             [nameof(ShowTotalAttempt)] = ShowTotalAttempt,
             [nameof(ShowBest)] = ShowBest,
@@ -124,7 +119,6 @@ public sealed class StatusSettings : ISettingsFile {
             [nameof(KpsOnRight)] = KpsOnRight,
             [nameof(HoldOnRight)] = HoldOnRight,
             [nameof(TimingScaleOnRight)] = TimingScaleOnRight,
-            [nameof(ComboOnRight)] = ComboOnRight,
             [nameof(AttemptOnRight)] = AttemptOnRight,
             [nameof(TotalAttemptOnRight)] = TotalAttemptOnRight,
             [nameof(BestOnRight)] = BestOnRight,
@@ -161,8 +155,6 @@ public sealed class StatusSettings : ISettingsFile {
         ShowKps = IOUtils.Read(token, nameof(ShowKps), ShowKps);
         ShowHold = IOUtils.Read(token, nameof(ShowHold), ShowHold);
         ShowTimingScale = IOUtils.Read(token, nameof(ShowTimingScale), ShowTimingScale);
-        ShowCombo = IOUtils.Read(token, nameof(ShowCombo), ShowCombo);
-        ComboCountAuto = IOUtils.Read(token, nameof(ComboCountAuto), ComboCountAuto);
         ShowAttempt = IOUtils.Read(token, nameof(ShowAttempt), ShowAttempt);
         ShowTotalAttempt = IOUtils.Read(token, nameof(ShowTotalAttempt), ShowTotalAttempt);
         ShowBest = IOUtils.Read(token, nameof(ShowBest), ShowBest);
@@ -180,7 +172,6 @@ public sealed class StatusSettings : ISettingsFile {
         KpsOnRight = IOUtils.Read(token, nameof(KpsOnRight), KpsOnRight);
         HoldOnRight = IOUtils.Read(token, nameof(HoldOnRight), HoldOnRight);
         TimingScaleOnRight = IOUtils.Read(token, nameof(TimingScaleOnRight), TimingScaleOnRight);
-        ComboOnRight = IOUtils.Read(token, nameof(ComboOnRight), ComboOnRight);
         AttemptOnRight = IOUtils.Read(token, nameof(AttemptOnRight), AttemptOnRight);
         TotalAttemptOnRight = IOUtils.Read(token, nameof(TotalAttemptOnRight), TotalAttemptOnRight);
         BestOnRight = IOUtils.Read(token, nameof(BestOnRight), BestOnRight);
