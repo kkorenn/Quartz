@@ -1,0 +1,171 @@
+Koren/UI/Factory/Page/PageGameplay.cs
+  s_453cd48c833411::t_82753364323566 4-9,13-14,16-20
+Koren/Core/KorenRuntime.cs
+  s_86ea8387121ccf::t_7c3846a8eaaac8 161
+  s_86ea8387121ccf::t_f8f3056508a00c 7
+  s_86ea8387121ccf::t_cb520fa9421264 151
+Koren/Resource/Export/Lang/en-US.json
+  s_453cd48c833411::t_25ceac6fb0ad3a 16
+  s_86ea8387121ccf::t_c7e86935dff1d1 8,11
+  s_453cd48c833411::t_3c1d7807be041a 24
+  s_453cd48c833411::t_c1e8c2ce92b75e 9
+Koren/obj/Debug/netstandard2.1/Koren.sourcelink.json
+  s_86ea8387121ccf::t_07b73e47696ba3 1
+Koren/obj/Debug/netstandard2.1/Koren.GeneratedMSBuildEditorConfig.editorconfig
+  s_86ea8387121ccf::t_07b73e47696ba3 3
+Koren/UI/UICore.cs
+  s_453cd48c833411::t_15822fac752eb3 29
+  s_453cd48c833411::t_c413aa6062837a 41-45
+  s_453cd48c833411::t_8b47b7b12c07ca 115-116
+  s_453cd48c833411::t_4f501f96dbb7a5 124
+  s_453cd48c833411::t_8b7d076aa97bcc 148-150,158-160,165-168,170-181,195-197,199-210
+  s_453cd48c833411::t_f03b0ab04ff1d1 698-707
+  s_453cd48c833411::t_7fb0f8309fc2d7 369
+  s_86ea8387121ccf::t_9fdee0f6ce81cf 40
+  s_453cd48c833411::t_dee3740fcc6af7 331-333
+  s_86ea8387121ccf::t_6c19dae6e8a71c 28
+  s_453cd48c833411::t_052d896b87ba4a 751-753
+  s_453cd48c833411::t_ffbc33c6e16bf8 151-157,161-164,169,182-194,198,211-212
+  s_453cd48c833411::t_a0399de453f963 120
+Koren/Features/Combo/ComboSettings.cs
+  s_86ea8387121ccf::t_a903ba84599c49 1-111
+Koren/Resource/ResourceManager.cs
+  s_453cd48c833411::t_d1deec35b8ee9f 188-189
+  s_453cd48c833411::t_ddc658c0fcddad 35
+Koren/obj/Debug/netstandard2.1/Koren.csproj.FileListAbsolute.txt
+  s_86ea8387121ccf::t_d1d5dc2982cb34 225-226
+Koren.Loader.ML/bin/Debug/netstandard2.1/Koren.Loader.ML.deps.json
+  s_86ea8387121ccf::t_d1d5dc2982cb34 110-117,991,996,1001
+Koren/Features/Status/Status.cs
+  s_453cd48c833411::t_6219b508ef9444 222
+  s_453cd48c833411::t_04779db57c1f0a 29-32
+  s_86ea8387121ccf::t_66efa856af41f5 330
+Koren/obj/project.assets.json
+  s_86ea8387121ccf::t_07b73e47696ba3 97,102,104-106,109
+Koren/UI/Factory/Page/PageProgressBar.cs
+  s_86ea8387121ccf::t_43999b4c946d94 9,11,18,21,31,42,53,64,75,85,95,105
+Koren.Loader.ML/obj/Koren.Loader.ML.csproj.nuget.g.props
+  s_86ea8387121ccf::t_07b73e47696ba3 7-8,13
+Koren/UI/Factory/Page/PageCredits.cs
+  s_453cd48c833411::t_e145c8c5728ddc 58
+Koren/UI/Objects/Impl/UIColorPicker.cs
+  s_453cd48c833411::t_1d6febb0503565 102
+  s_453cd48c833411::t_9ce7cda0bd1550 79
+  s_453cd48c833411::t_d5880bb084a389 52-53
+  s_453cd48c833411::t_15f4f43bf7daa7 3,7-10
+  s_453cd48c833411::t_e4c8e1357773bf 153-165,168-185,187-198,201-207,209-211
+Koren/obj/Koren.csproj.nuget.dgspec.json
+  s_86ea8387121ccf::t_07b73e47696ba3 4,7,10,12-14,17
+Koren/UI/Factory/PageFactory.cs
+  s_86ea8387121ccf::t_2cd79dfe255afb 31
+  s_453cd48c833411::t_ba38461960ba4b 32
+Koren/Features/ProgressBar/ProgressBar.cs
+  s_453cd48c833411::t_e3e471b6ae2404 229-231,237-238
+  s_453cd48c833411::t_c0810edfe4f0a0 232
+Koren/Resource/Export/Lang/ko-KR.json
+  s_453cd48c833411::t_0311d85854531c 16
+  s_86ea8387121ccf::t_77588af09ab02d 8,11
+  s_453cd48c833411::t_3abdf4c1ad3df4 24
+  s_453cd48c833411::t_73bbdc4ac2d22c 9
+Koren/obj/Koren.csproj.nuget.g.props
+  s_86ea8387121ccf::t_07b73e47696ba3 7-8,13
+Koren/obj/Debug/netstandard2.1/Koren.AssemblyInfo.cs
+  s_86ea8387121ccf::t_07b73e47696ba3 16,22
+Koren/UI/Factory/Page/PageCombo.cs
+  s_86ea8387121ccf::t_006bf52fb4d29c 10,12,19,22,31,41,52,62,71,83,94,104,114,124,133
+  s_86ea8387121ccf::t_551b9c31aa70b2 92
+  s_86ea8387121ccf::t_8dfd2a642c26f6 1-9,11,13-18,20-21,23-30,32-40,42-51,53-61,63-70,72-82,84-91,93,95-103,105-113,115-123,125-132,134-141
+Koren.Loader.ML/obj/Debug/netstandard2.1/Koren.Loader.ML.GeneratedMSBuildEditorConfig.editorconfig
+  s_86ea8387121ccf::t_d1d5dc2982cb34 3
+Koren/Features/Status/GameStats.cs
+  s_86ea8387121ccf::t_47f65233cb3306 114
+  s_86ea8387121ccf::t_caab319103f153 104
+Koren/UI/Generator/GenerateUI.cs
+  s_453cd48c833411::t_c19bae4329a921 276-278,297-311
+  s_453cd48c833411::t_4ebda4f551800d 342-349
+Koren/Core/Service/PathService.cs
+  s_453cd48c833411::t_3b066dcc090c44 10,19
+Koren.Loader.ML/obj/Debug/netstandard2.1/Koren.Loader.ML.AssemblyInfo.cs
+  s_86ea8387121ccf::t_d1d5dc2982cb34 16,22
+Koren/Resource/SpriteManager.cs
+  s_453cd48c833411::t_663a3990047374 21
+  s_453cd48c833411::t_32cf3519793cb3 167-168
+Koren.Loader.ML/obj/Koren.Loader.ML.csproj.nuget.dgspec.json
+  s_86ea8387121ccf::t_07b73e47696ba3 4,7,10,12-14,17,30-31,71,74,76-78,81
+Koren.Loader.ML/obj/project.assets.json
+  s_86ea8387121ccf::t_07b73e47696ba3 115,120,122-124,127,140-141
+Koren/Features/Combo/ComboOverlay.cs
+  s_86ea8387121ccf::t_5992e7b1a1dd42 1-119,121-122,133-195,199-213,219-253
+  s_453cd48c833411::t_b1da4cec1d24b5 196-197
+  s_86ea8387121ccf::t_b54ccbba88b4db 120,123-132
+  s_453cd48c833411::t_67887d776ec141 198
+  s_86ea8387121ccf::t_6b57e8dabf02d9 214-218
+Koren.Loader.ML/obj/Debug/netstandard2.1/Koren.Loader.ML.sourcelink.json
+  s_86ea8387121ccf::t_d1d5dc2982cb34 1
+Koren/UI/Factory/Page/PageOverlay.cs
+  s_453cd48c833411::t_b9d573a3d9e114 300-312
+  s_86ea8387121ccf::t_5651d360c5c8e8 107
+  s_453cd48c833411::t_12e35e7c13d109 19-22
+  s_453cd48c833411::t_a5c4dac4c2a64a 96
+  s_453cd48c833411::t_5fcd7816d5cc0c 88,90,92-94
+  s_86ea8387121ccf::t_6c087d2c5aaf55 15,18,85,115-117,226,237,246,257,270,279,291,298-299
+  s_453cd48c833411::t_a63514000e914f 95,97
+  s_453cd48c833411::t_d3d2320642e749 2-3,6
+  s_86ea8387121ccf::t_0432feb716675c 164
+  s_453cd48c833411::t_448b5b36e9af1d 101-106,108,118-120
+Koren/Features/Combo/Combo.cs
+  s_86ea8387121ccf::t_23b8fd78ebc2b8 3,5,8-9,13-48,56,67,78,84,88-89,91
+Koren/UI/Generator/GenerateUI.Collapsible.cs
+  s_453cd48c833411::t_e2174cc33b57d1 121-124,140-142,161-162,167,169-171,187,193,195,199,202,204,207,211-213,218-219,222-230
+  s_453cd48c833411::t_368d01fbb0b248 75-85,92,105
+  s_453cd48c833411::t_a66214303a96dc 239
+  s_453cd48c833411::t_f97414e93754be 22-23
+  s_453cd48c833411::t_c5b1682843ba91 94-95,97-98,101
+  s_453cd48c833411::t_2f24983e532a8a 109-110
+  s_453cd48c833411::t_b64d936914965e 154-155,168,181,188-189,192,194,196-198
+  s_453cd48c833411::t_b215d9fa8359b9 3,9-12
+  s_453cd48c833411::t_16b3fbea24e1c1 178-180,182-186,190-191
+  s_453cd48c833411::t_f47812f19f21a2 220-221
+  s_453cd48c833411::t_f1a73ecf1201c8 152-153,156-160,163-166,172-176,200-201,203,205-206,208-210,214-217,231-237,243
+Koren/UI/Generator/GenerateUI.ColorPicker.cs
+  s_453cd48c833411::t_a3b7eb055252f0 94-96
+  s_453cd48c833411::t_1f922cea216286 295
+Koren/UI/Factory/Page/PageSettings.cs
+  s_453cd48c833411::t_50d84da285abc7 198,201
+Koren/UI/Factory/MenuFactory.cs
+  s_453cd48c833411::t_14b022fe0d381a 46-47
+  s_86ea8387121ccf::t_29e39ca5e1c7bc 38
+  s_453cd48c833411::t_c07d51758d3357 39
+  s_86ea8387121ccf::t_14810cf5e24f7d 43-44
+Koren/Resource/FontManager.cs
+  s_453cd48c833411::t_2cc1c1afe9a555 14-16,25,44-45,47-55,58-72,75,120-122,124-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "a6a5573123065c7a45412f16a7f2dee6876ab745",
+  "prompts": {},
+  "humans": {
+    "h_6eeb8441a8a159": {
+      "author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  },
+  "sessions": {
+    "s_453cd48c833411": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a143e1c3-d375-44a6-b230-e48d3fae40e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    },
+    "s_86ea8387121ccf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1cda49bc-727a-4d34-b4b8-3bdb4deeb4d5",
+        "model": "composer-2.5"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
