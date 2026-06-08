@@ -711,7 +711,11 @@ public static partial class GenerateUI {
         rect.offsetMax = Vector2.zero;
 
         TextMeshProUGUI tmp = obj.AddComponent<TextMeshProUGUI>();
-        tmp.font = MainCore.Res.Get<TMP_FontAsset>(bold ? Asset.SUIT_Medium : Asset.SUIT_Regular);
+        // Follow the user's chosen font (FontManager.Current) so a custom font
+        // survives a restart. The previous code baked SUIT in at construction
+        // time, which is why most settings UI reverted to SUIT on next launch
+        // even though SetFont's runtime ApplyToAll fixed the in-session view.
+        tmp.font = FontManager.Current;
         tmp.fontSize = size;
         tmp.color = Color.white;
         tmp.alignment = TextAlignmentOptions.Left;
