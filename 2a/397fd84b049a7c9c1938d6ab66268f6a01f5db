@@ -1,0 +1,21 @@
+Koren/UI/Generator/GenerateUI.Collapsible.cs
+  s_a15720358fc354::t_86f0996019c1aa 153
+  s_a15720358fc354::t_96011bc34d35df 202-208,218,241-249
+  s_a15720358fc354::t_b849e3655e7c6e 166
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "2a397fd84b049a7c9c1938d6ab66268f6a01f5db",
+  "prompts": {},
+  "sessions": {
+    "s_a15720358fc354": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ec96631c-8775-458c-9725-7780d737342e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
