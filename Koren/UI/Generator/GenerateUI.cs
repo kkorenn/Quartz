@@ -171,12 +171,42 @@ public static partial class GenerateUI {
         label.text = text;
         label.alignment = TextAlignmentOptions.Left;
 
-        TextMeshProUGUI valueText = AddText(rect);
-        valueText.alignment = TextAlignmentOptions.Right;
+        // Value display + keyboard editor. Anchored to the right of the row
+        // with a fixed width so the click area for typing is small and the
+        // rest of the row stays available for slider drag/click.
+        GameObject valueObj = new("ValueInput");
+        valueObj.transform.SetParent(rect, false);
+        RectTransform valueAreaRect = valueObj.AddComponent<RectTransform>();
+        valueAreaRect.anchorMin = new Vector2(1f, 0f);
+        valueAreaRect.anchorMax = new Vector2(1f, 1f);
+        valueAreaRect.pivot = new Vector2(1f, 0.5f);
+        valueAreaRect.anchoredPosition = new Vector2(-16f, 0f);
+        valueAreaRect.sizeDelta = new Vector2(200f, 0f);
 
-        var valueTextRect = valueText.gameObject.GetComponent<RectTransform>();
+        // Transparent hit target so pointer events go here instead of bubbling
+        // up to the slider's row-level click/drag handlers.
+        Image valueAreaImage = valueObj.AddComponent<Image>();
+        valueAreaImage.color = new Color(0f, 0f, 0f, 0f);
+        valueAreaImage.raycastTarget = true;
+
+        valueObj.AddComponent<RectMask2D>();
+
+        TMP_InputField valueInput = valueObj.AddComponent<TMP_InputField>();
+
+        TextMeshProUGUI valueText = AddText(valueObj.transform);
+        valueText.alignment = TextAlignmentOptions.Right;
+        valueText.textWrappingMode = TextWrappingModes.NoWrap;
+        RectTransform valueTextRect = valueText.rectTransform;
+        valueTextRect.anchorMin = Vector2.zero;
+        valueTextRect.anchorMax = Vector2.one;
         valueTextRect.offsetMin = Vector2.zero;
-        valueTextRect.offsetMax = new(-16f, 0f);
+        valueTextRect.offsetMax = Vector2.zero;
+
+        valueInput.textViewport = valueAreaRect;
+        valueInput.textComponent = valueText;
+        valueInput.lineType = TMP_InputField.LineType.SingleLine;
+        valueInput.richText = false;
+        valueInput.contentType = TMP_InputField.ContentType.Standard;
 
         Image fillImg = fill.AddComponent<Image>();
         fillImg.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P2048);
@@ -194,6 +224,7 @@ public static partial class GenerateUI {
             fillImg,
             label,
             valueText,
+            valueInput,
             changeImg,
             changeUpImg,
             defaultValue,
@@ -204,6 +235,17 @@ public static partial class GenerateUI {
             onChanged,
             onComplete
         );
+
+        // Commit on Enter or focus loss. Parse → apply through the filter →
+        // call OnComplete → refresh display so the user sees the formatted
+        // (possibly clamped/snapped) result.
+        valueInput.onEndEdit.AddListener(typed => {
+            if(UISlider.TryParseValue(typed, out float parsed)) {
+                slider.Set(parsed);
+                slider.OnComplete?.Invoke(slider.Value);
+            }
+            valueInput.SetTextWithoutNotify(slider.Value.ToString(slider.Format));
+        });
 
         float Apply(float v) {
             v = filter != null ? filter(v) : v;

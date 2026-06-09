@@ -1,7 +1,7 @@
 {
-  "version": 3,
+  "version": 4,
   "targets": {
-    ".NETStandard,Version=v2.1": {
+    "netstandard2.1": {
       "Microsoft.CSharp/4.7.0": {
         "type": "package",
         "compile": {
@@ -89,34 +89,35 @@
     }
   },
   "projectFileDependencyGroups": {
-    ".NETStandard,Version=v2.1": [
+    "netstandard2.1": [
       "Microsoft.CSharp >= 4.7.0"
     ]
   },
   "packageFolders": {
-    "/Users/koren/.nuget/packages/": {}
+    "/Users/preluminance/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/koren/Documents/KorenResourcePack_v2/Koren/Koren.csproj",
+      "projectUniqueName": "/Users/preluminance/Coding/KorenResourcePack_v2/Koren/Koren.csproj",
       "projectName": "Koren",
-      "projectPath": "/Users/koren/Documents/KorenResourcePack_v2/Koren/Koren.csproj",
-      "packagesPath": "/Users/koren/.nuget/packages/",
-      "outputPath": "/Users/koren/Documents/KorenResourcePack_v2/Koren/obj/",
+      "projectPath": "/Users/preluminance/Coding/KorenResourcePack_v2/Koren/Koren.csproj",
+      "packagesPath": "/Users/preluminance/.nuget/packages/",
+      "outputPath": "/Users/preluminance/Coding/KorenResourcePack_v2/Koren/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/koren/.nuget/NuGet/NuGet.Config"
+        "/Users/preluminance/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "netstandard2.1"
       ],
       "sources": {
-        "/opt/homebrew/Cellar/dotnet/10.0.107/libexec/library-packs": {},
+        "/opt/homebrew/Cellar/dotnet/10.0.300/libexec/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "netstandard2.1": {
+          "framework": "netstandard2.1",
           "targetAlias": "netstandard2.1",
           "projectReferences": {}
         }
@@ -131,10 +132,11 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "10.0.100"
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
       "netstandard2.1": {
+        "framework": "netstandard2.1",
         "targetAlias": "netstandard2.1",
         "dependencies": {
           "Microsoft.CSharp": {
@@ -153,12 +155,18 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "NETStandard.Library.Ref",
+            "version": "[2.1.0, 2.1.0]"
+          }
+        ],
         "frameworkReferences": {
           "NETStandard.Library": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet/10.0.107/libexec/sdk/10.0.107/RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet/10.0.300/libexec/sdk/10.0.300/RuntimeIdentifierGraph.json"
       }
     }
   }

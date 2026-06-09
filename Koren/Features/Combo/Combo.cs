@@ -11,19 +11,23 @@ internal static class Combo {
     internal static int Count;
 
     internal static float PulseStartTime = -1f;
-    private const float PulsePeakScale = 1.24f;
+    private const float DefaultPulsePeakScale = 1.24f;
     private const float PulseOutDuration = 0.075f;
     private const float PulseSettleDuration = 0.18f;
 
-    internal static float EvaluatePulseScale() {
+    // 0 at rest → 1 at peak → 0 at end. Two-phase curve (exponential out,
+    // then linear settle) matching the original KRP feel. The label-pulse Y
+    // kick and the value-pulse scale both drive off this so they stay in
+    // lockstep.
+    internal static float EvaluatePulseT() {
         ComboSettings conf = ComboOverlay.Conf;
         if(conf != null && conf.NoPopAnim) {
             PulseStartTime = -1f;
-            return 1f;
+            return 0f;
         }
 
         if(PulseStartTime < 0f) {
-            return 1f;
+            return 0f;
         }
 
         float snap = conf != null && conf.FastAnim ? 0.35f : 1f;
@@ -33,17 +37,22 @@ internal static class Combo {
         float elapsed = Time.realtimeSinceStartup - PulseStartTime;
         if(elapsed <= outDur) {
             float t = elapsed / outDur;
-            float eased = t >= 1f ? 1f : 1f - Mathf.Pow(2f, -10f * t);
-            return Mathf.LerpUnclamped(1f, PulsePeakScale, eased);
+            return t >= 1f ? 1f : 1f - Mathf.Pow(2f, -10f * t);
         }
 
         float settleElapsed = elapsed - outDur;
         if(settleElapsed >= settleDur) {
             PulseStartTime = -1f;
-            return 1f;
+            return 0f;
         }
 
-        return Mathf.Lerp(PulsePeakScale, 1f, settleElapsed / settleDur);
+        return Mathf.Lerp(1f, 0f, settleElapsed / settleDur);
+    }
+
+    internal static float EvaluatePulseScale() {
+        ComboSettings conf = ComboOverlay.Conf;
+        float peak = conf != null ? conf.PulsePeakScale : DefaultPulsePeakScale;
+        return Mathf.LerpUnclamped(1f, peak, EvaluatePulseT());
     }
 
     [HarmonyPatch(typeof(scnGame), "Play")]

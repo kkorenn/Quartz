@@ -39,6 +39,7 @@ public class UISlider : UIObject {
 
     public TextMeshProUGUI Label { get; }
     public TextMeshProUGUI ValueText { get; }
+    public TMP_InputField ValueInput { get; }
 
     public Image ChangedImage { get; }
     public Image ChangedUpImage { get; }
@@ -53,6 +54,7 @@ public class UISlider : UIObject {
         Image fillImage,
         TextMeshProUGUI label,
         TextMeshProUGUI valueText,
+        TMP_InputField valueInput,
         Image changedImage,
         Image changedUpImage,
         float defaultValue,
@@ -70,6 +72,7 @@ public class UISlider : UIObject {
 
         Label = label;
         ValueText = valueText;
+        ValueInput = valueInput;
 
         ChangedImage = changedImage;
         ChangedUpImage = changedUpImage;
@@ -115,7 +118,61 @@ public class UISlider : UIObject {
 
     private float ApplyFilter(float v) => Filter?.Invoke(v) ?? v;
 
-    private void UpdateValueText() => ValueText?.text = Value.ToString(Format);
+    // Pushes the formatted value into the input field, but only when the user
+    // isn't actively typing — otherwise a slider drag (or any external setter)
+    // would clobber the in-progress edit.
+    private void UpdateValueText() {
+        string formatted = Value.ToString(Format);
+        if(ValueInput != null) {
+            if(ValueInput.isFocused) {
+                return;
+            }
+            if(ValueInput.text != formatted) {
+                ValueInput.SetTextWithoutNotify(formatted);
+            }
+        } else if(ValueText != null) {
+            ValueText.text = formatted;
+        }
+    }
+
+    // Permissive parse — grabs the first signed-decimal substring from the
+    // user's edit so "8 px", "8px", "8.5 x", " 12 " all work and trailing
+    // units are tolerated.
+    public static bool TryParseValue(string text, out float value) {
+        value = 0f;
+        if(string.IsNullOrWhiteSpace(text)) {
+            return false;
+        }
+
+        System.Text.StringBuilder sb = new();
+        bool seenDigit = false;
+        bool seenDot = false;
+
+        foreach(char c in text) {
+            if(sb.Length == 0 && (c == '-' || c == '+')) {
+                sb.Append(c);
+            } else if(c >= '0' && c <= '9') {
+                sb.Append(c);
+                seenDigit = true;
+            } else if(c == '.' && !seenDot) {
+                sb.Append(c);
+                seenDot = true;
+            } else if(seenDigit) {
+                break;
+            }
+        }
+
+        if(!seenDigit) {
+            return false;
+        }
+
+        return float.TryParse(
+            sb.ToString(),
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out value
+        );
+    }
 
     public void UpdateVisual(bool noAnimate = false) {
         fillSeq?.Kill();
