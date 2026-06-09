@@ -150,6 +150,7 @@ public static partial class GenerateUI {
         };
 
         GTween openSeq = null;
+        GTween arrowSeq = null;
 
         // Open/close like a dropdown: slide the section height + fade, rotate
         // the arrow (down collapsed / up expanded) and recolor it.
@@ -162,6 +163,7 @@ public static partial class GenerateUI {
             bodyCg.interactable = exp;
 
             openSeq?.Kill();
+            arrowSeq?.Kill();
 
             if(!animate) {
                 bodyObj.SetActive(exp);
@@ -197,6 +199,13 @@ public static partial class GenerateUI {
             float to = exp ? content : 0f;
             bodyLE.preferredHeight = exp ? 0f : content;
 
+            // Body slide + fade. The cleanup runs when THIS finishes (0.16s) so
+            // the body is hidden the instant it reaches zero height. The arrow
+            // spin below is a separate, longer tween and must not gate it —
+            // otherwise a collapsed-but-still-active body leaves the section's
+            // layout spacing showing as a gap until the arrow finishes.
+            // Open overshoots for a bounce (OutBack); close eases straight to 0
+            // (OutSine) so the height never plateaus at 0 before the tween ends.
             openSeq = GTweenSequenceBuilder.New()
                 .Join(GTweenExtensions.Tween(
                     () => bodyLE.preferredHeight,
@@ -206,15 +215,13 @@ public static partial class GenerateUI {
                     },
                     to,
                     0.16f
-                ).SetEasing(Easing.OutBack))
+                ).SetEasing(exp ? Easing.OutBack : Easing.OutSine))
                 .Join(GTweenExtensions.Tween(
                     () => bodyCg.alpha,
                     x => bodyCg.alpha = x,
                     exp ? 1f : 0f,
                     0.16f
                 ).SetEasing(Easing.OutSine))
-                .Join(arrowRect.GTRotate(targetRot, 0.4f).SetEasing(Easing.OutBack))
-                .Join(arrowImg.GTColor(targetCol, 0.2f).SetEasing(Easing.OutSine))
                 .AppendCallback(() => {
                     if(c.Expanded) {
                         // Hand sizing back so nested widgets can grow the body.
@@ -231,6 +238,15 @@ public static partial class GenerateUI {
                 .Build();
 
             MainCore.TC.Play(openSeq);
+
+            // Arrow spin + recolor — runs independently so its longer duration
+            // doesn't delay hiding the body on collapse.
+            arrowSeq = GTweenSequenceBuilder.New()
+                .Join(arrowRect.GTRotate(targetRot, 0.4f).SetEasing(Easing.OutBack))
+                .Join(arrowImg.GTColor(targetCol, 0.2f).SetEasing(Easing.OutSine))
+                .Build();
+
+            MainCore.TC.Play(arrowSeq);
         }
 
         c.applyState = () => Apply(true);
