@@ -2,6 +2,7 @@ using Koren.Core;
 using Koren.Localization;
 using Koren.Resource;
 using Koren.UI.Transition;
+using Koren.UI.Utility;
 using Koren.Update;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -49,6 +50,7 @@ public static class MenuFactory {
         var overlay = CreateItem(parent, "Overlay", MainCore.Spr.Get(UISprite.Monitor128, iconUnits), (int)OriginalMenuState.Overlay);
         var gameplay = CreateItem(parent, "Gameplay", MainCore.Spr.Get(UISprite.Gamepad128, iconUnits), (int)OriginalMenuState.Gameplay);
         var visuals = CreateItem(parent, "Visuals", MainCore.Spr.Get(UISprite.Image128, iconUnits), (int)OriginalMenuState.Visuals);
+        var tweaks = CreateItem(parent, "Tweaks", MainCore.Spr.Get(UISprite.AdjustmentsHorizontal128, iconUnits), (int)OriginalMenuState.Tweaks);
         var search = CreateItem(parent, "Search", MainCore.Spr.Get(UISprite.MagnifyingGlass128, iconUnits), (int)OriginalMenuState.Search);
         var settings = CreateItem(parent, "Settings", MainCore.Spr.Get(UISprite.Gear128, iconUnits), (int)OriginalMenuState.Settings);
         var credits = CreateItem(parent, "Credits", MainCore.Spr.Get(UISprite.Star128, iconUnits), (int)OriginalMenuState.Credits);
@@ -61,6 +63,9 @@ public static class MenuFactory {
 
         visuals.label.gameObject.AddComponent<TextLocalization>()
             .Init("VISUALS", "Visuals");
+
+        tweaks.label.gameObject.AddComponent<TextLocalization>()
+            .Init("TWEAKS", "Tweaks");
 
         settings.label.gameObject.AddComponent<TextLocalization>()
             .Init("SETTINGS", "Settings");
@@ -209,7 +214,7 @@ public static class MenuFactory {
             MainCore.TC.Play(menuItem.hoverSeq);
         });
 
-        Add(EventTriggerType.PointerClick, () => SetState(state));
+        UnityUtils.AddClickEvent(trigger, _ => SetState(state));
 
         return menuItem;
     }

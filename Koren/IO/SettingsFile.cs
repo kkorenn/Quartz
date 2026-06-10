@@ -13,8 +13,6 @@ public sealed class SettingsFile<T>(string path) where T : class, ISettingsFile,
 
     private CancellationTokenSource saveCts;
 
-    private bool saveScheduled;
-
     public bool Load() {
         try {
             if(!File.Exists(Path)) {
@@ -58,6 +56,10 @@ public sealed class SettingsFile<T>(string path) where T : class, ISettingsFile,
         }
     }
 
+    // Debounced save: each request cancels the previous pending one and
+    // schedules its own. (An earlier version reused the pending task but had
+    // already cancelled its token — a second request inside the delay window
+    // could silently drop the save.)
     public void RequestSave(
         int delay = 500
     ) {
@@ -66,12 +68,6 @@ public sealed class SettingsFile<T>(string path) where T : class, ISettingsFile,
         saveCts = new CancellationTokenSource();
 
         CancellationToken token = saveCts.Token;
-
-        if(saveScheduled) {
-            return;
-        }
-
-        saveScheduled = true;
 
         _ = Task.Run(async () => {
             try {
@@ -87,8 +83,6 @@ public sealed class SettingsFile<T>(string path) where T : class, ISettingsFile,
                 MainCore.Log.Err(
                     $"[{nameof(SettingsFile<>)}] Failed to request save '{Path}': {e}"
                 );
-            } finally {
-                saveScheduled = false;
             }
         });
     }

@@ -129,11 +129,12 @@ public static class UpdateToast {
             borderImg.raycastTarget = false;
         }
 
-        var btn = toastObj.AddComponent<Button>();
-        btn.transition = Selectable.Transition.None;
-        btn.onClick.AddListener(() => OpenSettings());
-
+        // Click via PointerUp on the trigger — a Button's click would get
+        // cancelled by the trigger's drag handling when the cursor moves
+        // mid-click.
         var trigger = toastObj.AddComponent<EventTrigger>();
+
+        Utility.UnityUtils.AddClickEvent(trigger, _ => OpenSettings());
 
         void Add(EventTriggerType type, Action cb) {
             var e = new EventTrigger.Entry {
@@ -243,11 +244,9 @@ public static class UpdateToast {
             xImg.sprite = MainCore.Spr.Get(UISprite.X128, 18f);
             xImg.color = new Color(1f, 1f, 1f, 0.55f);
 
-            var closeBtn = close.AddComponent<Button>();
-            closeBtn.transition = Selectable.Transition.None;
-            closeBtn.onClick.AddListener(() => Dismiss());
-
             var closeTrigger = close.AddComponent<EventTrigger>();
+
+            Utility.UnityUtils.AddClickEvent(closeTrigger, _ => Dismiss());
 
             void AddClose(EventTriggerType type, Action cb) {
                 var e = new EventTrigger.Entry {

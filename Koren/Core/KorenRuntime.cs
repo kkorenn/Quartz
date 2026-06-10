@@ -7,8 +7,10 @@ using Koren.Features.PlayCount;
 using Koren.Features.Combo;
 using Koren.Features.EffectRemover;
 using Koren.Features.Judgement;
+using Koren.Features.PlanetColors;
 using Koren.Features.ProgressBar;
 using Koren.Features.Status;
+using Koren.Features.Tweaks;
 using Koren.IO;
 using Koren.Resource;
 using Koren.Update;
@@ -81,6 +83,11 @@ public sealed class KorenRuntime {
     }
 
     public void Initialize() {
+        // Per-phase timing so "the game took forever to start" reports can be
+        // pinned to a phase from the log instead of guessed at.
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var total = System.Diagnostics.Stopwatch.StartNew();
+
         Paths.Initialize();
 
         CreateRootObject();
@@ -88,8 +95,11 @@ public sealed class KorenRuntime {
         RootObject.AddComponent<MainThread>();
 
         Config.Load();
+        Logger.Msg($"[Startup] paths + config took {sw.ElapsedMilliseconds} ms");
 
+        sw.Restart();
         FontManager.Initialize();
+        Logger.Msg($"[Startup] FontManager took {sw.ElapsedMilliseconds} ms");
 
         Localization = new LocalizationService(Paths.LangPath, Config, Logger);
 
@@ -109,13 +119,16 @@ public sealed class KorenRuntime {
         ticks.Add(uiService);
         ticks.Add(tweenService);
 
-        services.Initialize();
+        services.Initialize(Logger);
 
+        sw.Restart();
         SetModEnabled(Config.Data.Active, false);
+        Logger.Msg($"[Startup] SetModEnabled took {sw.ElapsedMilliseconds} ms");
 
         // Background check so the Settings page can show any available update.
         UpdateService.Check();
 
+        Logger.Msg($"[Startup] total {total.ElapsedMilliseconds} ms");
         Logger.Msg("Hello");
     }
 
@@ -161,6 +174,11 @@ public sealed class KorenRuntime {
             // Re-disable editor Save buttons if the Effect Remover is on.
             EffectRemover.RefreshEditorSaveButtons();
 
+            // Re-apply the visual tweaks and planet colors to whatever scene
+            // is live.
+            Tweaks.RefreshAll();
+            PlanetColors.Refresh();
+
             OnModEnabledChanged?.Invoke(true, isDispose);
 
             Logger.Msg("Mod Enabled");
@@ -174,6 +192,10 @@ public sealed class KorenRuntime {
 
             // The remover's editor-save lock shouldn't outlive the mod.
             EffectRemover.RestoreEditorSaveButtons();
+
+            // Put back the particles/glows/colors the features changed.
+            Tweaks.RestoreAll();
+            PlanetColors.Restore();
 
             Logger.Msg("Mod Disabled");
         }

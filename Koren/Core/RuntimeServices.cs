@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Koren.Compat;
 using Koren.Compat.Interface;
 
 namespace Koren.Core;
@@ -7,9 +9,15 @@ public sealed class RuntimeServices {
 
     public void Add(IRuntimeService service) => services.Add(service);
 
-    public void Initialize() {
+    // Logs how long each service takes so intermittent slow startups can be
+    // attributed to a specific phase from the player's log.
+    public void Initialize(KorenLogger log = null) {
+        Stopwatch sw = new();
+
         foreach(var service in services) {
+            sw.Restart();
             service.Initialize();
+            log?.Msg($"[Startup] {service.GetType().Name} took {sw.ElapsedMilliseconds} ms");
         }
     }
 

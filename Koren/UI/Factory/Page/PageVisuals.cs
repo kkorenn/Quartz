@@ -1,5 +1,7 @@
 using Koren.Features.EffectRemover;
 using Koren.Features.Judgement;
+using Koren.Features.PlanetColors;
+using Koren.Features.Tweaks;
 using Koren.UI.Generator;
 using Koren.UI.Objects.Impl;
 using Koren.UI.Utility;
@@ -278,6 +280,197 @@ internal static class PageVisuals {
         RefreshConditionalRows();
 
         CreateHideJudgements(content.transform);
+        CreateVisualTweaks(content.transform);
+        CreatePlanetColors(content.transform);
+    }
+
+    // v1 ResourceChanger's "Change ball color": per planet slot a ball color
+    // (picker, RGB only) + ball opacity slider, and a tail opacity slider.
+    // "Separate Tail Color" reveals per-planet tail color pickers; while off,
+    // tails reuse the ball RGB, exactly like the original.
+    private static void CreatePlanetColors(Transform content) {
+        PlanetColors.EnsureConf();
+        PlanetColorsSettings conf = PlanetColors.Conf;
+        PlanetColorsSettings def = new();
+
+        var sec = GenerateUI.Collapsible(content, "Planet Colors", startExpanded: false);
+
+        void Apply() => PlanetColors.Refresh();
+        void Save() => PlanetColors.Save();
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.Enabled,
+            conf.Enabled,
+            v => {
+                conf.Enabled = v;
+                if(v) {
+                    PlanetColors.Refresh();
+                } else {
+                    PlanetColors.Restore();
+                }
+                Save();
+            },
+            "Change Ball Color",
+            "pcol_on"
+        ).Rect.AddToolTip(
+            "DESC_PCOL_ON",
+            "Recolors the planets (and their tails) with the colors below, overriding level events and skins."
+        );
+
+        RectTransform[] tailColorRows = new RectTransform[PlanetColorsSettings.Slots];
+
+        void RefreshTailRows() {
+            foreach(RectTransform row in tailColorRows) {
+                row?.gameObject.SetActive(conf.SeparateTailColor);
+            }
+        }
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.SeparateTailColor,
+            conf.SeparateTailColor,
+            v => {
+                conf.SeparateTailColor = v;
+                RefreshTailRows();
+                Apply();
+                Save();
+            },
+            "Separate Tail Color",
+            "pcol_sep_tail"
+        ).Rect.AddToolTip(
+            "DESC_PCOL_SEP_TAIL",
+            "Off: tails use the ball color (with their own opacity). On: each planet's tail gets its own color."
+        );
+
+        for(int i = 0; i < PlanetColorsSettings.Slots; i++) {
+            int slot = i;
+            string n = (slot + 1).ToString();
+
+            GenerateUI.AddTextH1(GenerateUI.Row(sec.Body)).text = $"Planet {n}";
+
+            GenerateUI.ColorPicker(
+                GenerateUI.Row(sec.Body),
+                new Color(def.BallR[slot], def.BallG[slot], def.BallB[slot]),
+                new Color(conf.BallR[slot], conf.BallG[slot], conf.BallB[slot]),
+                c => { conf.SetBallRgb(slot, c); Apply(); },
+                c => { conf.SetBallRgb(slot, c); Apply(); Save(); },
+                $"Planet {n} Color",
+                $"pcol_ball{n}",
+                showAlpha: false
+            );
+
+            UISlider ballOp = GenerateUI.Slider(
+                GenerateUI.Row(sec.Body),
+                def.BallOpacity[slot], 0f, 1f, conf.BallOpacity[slot],
+                null, null, null,
+                $"Planet {n} Ball Opacity",
+                $"pcol_ballop{n}"
+            );
+            ballOp.Format = "0 %";
+            ballOp.OnChanged = v => { conf.BallOpacity[slot] = v; Apply(); };
+            ballOp.OnComplete = v => { conf.BallOpacity[slot] = v; Apply(); Save(); };
+
+            tailColorRows[slot] = GenerateUI.Row(sec.Body);
+            GenerateUI.ColorPicker(
+                tailColorRows[slot],
+                new Color(def.TailR[slot], def.TailG[slot], def.TailB[slot]),
+                new Color(conf.TailR[slot], conf.TailG[slot], conf.TailB[slot]),
+                c => { conf.SetTailRgb(slot, c); Apply(); },
+                c => { conf.SetTailRgb(slot, c); Apply(); Save(); },
+                $"Planet {n} Tail Color",
+                $"pcol_tail{n}",
+                showAlpha: false
+            );
+
+            UISlider tailOp = GenerateUI.Slider(
+                GenerateUI.Row(sec.Body),
+                def.TailOpacity[slot], 0f, 1f, conf.TailOpacity[slot],
+                null, null, null,
+                $"Planet {n} Tail Opacity",
+                $"pcol_tailop{n}"
+            );
+            tailOp.Format = "0 %";
+            tailOp.OnChanged = v => { conf.TailOpacity[slot] = v; Apply(); };
+            tailOp.OnComplete = v => { conf.TailOpacity[slot] = v; Apply(); Save(); };
+        }
+
+        RefreshTailRows();
+    }
+
+    // v1's visual tweaks: checkpoint removal, ball core particle removal,
+    // tile hit glow and planet glow suppression. The two non-visual tweaks
+    // from the same v1 section live on the Tweaks tab.
+    private static void CreateVisualTweaks(Transform content) {
+        Tweaks.EnsureConf();
+        TweaksSettings conf = Tweaks.Conf;
+        TweaksSettings def = new();
+
+        var sec = GenerateUI.Collapsible(content, "Visual Tweaks", startExpanded: false);
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.RemoveAllCheckpoints,
+            conf.RemoveAllCheckpoints,
+            v => {
+                conf.RemoveAllCheckpoints = v;
+                Tweaks.RefreshCheckpointTweak();
+                Tweaks.Save();
+            },
+            "Remove All Checkpoints",
+            "tw_cp"
+        ).Rect.AddToolTip(
+            "DESC_TW_CP",
+            "Strips checkpoint icons and behavior from the level — dying always restarts the run. Turning this off needs a level reload to bring icons back."
+        );
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.RemoveBallCoreParticles,
+            conf.RemoveBallCoreParticles,
+            v => {
+                conf.RemoveBallCoreParticles = v;
+                Tweaks.RefreshBallCoreParticlesTweak();
+                Tweaks.Save();
+            },
+            "Remove Ball Core Particles",
+            "tw_bcp"
+        ).Rect.AddToolTip(
+            "DESC_TW_BCP",
+            "Removes the planets' core and spark particles."
+        );
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.DisableTileHitGlow,
+            conf.DisableTileHitGlow,
+            v => {
+                conf.DisableTileHitGlow = v;
+                Tweaks.RefreshTileHitGlowTweak();
+                Tweaks.Save();
+            },
+            "Disable Tile Hit Glow",
+            "tw_glow"
+        ).Rect.AddToolTip(
+            "DESC_TW_GLOW",
+            "Suppresses the glow flash tiles get when the planet lands on them."
+        );
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.RemovePlanetGlow,
+            conf.RemovePlanetGlow,
+            v => {
+                conf.RemovePlanetGlow = v;
+                Tweaks.RefreshPlanetGlowTweak();
+                Tweaks.Save();
+            },
+            "Remove Planet Glow",
+            "tw_pglow"
+        ).Rect.AddToolTip(
+            "DESC_TW_PGLOW",
+            "Hides the glow sprite drawn around the planets."
+        );
     }
 
     // v1's "Hide judgement popups" tweak: a master toggle plus one toggle per

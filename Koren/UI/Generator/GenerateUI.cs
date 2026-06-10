@@ -637,7 +637,7 @@ public static partial class GenerateUI {
     }
 
     private static void AddClick(EventTrigger trigger, Action<InputButton> onClick)
-        => UnityUtils.AddEvent(EventTriggerType.PointerClick, (e) => onClick?.Invoke(e.button), trigger);
+        => UnityUtils.AddClickEvent(trigger, e => onClick?.Invoke(e.button));
 
     private static void AddOutlineHover(GameObject obj, EventTrigger trigger) {
         GTween hoverSeq = null;

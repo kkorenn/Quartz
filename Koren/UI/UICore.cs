@@ -28,6 +28,7 @@ public enum OriginalMenuState {
     Overlay,
     Gameplay,
     Visuals,
+    Tweaks,
     Settings,
     Search,
     Credits,
@@ -561,10 +562,9 @@ public static class UICore {
             closeRect.anchoredPosition = new(-16, 0);
             closeRect.sizeDelta = new(38, 38);
 
-            // Button
-            var btn = close.AddComponent<Button>();
-            btn.transition = Selectable.Transition.None;
-            btn.onClick.AddListener(() => Close());
+            // Click handled via PointerUp on the EventTrigger below — a Button
+            // here would get its click cancelled by the trigger's drag
+            // handling whenever the cursor moves mid-click.
 
             // Background circle (hover layer)
             GameObject bg = new("Bg");
@@ -594,6 +594,8 @@ public static class UICore {
             xRect.offsetMax = new(-4, -4);
 
             EventTrigger trigger = close.AddComponent<EventTrigger>();
+
+            UnityUtils.AddClickEvent(trigger, _ => Close());
 
             var enter = new EventTrigger.Entry {
                 eventID = EventTriggerType.PointerEnter

@@ -216,7 +216,7 @@ public class UIDropDown<T> : UIObject {
                 MainCore.TC.Play(hoverSeq);
             }, trigger);
 
-            UnityUtils.AddEvent(EventTriggerType.PointerClick, e => {
+            UnityUtils.AddClickEvent(trigger, e => {
                 if(e.button != PointerEventData.InputButton.Left) {
                     return;
                 }
@@ -226,7 +226,7 @@ public class UIDropDown<T> : UIObject {
                 rowImage.color = Color.clear;
 
                 SetExpanded(false);
-            }, trigger);
+            });
         }
     }
 
