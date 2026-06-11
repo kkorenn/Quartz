@@ -19,6 +19,8 @@ internal static class PageCombo {
 
         void Save() => ComboOverlay.Save();
         void Apply() => ComboOverlay.Apply();
+        void ApplyCaptionShadow() => ComboOverlay.ApplyCaptionShadow();
+        void ApplyCountShadow() => ComboOverlay.ApplyCountShadow();
 
         var sec = GenerateUI.Collapsible(content, "Combo", startExpanded: false);
 
@@ -83,20 +85,33 @@ internal static class PageCombo {
             def.CaptionOffsetY, -200f, 200f, conf.CaptionOffsetY, "0 px", 1f,
             v => conf.CaptionOffsetY = v, Apply, Save);
 
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.CaptionShadowEnabled,
+            conf.CaptionShadowEnabled,
+            v => { conf.CaptionShadowEnabled = v; ApplyCaptionShadow(); Save(); },
+            "Caption Shadow",
+            "combo_caption_shadow_enabled"
+        );
+
         AddSlider(sec.Body, "Caption Shadow X", "combo_caption_shadow_x",
             def.CaptionShadowX, -10f, 10f, conf.CaptionShadowX, "0.0 px", 0.1f,
-            v => conf.CaptionShadowX = v, Apply, Save);
+            v => conf.CaptionShadowX = v, ApplyCaptionShadow, Save);
 
         AddSlider(sec.Body, "Caption Shadow Y", "combo_caption_shadow_y",
             def.CaptionShadowY, -10f, 10f, conf.CaptionShadowY, "0.0 px", 0.1f,
-            v => conf.CaptionShadowY = v, Apply, Save);
+            v => conf.CaptionShadowY = v, ApplyCaptionShadow, Save);
+
+        AddSlider(sec.Body, "Caption Shadow Softness", "combo_caption_shadow_softness",
+            def.CaptionShadowSoftness, 0f, 20f, conf.CaptionShadowSoftness, "0.0 px", 0.1f,
+            v => conf.CaptionShadowSoftness = v, ApplyCaptionShadow, Save);
 
         GenerateUI.ColorPicker(
             GenerateUI.Row(sec.Body),
             def.GetCaptionShadowColor(),
             conf.GetCaptionShadowColor(),
-            c => { conf.SetCaptionShadowColor(c); Apply(); },
-            c => { conf.SetCaptionShadowColor(c); Apply(); Save(); },
+            c => { conf.SetCaptionShadowColor(c); ApplyCaptionShadow(); },
+            c => { conf.SetCaptionShadowColor(c); ApplyCaptionShadow(); Save(); },
             "Caption Shadow Color",
             "combo_caption_shadow_color"
         );
@@ -108,20 +123,33 @@ internal static class PageCombo {
             def.CountThickness, -0.5f, 0.5f, conf.CountThickness, "0.00", 0.01f,
             v => conf.CountThickness = v, Apply, Save);
 
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.CountShadowEnabled,
+            conf.CountShadowEnabled,
+            v => { conf.CountShadowEnabled = v; ApplyCountShadow(); Save(); },
+            "Count Shadow",
+            "combo_count_shadow_enabled"
+        );
+
         AddSlider(sec.Body, "Count Shadow X", "combo_count_shadow_x",
             def.CountShadowX, -10f, 10f, conf.CountShadowX, "0.0 px", 0.1f,
-            v => conf.CountShadowX = v, Apply, Save);
+            v => conf.CountShadowX = v, ApplyCountShadow, Save);
 
         AddSlider(sec.Body, "Count Shadow Y", "combo_count_shadow_y",
             def.CountShadowY, -10f, 10f, conf.CountShadowY, "0.0 px", 0.1f,
-            v => conf.CountShadowY = v, Apply, Save);
+            v => conf.CountShadowY = v, ApplyCountShadow, Save);
+
+        AddSlider(sec.Body, "Count Shadow Softness", "combo_count_shadow_softness",
+            def.CountShadowSoftness, 0f, 20f, conf.CountShadowSoftness, "0.0 px", 0.1f,
+            v => conf.CountShadowSoftness = v, ApplyCountShadow, Save);
 
         GenerateUI.ColorPicker(
             GenerateUI.Row(sec.Body),
             def.GetCountShadowColor(),
             conf.GetCountShadowColor(),
-            c => { conf.SetCountShadowColor(c); Apply(); },
-            c => { conf.SetCountShadowColor(c); Apply(); Save(); },
+            c => { conf.SetCountShadowColor(c); ApplyCountShadow(); },
+            c => { conf.SetCountShadowColor(c); ApplyCountShadow(); Save(); },
             "Count Shadow Color",
             "combo_count_shadow_color"
         );

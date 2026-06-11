@@ -1,6 +1,7 @@
 using Newtonsoft.Json.Linq;
 using Koren.IO;
 using Koren.IO.Interface;
+using UnityEngine;
 
 namespace Koren.Features.Judgement;
 
@@ -16,6 +17,26 @@ public sealed class JudgementSettings : ISettingsFile {
     public float Size = 1f;
     public float Spacing = 0f;
 
+    public bool TextShadowEnabled = true;
+    public float TextShadowX = 2f;
+    public float TextShadowY = -2f;
+    public float TextShadowSoftness = 0f;
+    public float TextShadowR = 0f, TextShadowG = 0f, TextShadowB = 0f, TextShadowA = 0.75f;
+
+    public Color GetTextShadowColor() => new(
+        Mathf.Clamp01(TextShadowR),
+        Mathf.Clamp01(TextShadowG),
+        Mathf.Clamp01(TextShadowB),
+        Mathf.Clamp01(TextShadowA)
+    );
+
+    public void SetTextShadowColor(Color c) {
+        TextShadowR = Mathf.Clamp01(c.r);
+        TextShadowG = Mathf.Clamp01(c.g);
+        TextShadowB = Mathf.Clamp01(c.b);
+        TextShadowA = Mathf.Clamp01(c.a);
+    }
+
     public JToken Serialize() {
         return new JObject {
             [nameof(Enabled)] = Enabled,
@@ -23,6 +44,14 @@ public sealed class JudgementSettings : ISettingsFile {
             [nameof(OffsetY)] = OffsetY,
             [nameof(Size)] = Size,
             [nameof(Spacing)] = Spacing,
+            [nameof(TextShadowEnabled)] = TextShadowEnabled,
+            [nameof(TextShadowX)] = TextShadowX,
+            [nameof(TextShadowY)] = TextShadowY,
+            [nameof(TextShadowSoftness)] = TextShadowSoftness,
+            [nameof(TextShadowR)] = TextShadowR,
+            [nameof(TextShadowG)] = TextShadowG,
+            [nameof(TextShadowB)] = TextShadowB,
+            [nameof(TextShadowA)] = TextShadowA,
         };
     }
 
@@ -32,5 +61,13 @@ public sealed class JudgementSettings : ISettingsFile {
         OffsetY = IOUtils.Read(token, nameof(OffsetY), OffsetY);
         Size = IOUtils.Read(token, nameof(Size), Size);
         Spacing = IOUtils.Read(token, nameof(Spacing), Spacing);
+        TextShadowEnabled = IOUtils.Read(token, nameof(TextShadowEnabled), TextShadowEnabled);
+        TextShadowX = IOUtils.Read(token, nameof(TextShadowX), TextShadowX);
+        TextShadowY = IOUtils.Read(token, nameof(TextShadowY), TextShadowY);
+        TextShadowSoftness = IOUtils.Read(token, nameof(TextShadowSoftness), TextShadowSoftness);
+        TextShadowR = IOUtils.Read(token, nameof(TextShadowR), TextShadowR);
+        TextShadowG = IOUtils.Read(token, nameof(TextShadowG), TextShadowG);
+        TextShadowB = IOUtils.Read(token, nameof(TextShadowB), TextShadowB);
+        TextShadowA = IOUtils.Read(token, nameof(TextShadowA), TextShadowA);
     }
 }

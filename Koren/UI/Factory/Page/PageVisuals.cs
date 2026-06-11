@@ -1,7 +1,10 @@
+using Koren.Core;
 using Koren.Features.EffectRemover;
 using Koren.Features.Judgement;
+using Koren.Features.OttoIcon;
 using Koren.Features.PlanetColors;
 using Koren.Features.Tweaks;
+using Koren.Features.UiHider;
 using Koren.UI.Generator;
 using Koren.UI.Objects.Impl;
 using Koren.UI.Utility;
@@ -282,6 +285,175 @@ internal static class PageVisuals {
         CreateHideJudgements(content.transform);
         CreateVisualTweaks(content.transform);
         CreatePlanetColors(content.transform);
+        CreateOttoIcon(content.transform);
+        CreateUiHiding(content.transform);
+    }
+
+    // v1 ResourceChanger's "Change Otto icon": swaps the editor's auto-play
+    // icon for the mod's own sprite with a configurable tint and offset.
+    private static void CreateOttoIcon(Transform content) {
+        OttoIcon.EnsureConf();
+        OttoIconSettings conf = OttoIcon.Conf;
+        OttoIconSettings def = new();
+
+        var sec = GenerateUI.Collapsible(content, "Otto Icon", startExpanded: false);
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.Enabled,
+            conf.Enabled,
+            v => {
+                conf.Enabled = v;
+                if(v) {
+                    OttoIcon.Refresh();
+                } else {
+                    OttoIcon.Restore();
+                }
+                OttoIcon.Save();
+            },
+            "Change Otto Icon",
+            "otto_on"
+        ).Rect.AddToolTip(
+            "DESC_OTTO_ON",
+            "Replaces the editor's Otto (auto-play) icon with the mod's icon, tinted with the color below. Dimmed automatically while auto-play is off."
+        );
+
+        GenerateUI.ColorPicker(
+            GenerateUI.Row(sec.Body),
+            def.GetColor(),
+            conf.GetColor(),
+            c => { conf.SetColor(c); OttoIcon.Refresh(); },
+            c => { conf.SetColor(c); OttoIcon.Refresh(); OttoIcon.Save(); },
+            "Otto Color",
+            "otto_color"
+        );
+
+        UISlider offsetX = GenerateUI.Slider(
+            GenerateUI.Row(sec.Body),
+            def.OffsetX, -100f, 100f, conf.OffsetX,
+            v => Mathf.Round(v), null, null,
+            "Offset X",
+            "otto_offset_x"
+        );
+        offsetX.Format = "0";
+        offsetX.OnChanged = v => { conf.OffsetX = v; OttoIcon.Refresh(); };
+        offsetX.OnComplete = v => { conf.OffsetX = v; OttoIcon.Refresh(); OttoIcon.Save(); };
+
+        UISlider offsetY = GenerateUI.Slider(
+            GenerateUI.Row(sec.Body),
+            def.OffsetY, -100f, 100f, conf.OffsetY,
+            v => Mathf.Round(v), null, null,
+            "Offset Y",
+            "otto_offset_y"
+        );
+        offsetY.Format = "0";
+        offsetY.OnChanged = v => { conf.OffsetY = v; OttoIcon.Refresh(); };
+        offsetY.OnComplete = v => { conf.OffsetY = v; OttoIcon.Refresh(); OttoIcon.Save(); };
+    }
+
+    // v1's UI Hiding: two profiles of hide flags (Playing / Recording) and a
+    // shortcut that flips between them mid-game.
+    private static void CreateUiHiding(Transform content) {
+        UiHider.EnsureConf();
+        UiHiderSettings conf = UiHider.Conf;
+        UiHiderSettings def = new();
+
+        var sec = GenerateUI.Collapsible(content, "UI Hiding", startExpanded: false);
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.Enabled,
+            conf.Enabled,
+            v => {
+                conf.Enabled = v;
+                if(v) {
+                    UiHider.ApplyNow();
+                } else {
+                    UiHider.Restore();
+                }
+                UiHider.Save();
+            },
+            "Enable UI Hiding",
+            "uih_on"
+        ).Rect.AddToolTip(
+            "DESC_UIH_ON",
+            "Hides the selected pieces of the game's own UI. Two profiles: Playing and Recording — the shortcut below flips between them mid-game."
+        );
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.RecordingMode,
+            conf.RecordingMode,
+            v => {
+                conf.RecordingMode = v;
+                UiHider.ApplyNow();
+                UiHider.Save();
+            },
+            "Recording Mode",
+            "uih_recmode"
+        ).Rect.AddToolTip(
+            "DESC_UIH_RECMODE",
+            "Which profile is live right now: off = Playing, on = Recording."
+        );
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.UseShortcut,
+            conf.UseShortcut,
+            v => {
+                conf.UseShortcut = v;
+                UiHider.Save();
+            },
+            "Use Recording Mode Shortcut",
+            "uih_useshortcut"
+        );
+
+        GenerateUI.KeyBind(
+            GenerateUI.Row(sec.Body),
+            (Keybind.KeyModifier)conf.ShortcutModifier,
+            (KeyCode)conf.ShortcutKey,
+            (mod, key) => {
+                conf.ShortcutModifier = (int)mod;
+                conf.ShortcutKey = (int)key;
+                UiHider.Save();
+            },
+            "Recording Mode Shortcut",
+            "uih_shortcut"
+        );
+
+        void ProfileSection(string title, UiHiderProfile profile, UiHiderProfile defProfile, string idPrefix) {
+            var prof = GenerateUI.Collapsible(sec.Body, title, startExpanded: false);
+
+            void Flag(string label, string id, bool defVal, bool val, Action<bool> set) {
+                GenerateUI.Toggle(
+                    GenerateUI.Row(prof.Body),
+                    defVal,
+                    val,
+                    v => {
+                        set(v);
+                        UiHider.ApplyNow();
+                        UiHider.Save();
+                    },
+                    label,
+                    idPrefix + id
+                );
+            }
+
+            Flag("Hide Everything (No HUD)", "_all", defProfile.HideEverything, profile.HideEverything, v => profile.HideEverything = v);
+            Flag("Hide Judgement Text", "_judg", defProfile.HideJudgment, profile.HideJudgment, v => profile.HideJudgment = v);
+            Flag("Hide Miss Indicators", "_miss", defProfile.HideMissIndicators, profile.HideMissIndicators, v => profile.HideMissIndicators = v);
+            Flag("Hide Level Title", "_title", defProfile.HideTitle, profile.HideTitle, v => profile.HideTitle = v);
+            Flag("Hide Otto / Autoplay Text", "_otto", defProfile.HideOtto, profile.HideOtto, v => profile.HideOtto = v);
+            Flag("Hide Difficulty Icon", "_diff", defProfile.HideTimingTarget, profile.HideTimingTarget, v => profile.HideTimingTarget = v);
+            Flag("Hide No Fail Icon", "_nofail", defProfile.HideNoFailIcon, profile.HideNoFailIcon, v => profile.HideNoFailIcon = v);
+            Flag("Hide Beta Build Text", "_beta", defProfile.HideBeta, profile.HideBeta, v => profile.HideBeta = v);
+            Flag("Hide Result Text", "_result", defProfile.HideResult, profile.HideResult, v => profile.HideResult = v);
+            Flag("Hide Hit Error Meter", "_meter", defProfile.HideHitErrorMeter, profile.HideHitErrorMeter, v => profile.HideHitErrorMeter = v);
+            Flag("Hide Last Floor Flash", "_flash", defProfile.HideLastFloorFlash, profile.HideLastFloorFlash, v => profile.HideLastFloorFlash = v);
+        }
+
+        ProfileSection("Playing Profile", conf.Playing, def.Playing, "uih_play");
+        ProfileSection("Recording Profile", conf.Recording, def.Recording, "uih_rec");
     }
 
     // v1 ResourceChanger's "Change ball color": per planet slot a ball color

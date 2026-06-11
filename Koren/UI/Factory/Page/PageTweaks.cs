@@ -60,10 +60,8 @@ internal static class PageTweaks {
 
         pad.AddComponent<UIScrollController>().SetContent(contentRect, viewportRect);
 
-        var sec = GenerateUI.Collapsible(content.transform, "Tweaks", startExpanded: true);
-
         var autoPause = GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
+            GenerateUI.Row(content.transform),
             def.DisableAutoPause,
             conf.DisableAutoPause,
             v => {
@@ -79,7 +77,7 @@ internal static class PageTweaks {
         );
 
         var blockScroll = GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
+            GenerateUI.Row(content.transform),
             def.BlockMouseWheelScrollWhilePlaying,
             conf.BlockMouseWheelScrollWhilePlaying,
             v => {
@@ -92,6 +90,88 @@ internal static class PageTweaks {
         blockScroll.Rect.AddToolTip(
             "DESC_TW_SCROLL",
             "Ignores mouse wheel input while a level is being played, so accidental scrolling can't affect the game mid-run."
+        );
+
+        var menuMusic = GenerateUI.Toggle(
+            GenerateUI.Row(content.transform),
+            def.DisableMenuMusic,
+            conf.DisableMenuMusic,
+            v => {
+                conf.DisableMenuMusic = v;
+                Tweaks.Save();
+            },
+            "Disable Menu Music",
+            "tw_menumusic"
+        );
+        menuMusic.Rect.AddToolTip(
+            "DESC_TW_MENUMUSIC",
+            "Mutes the theme song on the title and island-select screens. Takes effect immediately; gameplay music is untouched."
+        );
+
+        var resultsSec = GenerateUI.Collapsible(content.transform, "Detailed Results", startExpanded: false);
+
+        var resultXAcc = GenerateUI.Toggle(
+            GenerateUI.Row(resultsSec.Body),
+            def.HideResultXAccuracy,
+            conf.HideResultXAccuracy,
+            v => {
+                conf.HideResultXAccuracy = v;
+                Tweaks.Save();
+            },
+            "Hide X-Accuracy",
+            "tw_result_xacc"
+        );
+        resultXAcc.Rect.AddToolTip(
+            "DESC_TW_RESULT_XACC",
+            "Removes the X-Accuracy row from the detailed results screen."
+        );
+
+        var resultAcc = GenerateUI.Toggle(
+            GenerateUI.Row(resultsSec.Body),
+            def.HideResultAccuracy,
+            conf.HideResultAccuracy,
+            v => {
+                conf.HideResultAccuracy = v;
+                Tweaks.Save();
+            },
+            "Hide Accuracy",
+            "tw_result_acc"
+        );
+        resultAcc.Rect.AddToolTip(
+            "DESC_TW_RESULT_ACC",
+            "Removes the Accuracy row from the detailed results screen."
+        );
+
+        var resultCheckpoints = GenerateUI.Toggle(
+            GenerateUI.Row(resultsSec.Body),
+            def.HideResultCheckpoints,
+            conf.HideResultCheckpoints,
+            v => {
+                conf.HideResultCheckpoints = v;
+                Tweaks.Save();
+            },
+            "Hide Checkpoints Used",
+            "tw_result_checkpoints"
+        );
+        resultCheckpoints.Rect.AddToolTip(
+            "DESC_TW_RESULT_CHECKPOINTS",
+            "Removes the Checkpoints Used row from the detailed results screen."
+        );
+
+        var resultMaxKeys = GenerateUI.Toggle(
+            GenerateUI.Row(resultsSec.Body),
+            def.HideResultMaximumUsedKeys,
+            conf.HideResultMaximumUsedKeys,
+            v => {
+                conf.HideResultMaximumUsedKeys = v;
+                Tweaks.Save();
+            },
+            "Hide Maximum Used Keys",
+            "tw_result_maxkeys"
+        );
+        resultMaxKeys.Rect.AddToolTip(
+            "DESC_TW_RESULT_MAXKEYS",
+            "Removes the Maximum Used Keys row from the detailed results screen."
         );
     }
 }

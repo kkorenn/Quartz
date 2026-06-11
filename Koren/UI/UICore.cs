@@ -331,6 +331,7 @@ public static class UICore {
     public static RectTransform Panel;
     public static Image CloseImage;
     public const float MENU_WIDTH = 210f;
+    private const float TOP_BAR_HEIGHT = 60f;
     public static RectTransform MenuPanel;
     public static RectTransform Menu;
     public static RectTransform MenuContent;
@@ -417,8 +418,8 @@ public static class UICore {
             Menu.anchorMax = new(0, 1);
             Menu.pivot = new(0, 0.5f);
 
-            Menu.sizeDelta = new(MENU_WIDTH, 0);
-            Menu.anchoredPosition = new(-MENU_WIDTH, 0);
+            Menu.sizeDelta = new(MENU_WIDTH, -TOP_BAR_HEIGHT);
+            Menu.anchoredPosition = MenuClosedPosition;
 
             var image = menu.AddComponent<Image>();
             image.color = UIColors.MenuBG;
@@ -435,7 +436,7 @@ public static class UICore {
             MenuContent.pivot = new(0.5f, 1);
 
             MenuContent.offsetMin = Vector2.zero;
-            MenuContent.offsetMax = new(0, -60);
+            MenuContent.offsetMax = Vector2.zero;
 
             // Layout
             var layout = content.AddComponent<VerticalLayoutGroup>();
@@ -831,18 +832,20 @@ public static class UICore {
 
     private static bool isMenuOpen = false;
     private static GTween menuSequence;
+    private static Vector2 MenuOpenPosition => new(0f, -TOP_BAR_HEIGHT * 0.5f);
+    private static Vector2 MenuClosedPosition => new(-MENU_WIDTH, -TOP_BAR_HEIGHT * 0.5f);
 
     public static void OpenMenu() {
         menuSequence?.Kill();
 
         isMenuOpen = true;
 
-        Menu.anchoredPosition = new(-MENU_WIDTH, 0);
+        Menu.anchoredPosition = MenuClosedPosition;
         menuCanvasGroup.interactable = true;
         menuCanvasGroup.blocksRaycasts = true;
 
         menuSequence = GTweenSequenceBuilder.New()
-            .Join(Menu.GTAnchorPos(Vector2.zero, 0.6f).SetEasing(Easing.OutExpo))
+            .Join(Menu.GTAnchorPos(MenuOpenPosition, 0.6f).SetEasing(Easing.OutExpo))
             .Join(menuCanvasGroup.GTFade(1f, 0.4f).SetEasing(Easing.OutSine))
             .Join(Page.GTOffsetMin(new Vector2(MENU_WIDTH, 0), 0.6f).SetEasing(Easing.OutExpo))
             .Build();
@@ -858,7 +861,7 @@ public static class UICore {
         menuCanvasGroup.blocksRaycasts = false;
 
         menuSequence = GTweenSequenceBuilder.New()
-            .Join(Menu.GTAnchorPos(new Vector2(-MENU_WIDTH, 0), 0.4f).SetEasing(Easing.OutExpo))
+            .Join(Menu.GTAnchorPos(MenuClosedPosition, 0.4f).SetEasing(Easing.OutExpo))
             .Join(menuCanvasGroup.GTFade(0f, 0.3f).SetEasing(Easing.OutSine))
             .Join(Page.GTOffsetMin(new Vector2(0, 0), 0.4f).SetEasing(Easing.OutExpo))
             .Build();

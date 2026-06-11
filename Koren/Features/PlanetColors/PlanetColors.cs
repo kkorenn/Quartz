@@ -19,9 +19,9 @@ namespace Koren.Features.PlanetColors;
 // through the same SetPlanetColor/SetTailColor/... methods the patches hook.
 //
 // v1 also forced the planet ring transparent while ball colors are changed
-// (the ring is drawn in the vanilla planet color and clashes); that lives
-// here too. The v1 logo recolor, ring color and tile color options were not
-// ported.
+// (the ring is drawn in the vanilla planet color and clashes), and recolored
+// the title-screen logo's FIRE/ICE words with Planet 1's color — both live
+// here too. The v1 ring color and tile color options were not ported.
 public static partial class PlanetColors {
     public static SettingsFile<PlanetColorsSettings> ConfMgr { get; private set; }
     public static PlanetColorsSettings Conf => ConfMgr?.Data;
@@ -231,6 +231,8 @@ public static partial class PlanetColors {
         for(int i = 0; i < planets.Length; i++) {
             ApplyPlanetColor(planets[i]);
         }
+
+        try { ApplyLogoColor(scrLogoText.instance); } catch { }
     }
 
     // Hands every planet back to the game's own colors (mod disable, master
@@ -250,7 +252,84 @@ public static partial class PlanetColors {
             finally { applying = wasApplying; }
         }
 
+        // ShouldChange is false by the time this runs, so the UpdateColors
+        // patch lets the vanilla tint through.
+        try { scrLogoText.instance?.UpdateColors(); } catch { }
+
         rendererSlots.Clear();
+    }
+
+    // ===== title logo (FIRE / ICE words) =====
+    //
+    // Same as v1: both words get Planet 1's color. ColorLogo's first
+    // parameter has been Color and Color? across game versions, so the
+    // method is resolved reflectively once.
+
+    private static MethodInfo logoColorMethod;
+    private static bool logoColorMethodResolved;
+    private static readonly object[] logoColorInvokeArgs = new object[2];
+
+    private static Color LogoColor {
+        get {
+            Color ball = Conf.GetBallColor(0);
+            return new Color(ball.r, ball.g, ball.b, 1f);
+        }
+    }
+
+    private static void ApplyLogoColor(scrLogoText logoText) {
+        if(logoText == null || !ShouldChange) {
+            return;
+        }
+
+        Color color = LogoColor;
+        InvokeLogoColor(logoText, color, true);
+        InvokeLogoColor(logoText, color, false);
+    }
+
+    private static void InvokeLogoColor(scrLogoText logoText, Color color, bool isFire) {
+        try {
+            MethodInfo method = GetLogoColorMethod(logoText.GetType());
+            if(method == null) {
+                return;
+            }
+
+            logoColorInvokeArgs[0] = color;
+            logoColorInvokeArgs[1] = isFire;
+            method.Invoke(logoText, logoColorInvokeArgs);
+        } catch {
+        }
+    }
+
+    private static MethodInfo GetLogoColorMethod(Type type) {
+        if(logoColorMethodResolved) {
+            return logoColorMethod;
+        }
+        logoColorMethodResolved = true;
+
+        if(type == null) {
+            return null;
+        }
+
+        MethodInfo[] methods = type.GetMethods(MemberFlags);
+        for(int i = 0; i < methods.Length; i++) {
+            MethodInfo method = methods[i];
+            if(method.Name != "ColorLogo") {
+                continue;
+            }
+
+            ParameterInfo[] parameters = method.GetParameters();
+            if(parameters.Length != 2 || parameters[1].ParameterType != typeof(bool)) {
+                continue;
+            }
+
+            Type colorType = parameters[0].ParameterType;
+            if(colorType == typeof(Color) || Nullable.GetUnderlyingType(colorType) == typeof(Color)) {
+                logoColorMethod = method;
+                return logoColorMethod;
+            }
+        }
+
+        return null;
     }
 
     private static void ApplyPlanetColor(scrPlanet planet) {

@@ -11,11 +11,15 @@ namespace Koren.Features.PlayCount;
 // later without breaking this shape.
 public sealed class PlayData {
     public float BestProgress;
+    // Where the best run started (0 = first tile) so the HUD can show
+    // checkpoint bests as a "start - best" range instead of a bare number.
+    public float BestStartProgress;
     public int TotalAttempts;
 
     public JObject Serialize() {
         return new JObject {
             [nameof(BestProgress)] = BestProgress,
+            [nameof(BestStartProgress)] = BestStartProgress,
             [nameof(TotalAttempts)] = TotalAttempts,
         };
     }
@@ -24,6 +28,7 @@ public sealed class PlayData {
         PlayData data = new();
         if(token is JObject obj) {
             data.BestProgress = obj.Value<float?>(nameof(BestProgress)) ?? 0f;
+            data.BestStartProgress = obj.Value<float?>(nameof(BestStartProgress)) ?? 0f;
             data.TotalAttempts = obj.Value<int?>(nameof(TotalAttempts)) ?? 0;
         }
         return data;

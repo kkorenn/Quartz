@@ -301,7 +301,7 @@ internal static class PageSearch {
                 continue;
             }
             if(e.Target == s.Section || e.Target.IsChildOf(s.Body)) {
-                s.SetExpanded(true, false);
+                s.SetExpanded(true, false, false);
             }
         }
 

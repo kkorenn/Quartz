@@ -35,10 +35,6 @@ public static class ComboOverlay {
     private const float VerticalGap = 32f;
     private const float CaptionGap = 24f;
 
-    // Maps the user's pixel-ish shadow offsets to TMP underlay units (em-
-    // relative): ~0.01 underlay ≈ 1px on a ~100px font.
-    private const float ShadowToUnderlay = 0.01f;
-
     public static void EnsureConf() {
         if(ConfMgr != null) {
             return;
@@ -165,6 +161,10 @@ public static class ComboOverlay {
         Save();
     }
 
+    public static void ApplyCountShadow() => ApplyValueMaterial();
+
+    public static void ApplyCaptionShadow() => ApplyCaptionMaterial();
+
     public static void Dispose() {
         if(canvasObj == null) {
             return;
@@ -196,15 +196,29 @@ public static class ComboOverlay {
         if(valueText == null) {
             return;
         }
-        ApplyShadow(valueText, Conf.CountShadowX, Conf.CountShadowY, Conf.GetCountShadowColor());
         ApplyThickness(valueText, Conf.CountThickness);
+        TMPTextShadow.Apply(
+            valueText,
+            Conf.CountShadowEnabled,
+            Conf.CountShadowX,
+            Conf.CountShadowY,
+            Conf.CountShadowSoftness,
+            Conf.GetCountShadowColor()
+        );
     }
 
     private static void ApplyCaptionMaterial() {
         if(captionText == null) {
             return;
         }
-        ApplyShadow(captionText, Conf.CaptionShadowX, Conf.CaptionShadowY, Conf.GetCaptionShadowColor());
+        TMPTextShadow.Apply(
+            captionText,
+            Conf.CaptionShadowEnabled,
+            Conf.CaptionShadowX,
+            Conf.CaptionShadowY,
+            Conf.CaptionShadowSoftness,
+            Conf.GetCaptionShadowColor()
+        );
     }
 
     // TMP face dilate — thickens the glyph strokes. 0 = native weight.
@@ -214,28 +228,6 @@ public static class ComboOverlay {
             return;
         }
         mat.SetFloat("_FaceDilate", Mathf.Clamp(dilate, -1f, 1f));
-    }
-
-    // TMP underlay drop shadow. A zero offset (or transparent color) turns the
-    // underlay keyword off, so the default (0,0) means no shadow at all.
-    private static void ApplyShadow(TextMeshProUGUI text, float x, float y, Color color) {
-        Material mat = text.fontMaterial;
-        if(mat == null) {
-            return;
-        }
-
-        bool any = color.a > 0.001f && (Mathf.Abs(x) > 0.001f || Mathf.Abs(y) > 0.001f);
-        if(any) {
-            mat.EnableKeyword("UNDERLAY_ON");
-        } else {
-            mat.DisableKeyword("UNDERLAY_ON");
-        }
-
-        mat.SetColor("_UnderlayColor", color);
-        mat.SetFloat("_UnderlayOffsetX", x * ShadowToUnderlay);
-        mat.SetFloat("_UnderlayOffsetY", y * ShadowToUnderlay);
-        mat.SetFloat("_UnderlaySoftness", 0f);
-        mat.SetFloat("_UnderlayDilate", 0f);
     }
 
     private sealed class Updater : MonoBehaviour {
@@ -248,7 +240,7 @@ public static class ComboOverlay {
 
             bool isReorganizing = UICore.IsReorganizing;
             // Gated by the master Overlay enable as well as Combo's own toggle.
-            bool show = (StatusOverlay.IsEnabled && Conf.Enabled && GameStats.InGame) || isReorganizing;
+            bool show = (Panels.PanelsOverlay.IsEnabled && Conf.Enabled && GameStats.InGame) || isReorganizing;
             if(root.gameObject.activeSelf != show) {
                 root.gameObject.SetActive(show);
             }
@@ -290,6 +282,7 @@ public static class ComboOverlay {
 
             Vector2 pref = valueText.GetPreferredValues(valueText.text);
             valueText.rectTransform.sizeDelta = new Vector2(Mathf.Max(pref.x, 200f), pref.y);
+            ApplyValueMaterial();
 
             float captionSize = valueSize * Conf.CaptionScale;
             if(captionText != null && Conf.ShowCaption) {
@@ -304,6 +297,9 @@ public static class ComboOverlay {
                     0f,
                     -(valueText.rectTransform.sizeDelta.y + CaptionGap + Conf.CaptionOffsetY) + labelKick
                 );
+                ApplyCaptionMaterial();
+            } else if(captionText != null) {
+                ApplyCaptionMaterial();
             }
 
             float blockH = valueText.rectTransform.sizeDelta.y;

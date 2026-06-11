@@ -7,10 +7,13 @@ using Koren.Features.PlayCount;
 using Koren.Features.Combo;
 using Koren.Features.EffectRemover;
 using Koren.Features.Judgement;
+using Koren.Features.OttoIcon;
+using Koren.Features.Panels;
 using Koren.Features.PlanetColors;
 using Koren.Features.ProgressBar;
 using Koren.Features.Status;
 using Koren.Features.Tweaks;
+using Koren.Features.UiHider;
 using Koren.IO;
 using Koren.Resource;
 using Koren.Update;
@@ -166,7 +169,7 @@ public sealed class KorenRuntime {
         }
 
         if(enabled) {
-            StatusOverlay.Initialize(RootObject);
+            PanelsOverlay.Initialize(RootObject);
             ComboOverlay.Initialize(RootObject);
             ProgressBarOverlay.Initialize(RootObject);
             JudgementOverlay.Initialize(RootObject);
@@ -178,6 +181,7 @@ public sealed class KorenRuntime {
             // is live.
             Tweaks.RefreshAll();
             PlanetColors.Refresh();
+            OttoIcon.Refresh();
 
             OnModEnabledChanged?.Invoke(true, isDispose);
 
@@ -188,14 +192,17 @@ public sealed class KorenRuntime {
             JudgementOverlay.Dispose();
             ProgressBarOverlay.Dispose();
             ComboOverlay.Dispose();
-            StatusOverlay.Dispose();
+            PanelsOverlay.Dispose();
 
             // The remover's editor-save lock shouldn't outlive the mod.
             EffectRemover.RestoreEditorSaveButtons();
 
-            // Put back the particles/glows/colors the features changed.
+            // Put back the particles/glows/colors/UI the features changed.
             Tweaks.RestoreAll();
             PlanetColors.Restore();
+            OttoIcon.Restore();
+            UiHider.Restore();
+            Features.AutoDeafen.AutoDeafen.Stop();
 
             Logger.Msg("Mod Disabled");
         }

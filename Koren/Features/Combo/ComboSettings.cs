@@ -35,18 +35,21 @@ public sealed class ComboSettings : ISettingsFile {
     public bool ShowCaption = true;
     public string CaptionText = "Combo";
     public float CaptionOffsetY = 0f;
-    // Drop shadow (TMP underlay). Offsets are in "pixel-ish" units; 0 offset
-    // disables the shadow, which is the default so the caption is unchanged.
-    public float CaptionShadowX = 0f;
-    public float CaptionShadowY = 0f;
+    // Drop shadow (TMP underlay). Offsets are in "pixel-ish" units.
+    public bool CaptionShadowEnabled = true;
+    public float CaptionShadowX = 2f;
+    public float CaptionShadowY = -2f;
+    public float CaptionShadowSoftness = 0f;
     public float CaptionShadowR = 0f, CaptionShadowG = 0f, CaptionShadowB = 0f, CaptionShadowA = 1f;
 
     // === Count ===
     // TMP face dilate — thickens the value strokes. Range roughly -0.5 (thin)
     // to 0.5 (thick); 0 = native weight.
     public float CountThickness = 0f;
-    public float CountShadowX = 0f;
-    public float CountShadowY = 0f;
+    public bool CountShadowEnabled = true;
+    public float CountShadowX = 2f;
+    public float CountShadowY = -2f;
+    public float CountShadowSoftness = 0f;
     public float CountShadowR = 0f, CountShadowG = 0f, CountShadowB = 0f, CountShadowA = 1f;
 
     // === Color ===
@@ -143,15 +146,19 @@ public sealed class ComboSettings : ISettingsFile {
             [nameof(ShowCaption)] = ShowCaption,
             [nameof(CaptionText)] = CaptionText,
             [nameof(CaptionOffsetY)] = CaptionOffsetY,
+            [nameof(CaptionShadowEnabled)] = CaptionShadowEnabled,
             [nameof(CaptionShadowX)] = CaptionShadowX,
             [nameof(CaptionShadowY)] = CaptionShadowY,
+            [nameof(CaptionShadowSoftness)] = CaptionShadowSoftness,
             [nameof(CaptionShadowR)] = CaptionShadowR,
             [nameof(CaptionShadowG)] = CaptionShadowG,
             [nameof(CaptionShadowB)] = CaptionShadowB,
             [nameof(CaptionShadowA)] = CaptionShadowA,
             [nameof(CountThickness)] = CountThickness,
+            [nameof(CountShadowEnabled)] = CountShadowEnabled,
             [nameof(CountShadowX)] = CountShadowX,
             [nameof(CountShadowY)] = CountShadowY,
+            [nameof(CountShadowSoftness)] = CountShadowSoftness,
             [nameof(CountShadowR)] = CountShadowR,
             [nameof(CountShadowG)] = CountShadowG,
             [nameof(CountShadowB)] = CountShadowB,
@@ -189,15 +196,25 @@ public sealed class ComboSettings : ISettingsFile {
         ShowCaption = IOUtils.Read(token, nameof(ShowCaption), ShowCaption);
         CaptionText = IOUtils.Read(token, nameof(CaptionText), CaptionText);
         CaptionOffsetY = IOUtils.Read(token, nameof(CaptionOffsetY), CaptionOffsetY);
+        bool hasCaptionShadowEnabled = token?[nameof(CaptionShadowEnabled)] != null;
+        bool hasCaptionShadowOffset =
+            token?[nameof(CaptionShadowX)] != null || token?[nameof(CaptionShadowY)] != null;
+        CaptionShadowEnabled = IOUtils.Read(token, nameof(CaptionShadowEnabled), CaptionShadowEnabled);
         CaptionShadowX = IOUtils.Read(token, nameof(CaptionShadowX), CaptionShadowX);
         CaptionShadowY = IOUtils.Read(token, nameof(CaptionShadowY), CaptionShadowY);
+        CaptionShadowSoftness = IOUtils.Read(token, nameof(CaptionShadowSoftness), CaptionShadowSoftness);
         CaptionShadowR = IOUtils.Read(token, nameof(CaptionShadowR), CaptionShadowR);
         CaptionShadowG = IOUtils.Read(token, nameof(CaptionShadowG), CaptionShadowG);
         CaptionShadowB = IOUtils.Read(token, nameof(CaptionShadowB), CaptionShadowB);
         CaptionShadowA = IOUtils.Read(token, nameof(CaptionShadowA), CaptionShadowA);
         CountThickness = IOUtils.Read(token, nameof(CountThickness), CountThickness);
+        bool hasCountShadowEnabled = token?[nameof(CountShadowEnabled)] != null;
+        bool hasCountShadowOffset =
+            token?[nameof(CountShadowX)] != null || token?[nameof(CountShadowY)] != null;
+        CountShadowEnabled = IOUtils.Read(token, nameof(CountShadowEnabled), CountShadowEnabled);
         CountShadowX = IOUtils.Read(token, nameof(CountShadowX), CountShadowX);
         CountShadowY = IOUtils.Read(token, nameof(CountShadowY), CountShadowY);
+        CountShadowSoftness = IOUtils.Read(token, nameof(CountShadowSoftness), CountShadowSoftness);
         CountShadowR = IOUtils.Read(token, nameof(CountShadowR), CountShadowR);
         CountShadowG = IOUtils.Read(token, nameof(CountShadowG), CountShadowG);
         CountShadowB = IOUtils.Read(token, nameof(CountShadowB), CountShadowB);
@@ -225,5 +242,29 @@ public sealed class ComboSettings : ISettingsFile {
         // Back-compat: migrate combo fields from Status.json naming.
         CountAuto = IOUtils.Read(token, "ComboCountAuto", CountAuto);
         Enabled = IOUtils.Read(token, "ShowCombo", Enabled);
+
+        // Back-compat: older combo JSON had no enable fields. Treat those as
+        // the new on-by-default shadow, and if the old offsets were both zero,
+        // give them the visible default offset.
+        if(!hasCaptionShadowEnabled) {
+            CaptionShadowEnabled = true;
+            if(hasCaptionShadowOffset &&
+                Mathf.Abs(CaptionShadowX) <= 0.001f &&
+                Mathf.Abs(CaptionShadowY) <= 0.001f
+            ) {
+                CaptionShadowX = 2f;
+                CaptionShadowY = -2f;
+            }
+        }
+        if(!hasCountShadowEnabled) {
+            CountShadowEnabled = true;
+            if(hasCountShadowOffset &&
+                Mathf.Abs(CountShadowX) <= 0.001f &&
+                Mathf.Abs(CountShadowY) <= 0.001f
+            ) {
+                CountShadowX = 2f;
+                CountShadowY = -2f;
+            }
+        }
     }
 }

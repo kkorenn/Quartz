@@ -31,6 +31,7 @@
 		<Reference Include="Assembly-CSharp"><HintPath>$(GamePath)/$(GameData)/Managed/Assembly-CSharp.dll</HintPath></Reference>
 		<Reference Include="Assembly-CSharp-firstpass"><HintPath>$(GamePath)/$(GameData)/Managed/Assembly-CSharp-firstpass.dll</HintPath></Reference>
 		<Reference Include="RDTools"><HintPath>$(GamePath)/$(GameData)/Managed/RDTools.dll</HintPath></Reference>
+		<Reference Include="SkyHook.Unity"><HintPath>$(GamePath)/$(GameData)/Managed/SkyHook.Unity.dll</HintPath></Reference>
 		<Reference Include="Unity.TextMeshPro"><HintPath>$(GamePath)/$(GameData)/Managed/Unity.TextMeshPro.dll</HintPath></Reference>
 		<Reference Include="UnityEngine"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.CoreModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.CoreModule.dll</HintPath></Reference>
@@ -56,6 +57,7 @@
 	<ItemGroup Condition="$(Configuration.Contains('IL2CPP'))">
 		<Reference Include="Assembly-CSharp"><HintPath>$(Il2CppPath)/Assembly-CSharp.dll</HintPath></Reference>
 		<Reference Include="RDTools"><HintPath>$(Il2CppPath)/RDTools.dll</HintPath></Reference>
+		<Reference Include="SkyHook.Unity"><HintPath>$(Il2CppPath)/SkyHook.Unity.dll</HintPath></Reference>
 		<Reference Include="Unity.TextMeshPro"><HintPath>$(Il2CppPath)/Unity.TextMeshPro.dll</HintPath></Reference>
 		<Reference Include="UnityEngine"><HintPath>$(Il2CppPath)/UnityEngine.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.CoreModule"><HintPath>$(Il2CppPath)/UnityEngine.CoreModule.dll</HintPath></Reference>

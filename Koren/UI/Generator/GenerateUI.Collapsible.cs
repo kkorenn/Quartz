@@ -30,20 +30,27 @@ public static partial class GenerateUI {
         public RectTransform Body;
         public bool Expanded;
 
+        internal string stateKey;
         internal Image arrow;
         internal System.Action applyState;
         internal System.Action applyInstant;
 
-        public void SetExpanded(bool v) => SetExpanded(v, true);
+        public void SetExpanded(bool v) => SetExpanded(v, true, true);
 
         // animate: false snaps open/closed without the slide tween — used by
         // search navigation, which needs final layout heights immediately to
         // compute the scroll position.
-        public void SetExpanded(bool v, bool animate) {
+        public void SetExpanded(bool v, bool animate) => SetExpanded(v, animate, true);
+
+        public void SetExpanded(bool v, bool animate, bool save) {
             if(Expanded == v) {
                 return;
             }
             Expanded = v;
+            if(save && !string.IsNullOrEmpty(stateKey)) {
+                MainCore.Conf.SetCollapsibleExpanded(stateKey, v);
+                MainCore.ConfMgr.RequestSave();
+            }
             if(animate) {
                 applyState?.Invoke();
             } else {
@@ -58,6 +65,24 @@ public static partial class GenerateUI {
 
     public static void ClearSections() => Sections.Clear();
 
+    private static string GetCollapsibleKey(Transform parent, string title) {
+        List<string> parts = [];
+
+        Transform current = parent;
+        while(current != null) {
+            string name = current.name;
+            if(name.StartsWith("Page") || name.StartsWith("Section_")) {
+                parts.Add(name);
+            }
+
+            current = current.parent;
+        }
+
+        parts.Reverse();
+        parts.Add("Section_" + title);
+        return string.Join("/", parts);
+    }
+
     // Adds a collapsible section under `parent` (which must have a vertical
     // layout). The returned CollapsibleSection.Body is where the caller adds
     // body rows. Body is hidden when collapsed.
@@ -68,6 +93,8 @@ public static partial class GenerateUI {
     ) {
         GameObject sectionObj = new("Section_" + title);
         sectionObj.transform.SetParent(parent, false);
+        string stateKey = GetCollapsibleKey(parent, title);
+        bool expanded = MainCore.Conf.GetCollapsibleExpanded(stateKey);
 
         RectTransform sectionRect = sectionObj.AddComponent<RectTransform>();
 
@@ -163,7 +190,8 @@ public static partial class GenerateUI {
             Section = sectionRect,
             HeaderObj = headerObj,
             Body = bodyRect,
-            Expanded = startExpanded,
+            Expanded = expanded,
+            stateKey = stateKey,
             arrow = arrowImg,
         };
         Sections.Add(c);
@@ -274,7 +302,7 @@ public static partial class GenerateUI {
 
         AddButton(barObj, btn => {
             if(btn == InputButton.Left) {
-                c.SetExpanded(!c.Expanded);
+                c.SetExpanded(!c.Expanded, true, true);
             }
         });
 

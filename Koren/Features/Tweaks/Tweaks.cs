@@ -14,6 +14,7 @@ namespace Koren.Features.Tweaks;
 //   - Remove Planet Glow
 //   - Disable Auto Pause (auto-play no longer pauses on focus loss)
 //   - Block Mouse Wheel Scroll While Playing
+//   - Hide selected Detailed Results rows
 //
 // v1's judgement-popup hiding lives in JudgementPopupHider; its planet-ring
 // handling belonged to the ResourceChanger, which v2 doesn't port; v1's
@@ -53,9 +54,95 @@ public static partial class Tweaks {
     private static bool ShouldDisableTileHitGlow => Enabled && Conf.DisableTileHitGlow;
     private static bool ShouldRemovePlanetGlow => Enabled && Conf.RemovePlanetGlow;
     private static bool ShouldDisableAutoPause => Enabled && Conf.DisableAutoPause;
+    private static bool ShouldHideAnyDetailedResultLabel => Enabled && (
+        Conf.HideResultXAccuracy ||
+        Conf.HideResultAccuracy ||
+        Conf.HideResultCheckpoints ||
+        Conf.HideResultMaximumUsedKeys
+    );
 
     private static bool ShouldBlockMouseWheelScroll =>
         Enabled && Conf.BlockMouseWheelScrollWhilePlaying && GameStats.InGame;
+
+    private static bool ShouldDisableMenuMusic => Enabled && Conf.DisableMenuMusic;
+
+    internal static string FilterDetailedResults(string result) {
+        if(!ShouldHideAnyDetailedResultLabel || string.IsNullOrEmpty(result)) {
+            return result;
+        }
+
+        List<string> labels = [];
+        AddResultLabel(labels, Conf.HideResultXAccuracy, "xAccuracy");
+        AddResultLabel(labels, Conf.HideResultAccuracy, "accuracy");
+        AddResultLabel(labels, Conf.HideResultCheckpoints, "checkpoints");
+        AddResultLabel(labels, Conf.HideResultMaximumUsedKeys, "maximumUsedKeys");
+        if(labels.Count == 0) {
+            return result;
+        }
+
+        string[] rows = result.Split('\n');
+        List<string> kept = new(rows.Length);
+        for(int i = 0; i < rows.Length; i++) {
+            if(!ShouldDropDetailedResultRow(rows[i], labels)) {
+                kept.Add(rows[i]);
+            }
+        }
+        return string.Join("\n", kept.ToArray());
+    }
+
+    private static void AddResultLabel(List<string> labels, bool enabled, string key) {
+        if(!enabled) {
+            return;
+        }
+
+        try {
+            string label = RDString.Get("status.results." + key);
+            if(!string.IsNullOrEmpty(label)) {
+                labels.Add(label + ": ");
+            }
+        } catch {
+        }
+    }
+
+    private static bool ShouldDropDetailedResultRow(string row, List<string> labels) {
+        if(string.IsNullOrEmpty(row)) {
+            return false;
+        }
+
+        for(int i = 0; i < labels.Count; i++) {
+            string label = labels[i];
+            if(row.StartsWith(label, StringComparison.Ordinal) ||
+                row.Contains("     " + label)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Mutes the theme song on the title / island-select screen. Enforced via
+    // the mute flag every conductor Update: the game writes song.volume from
+    // lots of places (level data, ducking, fades) but never touches mute, so
+    // this can't be overwritten and unwinds instantly when toggled off.
+    internal static void ApplyMenuMusicMute(scrConductor conductor) {
+        if(conductor == null) {
+            return;
+        }
+
+        bool target;
+        try { target = ShouldDisableMenuMusic && ADOBase.isLevelSelect; }
+        catch { return; }
+
+        try {
+            if(conductor.song != null && conductor.song.mute != target) {
+                conductor.song.mute = target;
+            }
+            if(conductor.song2 != null && conductor.song2.mute != target) {
+                conductor.song2.mute = target;
+            }
+        } catch {
+        }
+    }
 
     // Original states keyed by instance id, so every mutation is reversible.
     private static readonly Dictionary<int, bool> particleActiveStates = [];

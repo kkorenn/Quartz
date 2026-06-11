@@ -15,6 +15,7 @@ public sealed class CoreSettings : ISettingsFile {
     public float UIScale = 1.0f;
     public string FontName = "";
     public float ScrollSpeed = 80f;
+    public Dictionary<string, bool> CollapsibleStates = [];
 
     // Menu toggle keybind, stored as ints (Keybind.KeyModifier and KeyCode).
     // Default Alt + K (shown as Option + K on macOS).
@@ -55,7 +56,18 @@ public sealed class CoreSettings : ISettingsFile {
         AccentB = Mathf.Clamp01(color.b);
     }
 
+    public bool GetCollapsibleExpanded(string key)
+        => CollapsibleStates.TryGetValue(key, out bool expanded) && expanded;
+
+    public void SetCollapsibleExpanded(string key, bool expanded)
+        => CollapsibleStates[key] = expanded;
+
     public JToken Serialize() {
+        JObject collapsibleStates = [];
+        foreach(var kvp in CollapsibleStates) {
+            collapsibleStates[kvp.Key] = kvp.Value;
+        }
+
         return new JObject {
             [nameof(Active)] = Active,
             [nameof(Language)] = Language,
@@ -70,6 +82,7 @@ public sealed class CoreSettings : ISettingsFile {
             [nameof(ToggleKey)] = ToggleKey,
             [nameof(UpdateChannel)] = UpdateChannel,
             [nameof(SkippedVersion)] = SkippedVersion,
+            [nameof(CollapsibleStates)] = collapsibleStates,
             [nameof(AccentR)] = AccentR,
             [nameof(AccentG)] = AccentG,
             [nameof(AccentB)] = AccentB
@@ -90,6 +103,15 @@ public sealed class CoreSettings : ISettingsFile {
         ToggleKey = IOUtils.Read(token, nameof(ToggleKey), ToggleKey);
         UpdateChannel = IOUtils.Read(token, nameof(UpdateChannel), UpdateChannel);
         SkippedVersion = IOUtils.Read(token, nameof(SkippedVersion), SkippedVersion);
+        CollapsibleStates.Clear();
+        if(token[nameof(CollapsibleStates)] is JObject collapsibleStates) {
+            foreach(var prop in collapsibleStates.Properties()) {
+                try {
+                    CollapsibleStates[prop.Name] = prop.Value.Value<bool>();
+                } catch {
+                }
+            }
+        }
         AccentR = IOUtils.Read(token, nameof(AccentR), AccentR);
         AccentG = IOUtils.Read(token, nameof(AccentG), AccentG);
         AccentB = IOUtils.Read(token, nameof(AccentB), AccentB);

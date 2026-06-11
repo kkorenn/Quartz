@@ -77,6 +77,32 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
         return Mathf.Max(stored, bestObservedThisRun);
     }
 
+    // Where the displayed best run began (0 = first tile). While the live run
+    // is beating the stored best, that's the live run's start; otherwise the
+    // start recorded with the stored best.
+    public static float BestStartForCurrentMap() {
+        if(string.IsNullOrEmpty(currentMapKey)) {
+            return 0f;
+        }
+
+        playDatas.TryGetValue(currentMapKey, out PlayData d);
+        float stored = d?.BestProgress ?? 0f;
+        if(bestObservedThisRun > stored) {
+            return CurrentRunStart();
+        }
+        return d?.BestStartProgress ?? 0f;
+    }
+
+    private static float CurrentRunStart() {
+        try {
+            return Status.ProgressTracker.RunStartedFromFirstTile
+                ? 0f
+                : Mathf.Clamp01(Status.ProgressTracker.RunStartProgress);
+        } catch {
+            return 0f;
+        }
+    }
+
     // Called from the HUD per frame so the live in-run high-water mark is
     // visible on the Best line even before a death/clear writes it back.
     public static void ObserveProgress(float progress) {
@@ -118,6 +144,7 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
         PlayData d = For(currentMapKey);
         if(bestObservedThisRun > d.BestProgress) {
             d.BestProgress = bestObservedThisRun;
+            d.BestStartProgress = CurrentRunStart();
             dirty = true;
         }
 
@@ -132,6 +159,7 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
         PlayData d = For(currentMapKey);
         if(1f > d.BestProgress) {
             d.BestProgress = 1f;
+            d.BestStartProgress = CurrentRunStart();
             dirty = true;
         }
 

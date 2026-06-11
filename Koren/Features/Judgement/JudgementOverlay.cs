@@ -131,7 +131,7 @@ public static class JudgementOverlay {
 
         float fontSize = FontSize();
         foreach(TextMeshProUGUI label in labels) {
-            label.fontSize = fontSize;
+            ApplyTextStyle(label, fontSize);
         }
     }
 
@@ -139,6 +139,22 @@ public static class JudgementOverlay {
 
     // v1: a small font-relative base gap plus the user spacing.
     private static float RowSpacing() => Mathf.Max(3f, FontSize() * 0.07f) + Mathf.Clamp(Conf.Spacing, -20f, 80f);
+
+    private static void ApplyTextStyle(TextMeshProUGUI label, float fontSize) {
+        if(label == null) {
+            return;
+        }
+
+        label.fontSize = fontSize;
+        TMPTextShadow.Apply(
+            label,
+            Conf.TextShadowEnabled,
+            Conf.TextShadowX,
+            Conf.TextShadowY,
+            Conf.TextShadowSoftness,
+            Conf.GetTextShadowColor()
+        );
+    }
 
     public static void Save() => ConfMgr?.Save();
 
@@ -176,7 +192,7 @@ public static class JudgementOverlay {
             }
 
             bool isReorganizing = UICore.IsReorganizing;
-            bool show = (StatusOverlay.IsEnabled && Conf.Enabled && GameStats.InGame) || isReorganizing;
+            bool show = (Panels.PanelsOverlay.IsEnabled && Conf.Enabled && GameStats.InGame) || isReorganizing;
             if(root.gameObject.activeSelf != show) {
                 root.gameObject.SetActive(show);
             }
@@ -201,13 +217,13 @@ public static class JudgementOverlay {
                 if(label.font != font) {
                     label.font = font;
                 }
-                label.fontSize = fontSize;
 
                 int count = Judgement.SlotCount(i);
                 if(!cacheValid || count != cached[i]) {
                     cached[i] = count;
                     label.text = count.ToString(CultureInfo.InvariantCulture);
                 }
+                ApplyTextStyle(label, fontSize);
             }
             cacheValid = true;
 

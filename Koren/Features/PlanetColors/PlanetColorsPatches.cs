@@ -90,6 +90,7 @@ public static partial class PlanetColors {
                 return true;
             }
             ApplyPlanetRendererColor(__instance);
+            ApplyLogoColor(scrLogoText.instance);
             return false;
         }
     }
@@ -119,6 +120,34 @@ public static partial class PlanetColors {
 
             ApplyTailParticleColor(__instance, TailColor(GetPlanetSlot(__instance)));
         }
+    }
+
+    // Title-screen logo: the FIRE/ICE words are tinted with the planet
+    // colors by the game; while custom colors are on they get ours instead
+    // (both words use Planet 1's color, like v1).
+    [HarmonyPatch(typeof(scrLogoText), "Awake")]
+    private static class LogoAwakePatch {
+        private static void Postfix(scrLogoText __instance) {
+            if(ShouldChange) {
+                ApplyLogoColor(__instance);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(scrLogoText), "UpdateColors")]
+    private static class LogoUpdateColorsPatch {
+        private static bool Prefix(scrLogoText __instance) {
+            if(!ShouldChange) {
+                return true;
+            }
+            ApplyLogoColor(__instance);
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(scrLogoText), "LateUpdate")]
+    private static class LogoLateUpdatePatch {
+        private static bool Prefix() => !ShouldChange;
     }
 
     // Level-select planets cycle rainbow/enby colors; blocked while custom

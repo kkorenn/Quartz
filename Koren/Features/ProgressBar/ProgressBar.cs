@@ -14,10 +14,10 @@ namespace Koren.Features.ProgressBar;
 // ProgressBar visual but ported to UGUI Image components instead of the
 // original's IMGUI GUI.DrawTexture path.
 //
-// Layout (children of `bar`):
-//   border  — full-stretch image, expanded by OutlineThickness on each edge,
-//             drawn first so it sits behind the fill (acts as a real outer
-//             border). Hidden when OutlineThickness == 0.
+    // Layout (children of `bar`, in draw order):
+    //   border  — full-stretch image, expanded by OutlineThickness on each edge,
+    //             drawn first so it sits behind the fill (acts as a real outer
+    //             border). Hidden when OutlineThickness == 0.
 //   back    — full-stretch background fill
 //   fill    — sized per-frame from ProgressTracker.RunStartProgress to
 //             scrController.percentComplete, so partial-checkpoint runs
@@ -91,7 +91,14 @@ public static class ProgressBarOverlay {
         borderImg = borderObj.AddComponent<Image>();
         borderImg.raycastTarget = false;
 
-        back = barObj.AddComponent<Image>();
+        GameObject backObj = new("Back");
+        backObj.transform.SetParent(bar, false);
+        RectTransform backRect = backObj.AddComponent<RectTransform>();
+        backRect.anchorMin = Vector2.zero;
+        backRect.anchorMax = Vector2.one;
+        backRect.offsetMin = Vector2.zero;
+        backRect.offsetMax = Vector2.zero;
+        back = backObj.AddComponent<Image>();
         back.raycastTarget = false;
 
         GameObject containerObj = new("FillContainer");
@@ -229,7 +236,7 @@ public static class ProgressBarOverlay {
             // Progress Bar is anchored to the top and is not part of reorganize
             // mode, so it never becomes draggable. Gated by the master Overlay
             // enable as well as its own toggle.
-            bool show = StatusOverlay.IsEnabled && Conf.Enabled && GameStats.InGame;
+            bool show = Panels.PanelsOverlay.IsEnabled && Conf.Enabled && GameStats.InGame;
             if(bar.gameObject.activeSelf != show) {
                 bar.gameObject.SetActive(show);
             }

@@ -123,6 +123,7 @@ public static class GameStats {
     public static int SessionAttempts => PlayCount.PlayCount.SessionAttempts;
     public static int TotalAttempts => PlayCount.PlayCount.TotalAttemptsForCurrentMap();
     public static float Best => PlayCount.PlayCount.BestForCurrentMap();
+    public static float BestStart => PlayCount.PlayCount.BestStartForCurrentMap();
 
     public static string MusicTimeText {
         get {

@@ -277,6 +277,9 @@ public static partial class GenerateUI {
         float width = 0f,
         string leftLabel = null
     ) {
+        const float rowHeight = 50f;
+        const float listTopOffset = 62f;
+
         GameObject root = new("Dropdown");
         root.transform.SetParent(parent, false);
 
@@ -292,7 +295,7 @@ public static partial class GenerateUI {
         rect.pivot = new(rect.pivot.x, 1f);
         rect.anchorMin = new(rect.anchorMin.x, 1f);
         rect.anchorMax = new(rect.anchorMax.x, 1f);
-        rect.sizeDelta = new(rect.sizeDelta.x, 50f);
+        rect.sizeDelta = new(rect.sizeDelta.x, rowHeight);
 
         if(width > 0f) {
             // Compact: a right-aligned fixed-width bar with a leading label,
@@ -300,18 +303,30 @@ public static partial class GenerateUI {
             rect.anchorMin = new(1f, 1f);
             rect.anchorMax = new(1f, 1f);
             rect.pivot = new(1f, 1f);
-            rect.sizeDelta = new(width, 50f);
+            rect.sizeDelta = new(width, rowHeight);
             rect.anchoredPosition = new(-250f, 0f);
 
             if(leftLabel != null) {
                 TextMeshProUGUI lead = AddText(root.transform);
                 lead.text = leftLabel;
                 lead.raycastTarget = false;
+
+                RectTransform leadRect = lead.rectTransform;
+                leadRect.anchorMin = new(0f, 1f);
+                leadRect.anchorMax = new(1f, 1f);
+                leadRect.pivot = new(0.5f, 1f);
+                leadRect.offsetMin = new(16f, -rowHeight);
+                leadRect.offsetMax = new(-(250f + width + 16f), 0f);
+                lead.textWrappingMode = TextWrappingModes.NoWrap;
+                lead.overflowMode = TextOverflowModes.Ellipsis;
             }
         }
 
         TextMeshProUGUI tmp = AddText(rect);
         tmp.text = display(value);
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
+        tmp.rectTransform.offsetMax = new(-50f, 0f);
 
         GameObject change = AddSmallChangedCircle(rect);
         Image changeImg = change.GetComponent<Image>();
@@ -336,8 +351,8 @@ public static partial class GenerateUI {
         listRect.anchorMin = new(0f, 1f);
         listRect.anchorMax = new(1f, 1f);
         listRect.pivot = new(0.5f, 1f);
-        listRect.offsetMin = new(0f, -62f);
-        listRect.offsetMax = new(-250f, -62f);
+        listRect.offsetMin = new(0f, -listTopOffset);
+        listRect.offsetMax = new(-250f, -listTopOffset);
 
         if(width > 0f) {
             // Align the popup under the compact bar.
@@ -345,7 +360,7 @@ public static partial class GenerateUI {
             listRect.anchorMax = new(1f, 1f);
             listRect.pivot = new(1f, 1f);
             listRect.sizeDelta = new(width, listRect.sizeDelta.y);
-            listRect.anchoredPosition = new(-250f, -62f);
+            listRect.anchoredPosition = new(-250f, -listTopOffset);
         }
 
         Image listBg = list.AddComponent<Image>();
@@ -386,27 +401,63 @@ public static partial class GenerateUI {
         );
 
         GTween layoutSeq = null;
+        RectTransform parentRect = parent as RectTransform ?? parent.GetComponent<RectTransform>();
         LayoutElement parentLayout = parent.GetComponent<LayoutElement>();
+
+        void RebuildParentLayouts() {
+            if(rootRect != null) {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+            }
+
+            if(parentRect != null) {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(parentRect);
+            }
+
+            Transform current = parent.parent;
+            while(current != null) {
+                RectTransform currentRect = current as RectTransform;
+                if(
+                    currentRect != null &&
+                    (
+                        current.GetComponent<LayoutGroup>() != null ||
+                        current.GetComponent<ContentSizeFitter>() != null
+                    )
+                ) {
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(currentRect);
+                }
+
+                current = current.parent;
+            }
+        }
+
         void UpdateHeight() {
-            float rowHeight = 50f;
             float spacing = layout.spacing;
+            int valueCount = dropdown.Values?.Count ?? 0;
 
             float listHeight =
-                (values.Count * rowHeight) +
-                (Mathf.Max(0, values.Count - 1) * spacing);
+                (valueCount * rowHeight) +
+                (Mathf.Max(0, valueCount - 1) * spacing);
 
-            float targetHeight = dropdown.Expanded ? 162f + listHeight : 50f;
+            float targetHeight = dropdown.Expanded ? listTopOffset + listHeight : rowHeight;
             float targetAlpha = dropdown.Expanded ? 1f : 0f;
 
             layoutSeq?.Kill();
 
+            if(parentLayout != null) {
+                parentLayout.minHeight = rowHeight;
+                parentLayout.flexibleHeight = 0f;
+            }
+
             layoutSeq = GTweenSequenceBuilder.New()
                 .Join(
                     GTweenExtensions.Tween(
-                        () => parentLayout.preferredHeight,
+                        () => parentLayout != null ? parentLayout.preferredHeight : rowHeight,
                         x => {
-                            parentLayout.preferredHeight = x;
-                            LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+                            if(parentLayout != null) {
+                                parentLayout.preferredHeight = Mathf.Max(rowHeight, x);
+                            }
+
+                            RebuildParentLayouts();
                         },
                         targetHeight,
                         0.14f
@@ -426,61 +477,19 @@ public static partial class GenerateUI {
 
         dropdown.OnLayoutChanged = () => {
             UpdateHeight();
-            LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+            RebuildParentLayouts();
         };
 
-        foreach(T item in values) {
-            GameObject row = new("Row");
-            row.transform.SetParent(list.transform, false);
-
-            RectTransform rowRect = row.AddComponent<RectTransform>();
-            rowRect.sizeDelta = new(0f, 50f);
-
-            Image rowImage = row.AddComponent<Image>();
-            rowImage.color = Color.clear;
-            rowImage.type = Image.Type.Sliced;
-            rowImage.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P2048);
-
-            TextMeshProUGUI rowText = AddText(rowRect);
-            rowText.text = display(item);
-
-            EventTrigger trigger = row.AddComponent<EventTrigger>();
-
-            GTween hoverSeq = null;
-
-            UnityUtils.AddEvent(EventTriggerType.PointerEnter, e => {
-                hoverSeq?.Kill();
-
-                hoverSeq = GTweenSequenceBuilder.New()
-                    .Append(
-                        rowImage.GTColor(UIColors.ObjectActive, 0.12f)
-                            .SetEasing(Easing.OutSine)
-                    )
-                    .Build();
-
-                MainCore.TC.Play(hoverSeq);
-            }, trigger);
-
-            UnityUtils.AddEvent(EventTriggerType.PointerExit, e => {
-                hoverSeq?.Kill();
-
-                hoverSeq = GTweenSequenceBuilder.New()
-                    .Append(
-                        rowImage.GTColor(Color.clear, 0.12f)
-                            .SetEasing(Easing.OutSine)
-                    )
-                    .Build();
-
-                MainCore.TC.Play(hoverSeq);
-            }, trigger);
-        }
+        // Option rows are built by the dropdown's own RebuildList() (called
+        // from its constructor) — building them here too doubled every list
+        // with click-dead copies.
 
         AddButton(rect.gameObject, btn => {
             switch(btn) {
                 case InputButton.Left:
                     dropdown.ToggleExpanded();
                     UpdateHeight();
-                    LayoutRebuilder.ForceRebuildLayoutImmediate(rootRect);
+                    RebuildParentLayouts();
                     break;
 
                 case InputButton.Middle:

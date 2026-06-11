@@ -115,6 +115,8 @@ public class UIDropDown<T> : UIObject {
                 Set(Values[0], false);
             }
         }
+
+        OnLayoutChanged?.Invoke();
     }
 
     public void Reset() => Set(DefaultValue);
@@ -195,6 +197,9 @@ public class UIDropDown<T> : UIObject {
 
             TextMeshProUGUI rowText = GenerateUI.AddText(rowRect);
             rowText.text = Display(item);
+            rowText.textWrappingMode = TextWrappingModes.NoWrap;
+            rowText.overflowMode = TextOverflowModes.Ellipsis;
+            rowText.rectTransform.offsetMax = new(-16f, 0f);
 
             EventTrigger trigger = row.AddComponent<EventTrigger>();
 
