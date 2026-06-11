@@ -1,0 +1,85 @@
+Koren/UI/Objects/Impl/UIInput.cs
+  s_cadbcbbd763636::t_78480fc1a20196 172,174-175
+Koren/Tween/GTweenExtensions.cs
+  s_cadbcbbd763636::t_ed9d2ba1488e65 1-121
+build.sh
+  s_cadbcbbd763636::t_d76c99f6dab554 5
+  s_cadbcbbd763636::t_87b1834106503b 67
+Koren/UI/UICore.cs
+  s_cadbcbbd763636::t_b86360e318a89f 302-304,309
+  s_cadbcbbd763636::t_b359b9072f07a9 451-456
+  s_cadbcbbd763636::t_88b99edf332612 18
+  s_cadbcbbd763636::t_a6d33a8d0d7d6c 76
+  s_cadbcbbd763636::t_5ae4ac4f6aa87b 280
+  s_cadbcbbd763636::t_c6446665a1f46e 292
+tools/release.sh
+  s_cadbcbbd763636::t_7b4906cec3426c 52,55,59,62
+  s_cadbcbbd763636::t_6c52faeac2c06a 2
+Koren/Async/MainThread.cs
+  s_cadbcbbd763636::t_59ff9ed19475c5 1-2,7
+  s_cadbcbbd763636::t_46917bebfcbfe5 22-23
+Koren/UI/Generator/GenerateUI.cs
+  s_cadbcbbd763636::t_2d54ef854a4a50 16
+  s_cadbcbbd763636::t_3ca27c2f2d418b 246-249,252-255,260-262,264,266-270
+Koren/Core/Service/HarmonyService.cs
+  s_cadbcbbd763636::t_e41b6900bbd2ec 13-15,18
+Koren/Loader.cs
+  s_cadbcbbd763636::t_a2bc089778a316 1-35
+Koren/UI/Objects/Impl/UIToggle.cs
+  s_cadbcbbd763636::t_665bf4f7223492 11
+Koren/UI/Objects/Impl/UIButton.cs
+  s_cadbcbbd763636::t_f826c305a2620f 14
+Koren/Compat/Interface/IKorenHost.cs
+  s_cadbcbbd763636::t_4b4f40370ed4ab 9-10
+README.md
+  s_cadbcbbd763636::t_f8bb24c5351ed9 21
+  s_cadbcbbd763636::t_b085a24f3c0657 36-38
+Koren/UI/Utility/DragHandler.cs
+  s_cadbcbbd763636::t_ae8e66cd8739fe 1,6,8,12-25,28-36,39-40,46-54,57-58,63
+Koren/Koren.csproj
+  s_cadbcbbd763636::t_ea42b02ef3ca37 92-94,96-98
+  s_cadbcbbd763636::t_64404dde13e342 28
+Koren/UI/Factory/Page/PageSearch.cs
+  s_cadbcbbd763636::t_8a0a5226f649a5 9
+  s_cadbcbbd763636::t_f571d9fe4166b3 167
+  s_cadbcbbd763636::t_e13060738dc17d 126-137
+  s_cadbcbbd763636::t_e93a76bfbdfe68 174-175
+  s_cadbcbbd763636::t_c71e67f3083d69 158
+Koren/Update/UpdateService.cs
+  s_cadbcbbd763636::t_d6342f5b241de2 222
+  s_cadbcbbd763636::t_59e7aea9facc6f 255-256,258-273
+  s_cadbcbbd763636::t_ae489f3f05ebbd 195-196
+Koren/UI/Utility/UIScrollController.cs
+  s_cadbcbbd763636::t_84751d2affbd23 7-8
+Koren/UI/Objects/Impl/UIColorPicker.cs
+  s_cadbcbbd763636::t_1b8d92426597df 11
+Koren/UI/Objects/Impl/UIDropdown.cs
+  s_cadbcbbd763636::t_cca74d2d1e3060 15
+Koren/UI/Generator/GenerateUI.Collapsible.cs
+  s_cadbcbbd763636::t_2a173260ab16d7 13
+Koren/Utility/StringUtils.cs
+  s_cadbcbbd763636::t_3f8e438bc3e5e9 53-54
+  s_cadbcbbd763636::t_ffe02521ab3008 1-52,55-77
+Koren/UI/Factory/Page/PageSettings.cs
+  s_cadbcbbd763636::t_ad9e60c6cbe59c 14
+  s_cadbcbbd763636::t_824888fd5220e2 18
+  s_cadbcbbd763636::t_db7cdf50b5b0f7 112-113,116-120,122-123,129-132,134-138
+Koren/UI/Utility/ResizeHandle.cs
+  s_cadbcbbd763636::t_21debe903f78af 1,21,23,25,34-49,51-52,58,60-61,67-68,70-71,73,75-78,81-84,87,89-92,95-98,101-102,118-120,123,146-148,155-157,164-166,173-175,182,189,196,203,214-215,218
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "267b598e953f27b6b8869b66f475b8562f8175eb",
+  "prompts": {},
+  "sessions": {
+    "s_cadbcbbd763636": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "416d00a1-3f36-40a5-9e35-c0765a53d9fe",
+        "model": "claude-fable-5"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
