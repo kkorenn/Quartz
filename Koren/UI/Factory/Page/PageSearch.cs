@@ -140,6 +140,7 @@ internal static class PageSearch {
         OriginalMenuState.Gameplay => Tr("GAMEPLAY", "Gameplay"),
         OriginalMenuState.Visuals => Tr("VISUALS", "Visuals"),
         OriginalMenuState.Tweaks => Tr("TWEAKS", "Tweaks"),
+        OriginalMenuState.Profiles => Tr("PROFILES", "Profiles"),
         OriginalMenuState.Settings => Tr("SETTINGS", "Settings"),
         OriginalMenuState.Credits => Tr("CREDITS", "Credits"),
         OriginalMenuState.Developer => Tr("DEVELOPER", "Developer"),

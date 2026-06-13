@@ -4,14 +4,75 @@ using Koren.IO.Interface;
 
 namespace Koren.IO;
 
-public sealed class SettingsFile<T>(string path) where T : class, ISettingsFile, new() {
+// Non-generic view of a SettingsFile<T>, so the profile system can flush and
+// reload every live settings file without knowing the data types.
+public interface ISettingsHandle {
+    string Path { get; }
+    bool Load();
+    void LoadOrDefaults();
+    bool Save();
+    void CancelPendingSave();
+}
+
+// Every SettingsFile<T> registers itself here on construction. Profiles use
+// this to snapshot (SaveAll) and switch (CancelPendingSaves + reload) the
+// whole set of live settings at once.
+public static class SettingsRegistry {
+    private static readonly List<ISettingsHandle> handles = [];
+    private static readonly object sync = new();
+
+    public static void Register(ISettingsHandle handle) {
+        lock(sync) {
+            // Features recreate their SettingsFile only in odd paths; keep the
+            // newest instance per path so reloads hit live data.
+            handles.RemoveAll(h => h.Path == handle.Path);
+            handles.Add(handle);
+        }
+    }
+
+    public static ISettingsHandle[] Snapshot() {
+        lock(sync) {
+            return [.. handles];
+        }
+    }
+
+    public static void SaveAll() {
+        foreach(ISettingsHandle handle in Snapshot()) {
+            handle.Save();
+        }
+    }
+
+    public static void CancelPendingSaves() {
+        foreach(ISettingsHandle handle in Snapshot()) {
+            handle.CancelPendingSave();
+        }
+    }
+
+    // Re-reads every registered file from disk; files that don't exist reset
+    // their data to defaults (a profile that lacks a file means "defaults").
+    public static void ReloadAll() {
+        foreach(ISettingsHandle handle in Snapshot()) {
+            handle.CancelPendingSave();
+            handle.LoadOrDefaults();
+        }
+    }
+}
+
+public sealed class SettingsFile<T> : ISettingsHandle where T : class, ISettingsFile, new() {
     public T Data { get; } = new();
 
-    public readonly string Path = path;
+    public readonly string Path;
+
+    string ISettingsHandle.Path => Path;
 
     private readonly object saveLock = new();
 
     private CancellationTokenSource saveCts;
+
+    public SettingsFile(string path) {
+        Path = path;
+        SettingsRegistry.Register(this);
+    }
 
     public bool Load() {
         try {
@@ -30,6 +91,23 @@ public sealed class SettingsFile<T>(string path) where T : class, ISettingsFile,
             );
 
             return false;
+        }
+    }
+
+    // Load, but when the file is missing reset Data back to a fresh T's
+    // serialized state. Used when switching profiles: a file absent from the
+    // applied profile must not leak the previous profile's values.
+    public void LoadOrDefaults() {
+        if(Load()) {
+            return;
+        }
+
+        try {
+            Data.Deserialize(new T().Serialize());
+        } catch(Exception e) {
+            MainCore.Log.Err(
+                $"[{nameof(SettingsFile<>)}] Failed to reset settings '{Path}': {e}"
+            );
         }
     }
 
@@ -86,6 +164,8 @@ public sealed class SettingsFile<T>(string path) where T : class, ISettingsFile,
             }
         });
     }
+
+    public void CancelPendingSave() => saveCts?.Cancel();
 
     public void Dispose() {
         if(Data is IDisposable disposable) {

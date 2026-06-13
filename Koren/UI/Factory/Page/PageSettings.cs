@@ -50,6 +50,10 @@ internal static class PageSettings {
     private static RectTransform updatesAnchor;
 
     public static void Create(RectTransform parent) {
+        // The page can be built more than once per session (profile switches
+        // rebuild the whole UI); drop rows from the previous build.
+        objects.Clear();
+
         GameObject pad = new("Pad");
         pad.transform.SetParent(parent, false);
 

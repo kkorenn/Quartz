@@ -23,6 +23,7 @@ public enum UISprite {
     Gamepad128,
     Wrench128,
     AdjustmentsHorizontal128,
+    Users128,
 }
 
 public enum UISliceSprite {
@@ -341,7 +342,8 @@ public sealed class SpriteManager(ResourceManager resource) : IDisposable {
         [UISprite.MagnifyingGlass128] = Asset.MagnifyingGlass128,
         [UISprite.Gamepad128] = Asset.Gamepad128,
         [UISprite.Wrench128] = Asset.Wrench128,
-        [UISprite.AdjustmentsHorizontal128] = Asset.AdjustmentsHorizontal128
+        [UISprite.AdjustmentsHorizontal128] = Asset.AdjustmentsHorizontal128,
+        [UISprite.Users128] = Asset.Users128
     };
 
 }

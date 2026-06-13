@@ -10,12 +10,12 @@ public static class Info {
 
     // Release channel. Move it forward as the project matures:
     //   "alpha" -> "beta" -> "rc" -> "stable".
-    public const string Channel = "dev";
+    public const string Channel = "alpha";
 
     // Pre-release build number. Auto-managed by tools/release.sh, which tracks
     // it per (version, channel) in build.json and bakes the next value here on
     // each release (it resets implicitly when Version changes). Don't hand-edit.
-    public const int Build = 1;
+    public const int Build = 2;
 
     // Typed channel + flags for runtime and update-check logic.
     public static ReleaseChannel ChannelKind => SemVer.ParseChannel(Channel);

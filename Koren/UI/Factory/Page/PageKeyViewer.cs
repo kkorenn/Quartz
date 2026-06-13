@@ -31,18 +31,10 @@ internal static class PageKeyViewer {
         void Save() => KeyViewerOverlay.Save();
         void Apply() => KeyViewerOverlay.Apply();
 
-        var sec = GenerateUI.Collapsible(content, "Key Viewer", startExpanded: false);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Key Viewer", startExpanded: false,
             v => { conf.Enabled = v; Save(); },
-            "Enable Key Viewer",
-            "keyviewer_enabled"
-        ).Rect.AddToolTip(
-            "DESC_KEYVIEWER_ENABLED",
-            "On-screen key grid with per-key press counters, KPS and total presses."
+            conf.Enabled
         );
 
         RectTransform simpleBody = null;
@@ -76,6 +68,9 @@ internal static class PageKeyViewer {
             KeyViewerOverlay.Rebuild();
             Save();
             RefreshMode();
+            // Sync only runs in simple mode — leaving/entering it changes
+            // whether the Key Limiter is locked.
+            KeyViewerOverlay.RaiseSyncSettingChanged();
         }
 
         RectTransform modeRow = GenerateUI.Row(sec.Body);
@@ -309,6 +304,7 @@ internal static class PageKeyViewer {
                 if(v) {
                     KeyViewerOverlay.SyncKeysToKeyLimiter();
                 }
+                KeyViewerOverlay.RaiseSyncSettingChanged();
             },
             "Sync Keys to Key Limiter",
             "keyviewer_synclimiter"

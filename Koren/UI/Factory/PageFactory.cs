@@ -31,6 +31,7 @@ public static class PageFactory {
         UICore.Pages[UICore.CurrentMenuState].GetComponent<CanvasGroup>().blocksRaycasts = true;
 
         PageCredits.Create(UICore.Pages[(int)OriginalMenuState.Credits]);
+        PageProfiles.Create(UICore.Pages[(int)OriginalMenuState.Profiles]);
         PageSettings.Create(UICore.Pages[(int)OriginalMenuState.Settings]);
         PageOverlay.Create(UICore.Pages[(int)OriginalMenuState.Overlay]);
         PageGameplay.Create(UICore.Pages[(int)OriginalMenuState.Gameplay]);

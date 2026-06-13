@@ -1,3 +1,7 @@
+using HarmonyLib;
+using Koren.Core;
+using UnityEngine;
+
 namespace Koren.Features.Status;
 
 // BPM math ported from the original KorenResourcePack.
@@ -6,6 +10,38 @@ namespace Koren.Features.Status;
 //        at this moment, including BPM-changing tiles), * song pitch.
 // If the current floor has no nextfloor, CBPM falls back to TBPM.
 internal static class Bpm {
+    // Autoplay KPS (v1 Bpm.RegisterAutoTile/GetAutoKps): autoplay tile-hits
+    // inside a sliding 1-second window. Real key presses don't fire during
+    // autoplay, so a key-based KPS reads 0 — this counts the tiles the game
+    // plays for you instead.
+    private static readonly Queue<float> autoTileTimes = new();
+
+    internal static int GetAutoKps() {
+        float now = Time.time;
+        while(autoTileTimes.Count > 0 && now - autoTileTimes.Peek() > 1f) {
+            autoTileTimes.Dequeue();
+        }
+        return autoTileTimes.Count;
+    }
+
+    // One tile-hit per MoveToNextFloor, counted only while autoplay is on —
+    // same hook v1 used.
+    [HarmonyPatch(typeof(scrPlanet), "MoveToNextFloor")]
+    private static class MoveToNextFloorPatch {
+        private static void Postfix() {
+            if(!MainCore.IsModEnabled) {
+                return;
+            }
+
+            try {
+                if(RDC.auto) {
+                    autoTileTimes.Enqueue(Time.time);
+                }
+            } catch {
+            }
+        }
+    }
+
     internal static void GetBpmValues(out float tileBpm, out float actualBpm) {
         tileBpm = 0f;
         actualBpm = 0f;

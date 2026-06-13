@@ -91,6 +91,18 @@ public static partial class GenerateUI {
         Transform parent,
         string title,
         bool startExpanded
+    ) => Collapsible(parent, title, startExpanded, null, false);
+
+    // Variant with an enable toggle embedded in the header (left of the
+    // arrow), so a feature section can be switched on/off without expanding
+    // it first. Clicking the dot only toggles; the rest of the header still
+    // expands/collapses.
+    public static CollapsibleSection Collapsible(
+        Transform parent,
+        string title,
+        bool startExpanded,
+        Action<bool> onToggle,
+        bool toggleValue
     ) {
         GameObject sectionObj = new("Section_" + title);
         sectionObj.transform.SetParent(parent, false);
@@ -146,13 +158,63 @@ public static partial class GenerateUI {
         arrowImg.color = UIColors.ObjectInactive;
         arrowImg.raycastTarget = false;
 
+        // Header enable toggle (optional): an accent dot left of the arrow,
+        // same look as the stat rows' enable dot. Its own EventTrigger
+        // swallows the press so toggling never expands the section.
+        if(onToggle != null) {
+            GameObject toggleZone = new("HeaderToggle");
+            toggleZone.transform.SetParent(barObj.transform, false);
+
+            RectTransform zoneRect = toggleZone.AddComponent<RectTransform>();
+            zoneRect.anchorMin = new Vector2(1f, 0.5f);
+            zoneRect.anchorMax = new Vector2(1f, 0.5f);
+            zoneRect.pivot = new Vector2(0.5f, 0.5f);
+            zoneRect.anchoredPosition = new Vector2(-64f, 0f);
+            zoneRect.sizeDelta = new Vector2(40f, 44f);
+            toggleZone.AddComponent<EmptyGraphic>().raycastTarget = true;
+
+            GameObject dotObj = new("Dot");
+            dotObj.transform.SetParent(toggleZone.transform, false);
+            RectTransform dotRect = dotObj.AddComponent<RectTransform>();
+            dotRect.anchorMin = new Vector2(0.5f, 0.5f);
+            dotRect.anchorMax = new Vector2(0.5f, 0.5f);
+            dotRect.pivot = new Vector2(0.5f, 0.5f);
+            dotRect.sizeDelta = new Vector2(26f, 26f);
+
+            Image dotImg = dotObj.AddComponent<Image>();
+            dotImg.sprite = MainCore.Spr.Get(UISprite.Circle256);
+            dotImg.raycastTarget = false;
+
+            bool on = toggleValue;
+            Color OffColor() => new(1f, 1f, 1f, 0.18f);
+            dotImg.color = on ? UIColors.ObjectActive : OffColor();
+
+            GTween dotSeq = null;
+            EventTrigger zoneTrigger = toggleZone.AddComponent<EventTrigger>();
+            UnityUtils.AddClickEvent(zoneTrigger, e => {
+                if(e.button != InputButton.Left) {
+                    return;
+                }
+
+                on = !on;
+                onToggle(on);
+
+                dotSeq?.Kill();
+                dotSeq = GTweenSequenceBuilder.New()
+                    .Append(dotImg.GTColor(on ? UIColors.ObjectActive : OffColor(), 0.15f)
+                        .SetEasing(Easing.OutSine))
+                    .Build();
+                MainCore.TC.Play(dotSeq);
+            });
+        }
+
         GameObject labelObj = new("Label");
         labelObj.transform.SetParent(barObj.transform, false);
         RectTransform labelRect = labelObj.AddComponent<RectTransform>();
         labelRect.anchorMin = new Vector2(0f, 0f);
         labelRect.anchorMax = new Vector2(1f, 1f);
         labelRect.offsetMin = new Vector2(16f, 0f);
-        labelRect.offsetMax = new Vector2(-44f, 0f);
+        labelRect.offsetMax = new Vector2(onToggle != null ? -88f : -44f, 0f);
         TextMeshProUGUI label = labelObj.AddComponent<TextMeshProUGUI>();
         label.font = FontManager.Current;
         label.fontSize = 20f;

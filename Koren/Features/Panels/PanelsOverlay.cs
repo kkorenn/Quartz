@@ -64,6 +64,8 @@ public static class PanelsOverlay {
             GameStats.GetBpm(out float tbpm, out float cbpm);
             return (cbpm / 60f).ToString("0.##", CultureInfo.InvariantCulture);
         } },
+        new() { Id = "autokps", Category = "BPM", Label = "Auto KPS", Value = _ =>
+            GameStats.AutoKps.ToString(CultureInfo.InvariantCulture) },
         new() { Id = "hold", Category = "Other", Label = "Holds", Value = _ => {
             string hold = GameStats.HoldBehaviorLabel;
             return string.IsNullOrEmpty(hold) ? null : hold;
@@ -409,7 +411,12 @@ public static class PanelsOverlay {
                         continue;
                     }
 
-                    sb.Append(LocalizedStatLabel(stat)).Append(c.LabelSeparator);
+                    // English by default; localized only when this panel opts
+                    // in (the settings UI always shows localized labels though).
+                    string label = c.LocalizeStatLabels
+                        ? LocalizedStatLabel(stat)
+                        : stat.Label;
+                    sb.Append(label).Append(c.LabelSeparator);
 
                     // Per-stat value coloring (v1 ColorRange): tint the value
                     // by the stat's own ratio through the entry's gradient.
@@ -505,9 +512,10 @@ public static class PanelsOverlay {
                         return color.MaxBpm <= 0f ? 0f : tbpm / color.MaxBpm;
                     }
 
-                    // v1 colored KPS with the current-BPM color.
+                    // v1 colored KPS and Auto KPS with the current-BPM color.
                     case "cbpm":
-                    case "kps": {
+                    case "kps":
+                    case "autokps": {
                         GameStats.GetBpm(out _, out float cbpm);
                         return color.MaxBpm <= 0f ? 0f : cbpm / color.MaxBpm;
                     }

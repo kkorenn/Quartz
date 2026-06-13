@@ -52,6 +52,7 @@ public static class MenuFactory {
         var visuals = CreateItem(parent, "Visuals", MainCore.Spr.Get(UISprite.Image128, iconUnits), (int)OriginalMenuState.Visuals);
         var tweaks = CreateItem(parent, "Tweaks", MainCore.Spr.Get(UISprite.AdjustmentsHorizontal128, iconUnits), (int)OriginalMenuState.Tweaks);
         var search = CreateItem(parent, "Search", MainCore.Spr.Get(UISprite.MagnifyingGlass128, iconUnits), (int)OriginalMenuState.Search);
+        var profiles = CreateItem(parent, "Profiles", MainCore.Spr.Get(UISprite.Users128, iconUnits), (int)OriginalMenuState.Profiles);
         var settings = CreateItem(parent, "Settings", MainCore.Spr.Get(UISprite.Gear128, iconUnits), (int)OriginalMenuState.Settings);
         var credits = CreateItem(parent, "Credits", MainCore.Spr.Get(UISprite.Star128, iconUnits), (int)OriginalMenuState.Credits);
 
@@ -66,6 +67,9 @@ public static class MenuFactory {
 
         tweaks.label.gameObject.AddComponent<TextLocalization>()
             .Init("TWEAKS", "Tweaks");
+
+        profiles.label.gameObject.AddComponent<TextLocalization>()
+            .Init("PROFILES", "Profiles");
 
         settings.label.gameObject.AddComponent<TextLocalization>()
             .Init("SETTINGS", "Settings");

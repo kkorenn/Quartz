@@ -17,18 +17,10 @@ internal static class PageJudgement {
         void Save() => JudgementOverlay.Save();
         void Apply() => JudgementOverlay.Apply();
 
-        var sec = GenerateUI.Collapsible(content, "Judgement", startExpanded: false);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Judgement", startExpanded: false,
             v => { conf.Enabled = v; Apply(); Save(); },
-            "Enable Judgement Counts",
-            "judgement_enabled"
-        ).Rect.AddToolTip(
-            "DESC_JUDGEMENT_ENABLED",
-            "Top-center row of hit counts per judgement, from Overload through Perfect to Miss."
+            conf.Enabled
         );
 
         // === Layout ===

@@ -218,22 +218,41 @@ public static class JudgementOverlay {
 
             TMP_FontAsset font = FontManager.Current;
             float fontSize = FontSize();
+            rowLayout.spacing = RowSpacing();
+
+            // First pass: set everything that feeds the layout (font, size,
+            // text). Shadows are synced separately, after the layout settles.
+            bool changed = !cacheValid;
             for(int i = 0; i < labels.Length; i++) {
                 TextMeshProUGUI label = labels[i];
                 if(label.font != font) {
                     label.font = font;
                 }
+                label.fontSize = fontSize;
 
                 int count = Judgement.SlotCount(i);
                 if(!cacheValid || count != cached[i]) {
                     cached[i] = count;
                     label.text = count.ToString(CultureInfo.InvariantCulture);
+                    changed = true;
                 }
-                ApplyTextStyle(label, fontSize);
             }
             cacheValid = true;
 
-            rowLayout.spacing = RowSpacing();
+            // The HorizontalLayoutGroup repositions the labels when a digit
+            // count (or size) changes, but that rebuild only lands after
+            // Update. The shadow copies each label's rect, so without forcing
+            // the rebuild now it would read last frame's positions and ghost a
+            // second set of digits for one frame on every hit. Rebuild only
+            // when something actually changed to avoid per-frame layout cost.
+            if(changed) {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(root);
+            }
+
+            // Second pass: sync the shadow against the now-final geometry.
+            for(int i = 0; i < labels.Length; i++) {
+                ApplyTextStyle(labels[i], fontSize);
+            }
         }
     }
 }

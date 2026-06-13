@@ -15,15 +15,10 @@ internal static class PageProgressBar {
 
         void Save() => ProgressBarOverlay.Save();
 
-        var sec = GenerateUI.Collapsible(content, "Progress Bar", startExpanded: false);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Progress Bar", startExpanded: false,
             v => { conf.Enabled = v; ProgressBarOverlay.Apply(); Save(); },
-            "Enable Progress Bar",
-            "progressbar_enabled"
+            conf.Enabled
         );
 
         GenerateUI.Toggle(

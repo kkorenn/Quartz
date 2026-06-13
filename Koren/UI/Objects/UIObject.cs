@@ -56,19 +56,25 @@ public abstract class UIObject {
 
         float targetAlpha = blocked ? 0.4f : 1f;
 
-        CanvasGroup.interactable = !blocked;
-        CanvasGroup.blocksRaycasts = !blocked;
+        CanvasGroup cg = CanvasGroup;
+
+        cg.interactable = !blocked;
+        cg.blocksRaycasts = !blocked;
 
         if(noAnimate) {
-            CanvasGroup.alpha = targetAlpha;
+            cg.alpha = targetAlpha;
             return;
         }
 
+        // Capture the CanvasGroup and null-check it inside the tween: a
+        // profile switch (UICore.Rebuild) can destroy this widget mid-fade,
+        // and a tween completing onto a destroyed CanvasGroup throws on every
+        // tick (it never finishes, so it never leaves the alive-list).
         blockSeq = GTweenSequenceBuilder.New()
             .Join(
                 GTweenExtensions.Tween(
-                    () => CanvasGroup.alpha,
-                    x => CanvasGroup.alpha = x,
+                    () => cg == null ? targetAlpha : cg.alpha,
+                    x => { if(cg != null) cg.alpha = x; },
                     targetAlpha,
                     0.2f
                 ).SetEasing(Easing.OutSine)
@@ -76,7 +82,10 @@ public abstract class UIObject {
         MainCore.TC.Play(blockSeq);
     }
 
-    public virtual void Dispose() => UnregisterTick();
+    public virtual void Dispose() {
+        blockSeq?.Kill();
+        UnregisterTick();
+    }
 
     protected void RegisterTick() => _tickables.Add(this);
 
@@ -89,5 +98,16 @@ public abstract class UIObject {
         for(int i = 0; i < _tickables.Count; i++) {
             _tickables[i].Tick();
         }
+    }
+
+    // Drops every registered tickable. Must run when the whole UI canvas is
+    // torn down (profile switch rebuild) — stale entries would Tick destroyed
+    // components and throw every frame.
+    public static void DisposeAll() {
+        for(int i = _tickables.Count - 1; i >= 0; i--) {
+            _tickables[i].Dispose();
+        }
+
+        _tickables.Clear();
     }
 }

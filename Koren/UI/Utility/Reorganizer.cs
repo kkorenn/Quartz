@@ -236,6 +236,12 @@ public static class Reorganizer {
         bg.type = Image.Type.Sliced;
         bg.color = UIColors.PanelBG;
 
+        // Half-opacity so the floating panel doesn't fully hide whatever sits
+        // behind it while repositioning. No uGUI Outline here, so partial alpha
+        // fades cleanly (no white bleed).
+        CanvasGroup group = panelObj.AddComponent<CanvasGroup>();
+        group.alpha = 0.5f;
+
         VerticalLayoutGroup layout = panelObj.AddComponent<VerticalLayoutGroup>();
         layout.spacing = 8f;
         layout.padding = new RectOffset(14, 14, 12, 12);

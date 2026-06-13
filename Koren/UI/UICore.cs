@@ -30,6 +30,7 @@ public enum OriginalMenuState {
     Gameplay,
     Visuals,
     Tweaks,
+    Profiles,
     Settings,
     Search,
     Credits,
@@ -383,11 +384,11 @@ public static class UICore {
         panel.AddComponent<RectMask2D>();
         panelCanvasGroup = panel.AddComponent<CanvasGroup>();
 
-        {
-            var outline = panel.AddComponent<Outline>();
-            outline.effectColor = Color.white;
-            outline.effectDistance = new(2, -2);
-        }
+        // (Border ring is added at the very end of CreatePanel so it draws on
+        // top of the menu and top bar — see the "Border" block below. We avoid
+        // the uGUI Outline component on purpose: it duplicates the whole panel
+        // mesh recolored solid white, which bleeds through the interior during
+        // a CanvasGroup fade and washes the panel white.)
 
         {
             // Menu Panel
@@ -626,6 +627,26 @@ public static class UICore {
 
             trigger.triggers.Add(enter);
             trigger.triggers.Add(exit);
+        }
+
+        // Border ring — last child so it frames over the menu and top bar.
+        // Replaces the old white uGUI Outline that washed the panel white on
+        // fade (see note where the CanvasGroup is added).
+        {
+            GameObject border = new("Border");
+            border.transform.SetParent(panel.transform, false);
+
+            RectTransform borderRect = border.AddComponent<RectTransform>();
+            borderRect.anchorMin = Vector2.zero;
+            borderRect.anchorMax = Vector2.one;
+            borderRect.offsetMin = Vector2.zero;
+            borderRect.offsetMax = Vector2.zero;
+
+            Image borderImg = border.AddComponent<Image>();
+            borderImg.sprite = MainCore.Spr.Get(UISliceSprite.CircleOutline256P1024);
+            borderImg.type = Image.Type.Sliced;
+            borderImg.color = Color.white;
+            borderImg.raycastTarget = false;
         }
     }
 
@@ -951,12 +972,55 @@ public static class UICore {
         return false;
     }
 
+    // Full teardown + rebuild of the settings UI. Used after a profile switch:
+    // every widget bakes its value in at Create time, so the only way to show
+    // the freshly loaded settings everywhere is to build the panel again.
+    public static void Rebuild() {
+        bool wasOpen = isOpen;
+
+        if(wasOpen) {
+            Close(true);
+        }
+
+        // CreatePanel re-seeds these from the new panel, so keep the user's
+        // placement across the rebuild.
+        Vector2 position = LastPanelPosition;
+        Vector2 size = LastPanelSize;
+
+        Dispose();
+        Initialize();
+
+        LastPanelPosition = position;
+        LastPanelSize = size;
+
+        if(wasOpen) {
+            Open(true);
+        }
+
+        // Initialize may have opened the panel itself (ShowOnStartup) before
+        // the placement was restored — pin it either way.
+        if(isOpen) {
+            Panel.anchoredPosition = position;
+            Panel.sizeDelta = size;
+        }
+    }
+
     public static void Dispose() {
         MainCore.Tr.OnLoadEnd -= _onPageSettings;
         MainCore.Tr.OnLoadEnd -= _onRefresh;
+        UIObject.DisposeAll();
         Reorganizer.Dispose();
         UpdateToast.Dispose();
         Tooltip.Dispose();
+
+        // Drop every in-flight tween before destroying the canvas. Widget
+        // tweens (block fades, button hover/rest colors, panel moves) capture
+        // components that are about to be destroyed; a tween that ticks or
+        // completes onto a destroyed object throws every frame. Only runs on
+        // teardown (full shutdown or a profile-switch rebuild), so it can't
+        // interrupt a live gameplay overlay animation in practice.
+        MainCore.TC.Clear();
+
         UnityEngine.Object.Destroy(canvasObj);
         canvasObj = null;
     }

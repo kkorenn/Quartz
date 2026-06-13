@@ -99,6 +99,11 @@ public sealed class KorenRuntime {
         RootObject.AddComponent<MainThread>();
 
         Config.Load();
+
+        // Needs the config loaded; first run captures the live settings as
+        // the initial "Default" profile.
+        ProfileManager.Initialize();
+
         Logger.Msg($"[Startup] paths + config took {sw.ElapsedMilliseconds} ms");
 
         sw.Restart();
@@ -142,6 +147,10 @@ public sealed class KorenRuntime {
         SetModEnabled(false, true);
 
         Config.Save();
+
+        // Keep the active profile in sync with the final on-disk settings so
+        // switching profiles next session starts from what the user last saw.
+        ProfileManager.CaptureActive();
 
         services.Dispose();
 

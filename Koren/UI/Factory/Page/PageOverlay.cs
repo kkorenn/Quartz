@@ -676,6 +676,18 @@ internal static class PageOverlay {
             idp + "_background"
         );
 
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.LocalizeStatLabels,
+            panel.LocalizeStatLabels,
+            v => { panel.LocalizeStatLabels = v; PanelsOverlay.Apply(); Save(); },
+            "Localize Stat Labels",
+            idp + "_localizestats"
+        ).Rect.AddToolTip(
+            "DESC_PANEL_LOCALIZESTATS",
+            "Off: this panel's stat labels stay English (X-Acc, Max X-Acc…). On: they follow the UI language."
+        );
+
         // === Shadow ===
 
         GenerateUI.Localize(GenerateUI.AddTextH1(GenerateUI.Row(sec.Body)), "HEADING_SHADOW", "Shadow");

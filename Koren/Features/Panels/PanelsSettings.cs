@@ -106,6 +106,10 @@ public sealed class PanelConfig {
     public float LineSpacing = 0f;
     public bool BackgroundEnabled = true;
 
+    // Stat labels on this panel stay English by default; on = follow the UI
+    // language. The settings UI always shows localized labels regardless.
+    public bool LocalizeStatLabels = false;
+
     public float TextR = 1f;
     public float TextG = 1f;
     public float TextB = 1f;
@@ -166,6 +170,7 @@ public sealed class PanelConfig {
             [nameof(LabelSeparator)] = LabelSeparator,
             [nameof(LineSpacing)] = LineSpacing,
             [nameof(BackgroundEnabled)] = BackgroundEnabled,
+            [nameof(LocalizeStatLabels)] = LocalizeStatLabels,
             [nameof(TextR)] = TextR,
             [nameof(TextG)] = TextG,
             [nameof(TextB)] = TextB,
@@ -206,6 +211,7 @@ public sealed class PanelConfig {
         p.LabelSeparator = IOUtils.Read(token, nameof(LabelSeparator), p.LabelSeparator);
         p.LineSpacing = IOUtils.Read(token, nameof(LineSpacing), p.LineSpacing);
         p.BackgroundEnabled = IOUtils.Read(token, nameof(BackgroundEnabled), p.BackgroundEnabled);
+        p.LocalizeStatLabels = IOUtils.Read(token, nameof(LocalizeStatLabels), p.LocalizeStatLabels);
         p.TextR = IOUtils.Read(token, nameof(TextR), p.TextR);
         p.TextG = IOUtils.Read(token, nameof(TextG), p.TextG);
         p.TextB = IOUtils.Read(token, nameof(TextB), p.TextB);

@@ -265,6 +265,22 @@ public static class KeyViewerOverlay {
         SyncKeysToKeyLimiter();
     }
 
+    // Fires when the sync-to-limiter arrangement may have changed (option
+    // toggled, viewer mode switched) so the Key Limiter page can lock or
+    // unlock its key-editing UI.
+    public static event Action SyncSettingChanged;
+
+    public static void RaiseSyncSettingChanged() => SyncSettingChanged?.Invoke();
+
+    // True while the Key Limiter's allowed keys are owned by the key viewer —
+    // sync only runs in simple mode.
+    public static bool IsSyncingToKeyLimiter {
+        get {
+            EnsureConf();
+            return Conf is { SyncToKeyLimiter: true } && Conf.IsSimpleMode;
+        }
+    }
+
     // v1 SettingsGui.SyncSimpleKeysToKeyLimiter: while the option is on, the
     // Key Limiter's allowed list is overwritten with exactly the keys shown
     // on the viewer (normalized, deduped). Runs after every rebuild — style
@@ -1197,7 +1213,10 @@ public static class KeyViewerOverlay {
         if(normalized.StartsWith("DIGIT", StringComparison.OrdinalIgnoreCase) && normalized.Length == 6) {
             normalized = normalized[5..];
         }
-        if(Enum.TryParse(normalized, true, out KeyCode parsed)) {
+        // Enum.TryParse accepts numeric strings as raw enum values, so "3"
+        // would become the undefined (KeyCode)3 instead of Alpha3 — digit
+        // names must fall through to the single-char mapping below.
+        if(!char.IsDigit(normalized[0]) && Enum.TryParse(normalized, true, out KeyCode parsed)) {
             return Features.KeyLimiter.KeyLimiter.NormalizeKey(parsed);
         }
 

@@ -109,6 +109,10 @@ public static class GameStats {
 
     public static string HoldBehaviorLabel => Hold.GetHoldBehaviorLabel();
 
+    // Tiles the game played in the last second while autoplay is on (v1's
+    // "Auto KPS" line).
+    public static int AutoKps => Bpm.GetAutoKps();
+
     public static float MarginScale => TimingScale.CurrentMarginScale;
 
     public static int Combo => Koren.Features.Combo.Combo.Count;

@@ -2,6 +2,7 @@ using Koren.Core;
 using Koren.Features.AutoDeafen;
 using Koren.Features.ChatterBlocker;
 using Koren.Features.KeyLimiter;
+using Koren.Features.KeyViewer;
 using Koren.Features.Restriction;
 using Koren.Resource;
 using Koren.UI.Generator;
@@ -27,6 +28,7 @@ internal static class PageGameplay {
     // Static so a page rebuild replaces (not stacks) the allowed-keys
     // listener from the previous build.
     private static Action keysChangedHandler;
+    private static Action syncLockChangedHandler;
 
     public static void Create(RectTransform parent) {
         GameObject pad = new("Pad");
@@ -88,21 +90,13 @@ internal static class PageGameplay {
         AutoDeafenSettings conf = AutoDeafen.Conf;
         AutoDeafenSettings def = new();
 
-        var sec = GenerateUI.Collapsible(content, "Auto Deafen (Discord)", startExpanded: false);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Auto Deafen (Discord)", startExpanded: false,
             v => {
                 conf.Enabled = v;
                 AutoDeafen.Save();
             },
-            "Enable Auto Deafen",
-            "ad_on"
-        ).Rect.AddToolTip(
-            "DESC_AD_ON",
-            "Deafens you on Discord once a run passes the percent below, and undeafens on death/finish. Needs your own Discord application: paste its Client ID, then Authorize."
+            conf.Enabled
         );
 
         UISlider pct = GenerateUI.Slider(
@@ -210,21 +204,13 @@ internal static class PageGameplay {
         KeyLimiterSettings conf = KeyLimiter.Conf;
         KeyLimiterSettings def = new();
 
-        var sec = GenerateUI.Collapsible(content, "Key Limiter", startExpanded: true);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Key Limiter", startExpanded: true,
             v => {
                 conf.Enabled = v;
                 KeyLimiter.Save();
             },
-            "Enable Key Limiter",
-            "kl_on"
-        ).Rect.AddToolTip(
-            "DESC_KL_ON",
-            "Only the allowed keys below count as gameplay hits while playing. Mouse buttons are always allowed; menus and the editor are unaffected."
+            conf.Enabled
         );
 
         UIButton captureBtn = null;
@@ -254,12 +240,24 @@ internal static class PageGameplay {
             "Press any key to add/remove it from the allowed list. Escape cancels."
         );
 
-        GenerateUI.Button(
+        UIButton clearBtn = GenerateUI.Button(
             GenerateUI.Row(sec.Body),
             () => KeyLimiter.ClearAllowedKeys(),
             "Clear All",
             "kl_clear"
         ).SetSecondary();
+
+        // While the key viewer syncs its keys here, the allowed list is not
+        // user-editable — the sync would overwrite any change on the next
+        // rebuild anyway.
+        var syncNote = GenerateUI.AddText(GenerateUI.Row(sec.Body, 30f));
+        GenerateUI.Localize(
+            syncNote,
+            "KL_SYNC_LOCKED",
+            "Keys are managed by the Key Viewer (Sync Keys to Key Limiter is on)."
+        );
+        syncNote.fontSize = 17f;
+        syncNote.color = new Color(1f, 1f, 1f, 0.45f);
 
         // Allowed-keys list, rebuilt on every change — v1 KrpPages layout:
         // an "Allowed Keys" header and one Remove button per key (or a "No
@@ -296,11 +294,25 @@ internal static class PageGameplay {
                 return;
             }
 
+            bool locked = KeyViewerOverlay.IsSyncingToKeyLimiter;
             GenerateUI.Localize(GenerateUI.AddTextH1(GenerateUI.Row(list.transform)), "KL_ALLOWED_KEYS", "Allowed Keys");
 
             for(int i = 0; i < keys.Length; i++) {
-                CreateKeyRow(list.transform, KeyLimiter.NormalizeKey((KeyCode)keys[i]));
+                CreateKeyRow(list.transform, KeyLimiter.NormalizeKey((KeyCode)keys[i]), locked);
             }
+        }
+
+        void ApplySyncLock() {
+            bool locked = KeyViewerOverlay.IsSyncingToKeyLimiter;
+
+            if(locked && KeyLimiter.IsCapturing) {
+                KeyLimiter.CancelCapture();
+            }
+
+            captureBtn.SetBlocked(locked, true);
+            clearBtn.SetBlocked(locked, true);
+            syncNote.gameObject.SetActive(locked);
+            RebuildKeysList();
         }
 
         if(keysChangedHandler != null) {
@@ -309,7 +321,13 @@ internal static class PageGameplay {
         keysChangedHandler = RebuildKeysList;
         KeyLimiter.Changed += keysChangedHandler;
 
-        RebuildKeysList();
+        if(syncLockChangedHandler != null) {
+            KeyViewerOverlay.SyncSettingChanged -= syncLockChangedHandler;
+        }
+        syncLockChangedHandler = ApplySyncLock;
+        KeyViewerOverlay.SyncSettingChanged += syncLockChangedHandler;
+
+        ApplySyncLock();
     }
 
     // While a row's Set button is listening for its replacement key, the
@@ -319,8 +337,9 @@ internal static class PageGameplay {
 
     // One allowed-key row: key name on the left, compact Set + Remove
     // buttons on the right. Set rebinds the entry in place via the same
-    // single-key capture the Add button uses.
-    private static void CreateKeyRow(Transform parent, KeyCode key) {
+    // single-key capture the Add button uses. locked (key viewer sync owns
+    // the list): read-only row, no buttons.
+    private static void CreateKeyRow(Transform parent, KeyCode key, bool locked) {
         RectTransform row = GenerateUI.Row(parent);
 
         RectTransform bg = GenerateUI.BackGround();
@@ -328,6 +347,10 @@ internal static class PageGameplay {
 
         var label = GenerateUI.AddText(bg);
         label.text = KeyName(key);
+
+        if(locked) {
+            return;
+        }
 
         bool settingThis = setCaptureKey == key && KeyLimiter.IsCapturing;
         MiniButton(bg, settingThis ? "..." : "Set", settingThis ? null : "SET", -106f, 90f, () => {
@@ -416,21 +439,13 @@ internal static class PageGameplay {
         ChatterBlockerSettings conf = ChatterBlocker.Conf;
         ChatterBlockerSettings def = new();
 
-        var sec = GenerateUI.Collapsible(content, "Keyboard Chatter Blocker", startExpanded: false);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Keyboard Chatter Blocker", startExpanded: false,
             v => {
                 conf.Enabled = v;
                 ChatterBlocker.Save();
             },
-            "Enable Chatter Blocker",
-            "kcb_on"
-        ).Rect.AddToolTip(
-            "DESC_KCB_ON",
-            "Drops repeats of the same key arriving within the threshold — chattering switches fire multiple times per press. Blocked presses are logged."
+            conf.Enabled
         );
 
         UISlider threshold = GenerateUI.Slider(
@@ -461,21 +476,13 @@ internal static class PageGameplay {
             conf.JRestrictMode = 1;
         }
 
-        var sec = GenerateUI.Collapsible(content, "Judgement Restriction", startExpanded: false);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.JRestrictEnabled,
-            conf.JRestrictEnabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Judgement Restriction", startExpanded: false,
             v => {
                 conf.JRestrictEnabled = v;
                 Restriction.Save();
             },
-            "Enable Judgement Restriction",
-            "jr_on"
-        ).Rect.AddToolTip(
-            "DESC_JR_ON",
-            "Instantly fails the run when a hit breaks the chosen rule."
+            conf.JRestrictEnabled
         );
 
         RectTransform accuracyRow = null;
@@ -591,21 +598,13 @@ internal static class PageGameplay {
         RestrictionSettings conf = Restriction.Conf;
         RestrictionSettings def = new();
 
-        var sec = GenerateUI.Collapsible(content, "Death Limit", startExpanded: false);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.DeathLimitEnabled,
-            conf.DeathLimitEnabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Death Limit", startExpanded: false,
             v => {
                 conf.DeathLimitEnabled = v;
                 Restriction.Save();
             },
-            "Enable Death Limit",
-            "dl_on"
-        ).Rect.AddToolTip(
-            "DESC_DL_ON",
-            "Counts misses and overloads during a run (useful with No Fail) and fails the run once a cap below is exceeded."
+            conf.DeathLimitEnabled
         );
 
         void LimitPair(string toggleLabel, string sliderLabel, string id,

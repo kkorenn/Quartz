@@ -22,15 +22,10 @@ internal static class PageCombo {
         void ApplyCaptionShadow() => ComboOverlay.ApplyCaptionShadow();
         void ApplyCountShadow() => ComboOverlay.ApplyCountShadow();
 
-        var sec = GenerateUI.Collapsible(content, "Combo", startExpanded: false);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Combo", startExpanded: false,
             v => { conf.Enabled = v; Apply(); Save(); },
-            "Enable Combo",
-            "combo_enabled"
+            conf.Enabled
         );
 
         GenerateUI.Toggle(

@@ -72,23 +72,14 @@ internal static class PageVisuals {
 
         void Save() => EffectRemover.Save();
 
-        var sec = GenerateUI.Collapsible(content.transform, "Effect Remover", startExpanded: true);
-
-        var onToggle = GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.On,
-            conf.On,
+        var sec = GenerateUI.Collapsible(
+            content.transform, "Effect Remover", startExpanded: true,
             v => {
                 conf.On = v;
                 EffectRemover.RefreshEditorSaveButtons();
                 Save();
             },
-            "Enable Effect Remover",
-            "fxrm_on"
-        );
-        onToggle.Rect.AddToolTip(
-            "DESC_FXRM_ON",
-            "Strips the selected effect events from charts as they load. Reload the level to apply changes."
+            conf.On
         );
 
         var saveToggle = GenerateUI.Toggle(
@@ -298,12 +289,8 @@ internal static class PageVisuals {
         OttoIconSettings conf = OttoIcon.Conf;
         OttoIconSettings def = new();
 
-        var sec = GenerateUI.Collapsible(content, "Otto Icon", startExpanded: false);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Otto Icon", startExpanded: false,
             v => {
                 conf.Enabled = v;
                 if(v) {
@@ -313,11 +300,7 @@ internal static class PageVisuals {
                 }
                 OttoIcon.Save();
             },
-            "Change Otto Icon",
-            "otto_on"
-        ).Rect.AddToolTip(
-            "DESC_OTTO_ON",
-            "Replaces the editor's Otto (auto-play) icon with the mod's icon, tinted with the color below. Dimmed automatically while auto-play is off."
+            conf.Enabled
         );
 
         GenerateUI.ColorPicker(
@@ -391,12 +374,8 @@ internal static class PageVisuals {
         UiHiderSettings conf = UiHider.Conf;
         UiHiderSettings def = new();
 
-        var sec = GenerateUI.Collapsible(content, "UI Hiding", startExpanded: false);
-
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "UI Hiding", startExpanded: false,
             v => {
                 conf.Enabled = v;
                 if(v) {
@@ -406,11 +385,7 @@ internal static class PageVisuals {
                 }
                 UiHider.Save();
             },
-            "Enable UI Hiding",
-            "uih_on"
-        ).Rect.AddToolTip(
-            "DESC_UIH_ON",
-            "Hides the selected pieces of the game's own UI. Two profiles: Playing and Recording — the shortcut below flips between them mid-game."
+            conf.Enabled
         );
 
         GenerateUI.Toggle(
@@ -498,15 +473,11 @@ internal static class PageVisuals {
         PlanetColorsSettings conf = PlanetColors.Conf;
         PlanetColorsSettings def = new();
 
-        var sec = GenerateUI.Collapsible(content, "Planet Colors", startExpanded: false);
-
         void Apply() => PlanetColors.Refresh();
         void Save() => PlanetColors.Save();
 
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Planet Colors", startExpanded: false,
             v => {
                 conf.Enabled = v;
                 if(v) {
@@ -516,13 +487,8 @@ internal static class PageVisuals {
                 }
                 Save();
             },
-            "Change Ball Color",
-            "pcol_on"
-        ).Rect.AddToolTip(
-            "DESC_PCOL_ON",
-            "Recolors the planets (and their tails) with the colors below, overriding level events and skins."
+            conf.Enabled
         );
-
         RectTransform[] tailColorRows = new RectTransform[PlanetColorsSettings.Slots];
 
         void RefreshTailRows() {
@@ -690,8 +656,6 @@ internal static class PageVisuals {
         JudgementPopupHiderSettings conf = JudgementPopupHider.Conf;
         JudgementPopupHiderSettings def = new();
 
-        var sec = GenerateUI.Collapsible(content, "Hide Judgements", startExpanded: false);
-
         (HitMargin Margin, string Label, string Id)[] entries = [
             (HitMargin.TooEarly, "Too Early", "jpop_tooearly"),
             (HitMargin.VeryEarly, "Very Early", "jpop_veryearly"),
@@ -715,20 +679,14 @@ internal static class PageVisuals {
             }
         }
 
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.Enabled,
-            conf.Enabled,
+        var sec = GenerateUI.Collapsible(
+            content, "Hide Judgements", startExpanded: false,
             v => {
                 conf.Enabled = v;
                 RefreshMaskRows();
                 JudgementPopupHider.Save();
             },
-            "Hide Judgement Popups",
-            "jpop_on"
-        ).Rect.AddToolTip(
-            "DESC_JPOP_ON",
-            "Suppresses the selected judgement popups — the text that pops up at the planet on every hit."
+            conf.Enabled
         );
 
         for(int i = 0; i < entries.Length; i++) {

@@ -120,6 +120,7 @@ public sealed class StatColor {
             case "tbpm":
             case "cbpm":
             case "kps":
+            case "autokps":
                 c.Points = [
                     new ColorPoint(0f, Color.white),
                     new ColorPoint(1f, Color.red),
@@ -147,9 +148,9 @@ public sealed class StatColor {
     // of the gradient, i.e. acts as a single static color.
     public static bool HasRatio(string statId) => statId is
         "progress" or "accuracy" or "xaccuracy" or "maxaccuracy"
-        or "musictime" or "maptime" or "best" or "tbpm" or "cbpm" or "kps";
+        or "musictime" or "maptime" or "best" or "tbpm" or "cbpm" or "kps" or "autokps";
 
-    public static bool IsBpm(string statId) => statId is "tbpm" or "cbpm" or "kps";
+    public static bool IsBpm(string statId) => statId is "tbpm" or "cbpm" or "kps" or "autokps";
 
     public JToken Serialize() {
         JArray points = [];
