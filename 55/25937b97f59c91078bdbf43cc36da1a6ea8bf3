@@ -1,0 +1,22 @@
+Koren/Features/KeyViewer/KeyViewerOverlay.cs
+  s_d3f6042fb177f4::t_ddb3bcce8e247e 402-404,407-410,413-418,424-425,431-436
+  s_d3f6042fb177f4::t_cc05c29a7150b5 2107-2110
+  s_d3f6042fb177f4::t_a299ca969518f8 82-86
+  s_d3f6042fb177f4::t_8f689615b9df37 488-491,500-501,507-513,515
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "5525937b97f59c91078bdbf43cc36da1a6ea8bf3",
+  "prompts": {},
+  "sessions": {
+    "s_d3f6042fb177f4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0c042076-d172-44e3-94ee-2535285f16cb",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
