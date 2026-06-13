@@ -156,7 +156,17 @@ public static class KeyLimiter {
 
     public static KeyCode NormalizeKey(KeyCode key) {
         key = NormalizeLegacyAsyncKey(key);
-        return key == KeyCode.AltGr ? KeyCode.RightAlt : key;
+        if(key == KeyCode.AltGr) {
+            return KeyCode.RightAlt;
+        }
+        // Unity's legacy Input reports the numpad Enter as Return and can't tell
+        // them apart, while the SkyHook hook gives the distinct KeypadEnter.
+        // Fold them together so an allowed-key set captured one way still matches
+        // a press detected the other way (the numpad Enter was getting blocked).
+        if(key == KeyCode.KeypadEnter) {
+            return KeyCode.Return;
+        }
+        return key;
     }
 
     private static KeyCode NormalizeLegacyAsyncKey(KeyCode key) {

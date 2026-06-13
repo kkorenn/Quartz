@@ -208,7 +208,7 @@ public static class UICore {
 
         reorganizeSeq?.Kill();
         reorganizeSeq = GTweenSequenceBuilder.New()
-            .Join(panelCanvasGroup.GTFade(1f, 0.2f).SetEasing(Easing.OutSine))
+            .Join(panelCanvasGroup.GTFade(Mathf.Clamp01(MainCore.Conf.PanelOpacity), 0.2f).SetEasing(Easing.OutSine))
             .Join(exitReorganizeCanvasGroup.GTFade(0f, 0.2f).SetEasing(Easing.OutSine))
             .AppendCallback(() => {
                 if(!IsReorganizing && exitReorganizeObj != null) {
@@ -217,6 +217,19 @@ public static class UICore {
             })
             .Build();
         MainCore.TC.Play(reorganizeSeq);
+    }
+
+    // Live-applies the settings-window opacity (used by the Settings slider).
+    public static void SetPanelOpacity(float value, bool save) {
+        MainCore.Conf.PanelOpacity = Mathf.Clamp01(value);
+
+        if(panelCanvasGroup != null && !IsReorganizing) {
+            panelCanvasGroup.alpha = MainCore.Conf.PanelOpacity;
+        }
+
+        if(save) {
+            MainCore.ConfMgr.RequestSave();
+        }
     }
 
     private static bool firstRunHelperActivated = false;
@@ -556,6 +569,8 @@ public static class UICore {
             var logoImage = logo.AddComponent<Image>();
             logoImage.sprite = MainCore.Spr.Get(UISprite.KorenLogo);
             logoImage.preserveAspect = true;
+            // The logo isn't a theme color — don't let accent remapping touch it.
+            logo.AddComponent<ThemeExempt>();
 
             var logoRect = logo.GetComponent<RectTransform>();
             logoRect.anchorMin = new(0, 0.5f);
@@ -749,7 +764,7 @@ public static class UICore {
             Panel.gameObject.SetActive(true);
         }
         if(panelCanvasGroup != null) {
-            panelCanvasGroup.alpha = 1f;
+            panelCanvasGroup.alpha = Mathf.Clamp01(MainCore.Conf.PanelOpacity);
             panelCanvasGroup.interactable = true;
             panelCanvasGroup.blocksRaycasts = true;
         }
@@ -935,11 +950,26 @@ public static class UICore {
             for(int i = 0; i < images.Length; i++) {
                 Image img = images[i];
                 if(img == null) continue;
+                // Data-colored images (colour swatches/previews, the logo) opt
+                // out of accent remapping — their colour isn't a theme colour
+                // and must not be hijacked just because it matches a palette
+                // entry. Walk parents by hand (active-agnostic, and avoids the
+                // newer GetComponentInParent(bool) overload).
+                if(IsThemeExempt(img.transform)) continue;
                 img.color = RemapThemeColor(img.color, previous);
             }
         }
 
         MenuFactory.RefreshTheme();
+    }
+
+    private static bool IsThemeExempt(Transform t) {
+        for(; t != null; t = t.parent) {
+            if(t.GetComponent<ThemeExempt>() != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Color RemapThemeColor(Color color, UIColors.Palette previous) {

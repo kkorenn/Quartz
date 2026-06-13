@@ -1,5 +1,6 @@
 using Koren.Features.Tweaks;
 using Koren.UI.Generator;
+using Koren.UI.Objects.Impl;
 using Koren.UI.Utility;
 using UnityEngine;
 using UnityEngine.UI;
@@ -92,8 +93,10 @@ internal static class PageTweaks {
             "Ignores mouse wheel input while a level is being played, so accidental scrolling can't affect the game mid-run."
         );
 
+        var mainMenuSec = GenerateUI.Collapsible(content.transform, "Main Menu", startExpanded: false);
+
         var menuMusic = GenerateUI.Toggle(
-            GenerateUI.Row(content.transform),
+            GenerateUI.Row(mainMenuSec.Body),
             def.DisableMenuMusic,
             conf.DisableMenuMusic,
             v => {
@@ -107,6 +110,40 @@ internal static class PageTweaks {
             "DESC_TW_MENUMUSIC",
             "Mutes the theme song on the title and island-select screens. Takes effect immediately; gameplay music is untouched."
         );
+
+        var menuBpm = GenerateUI.Toggle(
+            GenerateUI.Row(mainMenuSec.Body),
+            def.MenuBpmEnabled,
+            conf.MenuBpmEnabled,
+            v => {
+                conf.MenuBpmEnabled = v;
+                Tweaks.Save();
+            },
+            "Custom Menu BPM",
+            "tw_menubpm"
+        );
+        menuBpm.Rect.AddToolTip(
+            "DESC_TW_MENUBPM",
+            "Sets the menu rabbit's two speeds to the BPMs below instead of the default 1x / 2x. Re-open the menu to apply."
+        );
+
+        UISlider slowBpm = GenerateUI.Slider(
+            GenerateUI.Row(mainMenuSec.Body),
+            def.MenuSlowBpm, 30f, 600f, conf.MenuSlowBpm,
+            Mathf.Round, v => conf.MenuSlowBpm = v,
+            v => { conf.MenuSlowBpm = v; Tweaks.Save(); },
+            "Slow BPM", "tw_menuslowbpm"
+        );
+        slowBpm.Format = "0";
+
+        UISlider highBpm = GenerateUI.Slider(
+            GenerateUI.Row(mainMenuSec.Body),
+            def.MenuHighBpm, 30f, 600f, conf.MenuHighBpm,
+            Mathf.Round, v => conf.MenuHighBpm = v,
+            v => { conf.MenuHighBpm = v; Tweaks.Save(); },
+            "High BPM", "tw_menuhighbpm"
+        );
+        highBpm.Format = "0";
 
         var resultsSec = GenerateUI.Collapsible(content.transform, "Detailed Results", startExpanded: false);
 

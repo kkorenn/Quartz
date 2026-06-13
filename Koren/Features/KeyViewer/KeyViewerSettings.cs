@@ -45,6 +45,12 @@ public sealed class KeyViewerSettings : ISettingsFile {
     public float Rain2Width = 40f;
     public float RainOffsetY = 0f;
     public float Rain2OffsetY = 0f;
+    // Corner radius (px) of the rain drops.
+    public float RainRounding = 4f;
+
+    // KPS/Total placement on the back row: false = far apart (one on each
+    // side, the v1 default), true = side by side in the centre.
+    public bool StatsTogether = false;
 
     public float RainR = 1f, RainG = 0f, RainB = 0f, RainA = 1f;
     public float Rain2R = 1f, Rain2G = 1f, Rain2B = 1f, Rain2A = 1f;
@@ -174,6 +180,8 @@ public sealed class KeyViewerSettings : ISettingsFile {
             [nameof(Rain2Width)] = Rain2Width,
             [nameof(RainOffsetY)] = RainOffsetY,
             [nameof(Rain2OffsetY)] = Rain2OffsetY,
+            [nameof(RainRounding)] = RainRounding,
+            [nameof(StatsTogether)] = StatsTogether,
             [nameof(RainR)] = RainR, [nameof(RainG)] = RainG, [nameof(RainB)] = RainB, [nameof(RainA)] = RainA,
             [nameof(Rain2R)] = Rain2R, [nameof(Rain2G)] = Rain2G, [nameof(Rain2B)] = Rain2B, [nameof(Rain2A)] = Rain2A,
             [nameof(Rain3R)] = Rain3R, [nameof(Rain3G)] = Rain3G, [nameof(Rain3B)] = Rain3B, [nameof(Rain3A)] = Rain3A,
@@ -232,6 +240,8 @@ public sealed class KeyViewerSettings : ISettingsFile {
         Rain2Width = IOUtils.Read(token, nameof(Rain2Width), Rain2Width);
         RainOffsetY = IOUtils.Read(token, nameof(RainOffsetY), RainOffsetY);
         Rain2OffsetY = IOUtils.Read(token, nameof(Rain2OffsetY), Rain2OffsetY);
+        RainRounding = IOUtils.Read(token, nameof(RainRounding), RainRounding);
+        StatsTogether = IOUtils.Read(token, nameof(StatsTogether), StatsTogether);
         RainR = IOUtils.Read(token, nameof(RainR), RainR);
         RainG = IOUtils.Read(token, nameof(RainG), RainG);
         RainB = IOUtils.Read(token, nameof(RainB), RainB);

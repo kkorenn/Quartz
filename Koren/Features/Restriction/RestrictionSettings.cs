@@ -18,7 +18,9 @@ public sealed class RestrictionSettings : ISettingsFile {
     public int JRestrictMode = 1;
     public float JRestrictAccuracy = 100f;
     public int JRestrictAllowedMask = 0;
-    public string JRestrictMessage = "Broke the judgement restriction!!";
+    // {judgement} is replaced at fail time with the judgement that broke the
+    // restriction (see Restriction.FormatJrMessage).
+    public string JRestrictMessage = "Broke the restriction with {judgement}!!";
 
     // === Death Limit ===
     public bool DeathLimitEnabled = false;

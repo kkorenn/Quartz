@@ -94,6 +94,18 @@ public sealed class KorenRuntime {
 
         Paths.Initialize();
 
+        // The updater renames the running Koren.dll to Koren.dll.old when it
+        // can't overwrite the mapped file; this session loaded the new one, so
+        // the leftover is safe to delete now.
+        try {
+            string oldDll = Path.Combine(Host.ModsPath, "Koren.dll.old");
+            if(File.Exists(oldDll)) {
+                File.Delete(oldDll);
+            }
+        } catch(Exception e) {
+            Logger.Wrn($"[Startup] couldn't remove Koren.dll.old: {e.Message}");
+        }
+
         CreateRootObject();
 
         RootObject.AddComponent<MainThread>();

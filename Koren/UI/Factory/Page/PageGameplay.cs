@@ -580,6 +580,12 @@ internal static class PageGameplay {
             "Shown on the fail screen when the restriction kills the run."
         );
 
+        var hintRow = GenerateUI.Row(sec.Body, 30f);
+        var hint = GenerateUI.AddText(hintRow);
+        hint.fontSize = 16f;
+        hint.color = new Color(1f, 1f, 1f, 0.45f);
+        GenerateUI.Localize(hint, "JR_MESSAGE_HINT", "Use {judgement} for the judgement you broke.");
+
         RefreshConditionalRows();
     }
 

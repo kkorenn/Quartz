@@ -95,6 +95,39 @@
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
 	</ItemGroup>
 
+	<!-- Build number comes from build.json (repo root), keyed by the Version and
+	     Channel consts in Core/Info.cs. tools/release.sh bumps build.json; this
+	     target reads it back at compile time and generates BuildInfo.Number, so
+	     the value lives in exactly one place and is never hand-edited. -->
+	<Target Name="GenerateBuildInfo" BeforeTargets="CoreCompile">
+		<PropertyGroup>
+			<_InfoText>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/Core/Info.cs'))</_InfoText>
+			<_Version>$([System.Text.RegularExpressions.Regex]::Match($(_InfoText), '\bVersion\s*=\s*"([^"]+)"').Groups[1].Value)</_Version>
+			<_Channel>$([System.Text.RegularExpressions.Regex]::Match($(_InfoText), '\bChannel\s*=\s*"([^"]+)"').Groups[1].Value)</_Channel>
+
+			<_BuildsPath>$(MSBuildProjectDirectory)/../build.json</_BuildsPath>
+			<_BuildsText Condition="Exists('$(_BuildsPath)')">$([System.IO.File]::ReadAllText('$(_BuildsPath)'))</_BuildsText>
+
+			<!-- Match  "&lt;version&gt;": { ... "&lt;channel&gt;": &lt;n&gt; ...  (lazy across whitespace / other channels). -->
+			<_VerEsc>$([System.Text.RegularExpressions.Regex]::Escape($(_Version)))</_VerEsc>
+			<_Pattern>"$(_VerEsc)"\s*:\s*\{[^}]*?"$(_Channel)"\s*:\s*(\d+)</_Pattern>
+			<_Build>$([System.Text.RegularExpressions.Regex]::Match('$(_BuildsText)', '$(_Pattern)').Groups[1].Value)</_Build>
+			<_Build Condition="'$(_Build)' == ''">0</_Build>
+
+			<_BuildInfoFile>$(IntermediateOutputPath)BuildInfo.g.cs</_BuildInfoFile>
+			<_BuildInfoBody>namespace Koren.Core { internal static class BuildInfo { public const int Number = $(_Build)%3B } }</_BuildInfoBody>
+		</PropertyGroup>
+
+		<MakeDir Directories="$(IntermediateOutputPath)" />
+		<WriteLinesToFile File="$(_BuildInfoFile)" Lines="$(_BuildInfoBody)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+
+		<ItemGroup>
+			<Compile Include="$(_BuildInfoFile)" />
+		</ItemGroup>
+
+		<Message Importance="high" Text="BuildInfo: $(_Version) $(_Channel) build $(_Build)" />
+	</Target>
+
 	<!-- Auto-install: drop Koren.dll into Mods, export language files to UserData/Koren,
 	     and package the same install layout into dist/Koren.zip.
 	     Also removes the pre-merge two-DLL layout (Mods/Koren.Loader.ML.dll + UserLibs/Koren.dll)

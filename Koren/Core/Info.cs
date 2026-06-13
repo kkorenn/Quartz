@@ -12,10 +12,13 @@ public static class Info {
     //   "alpha" -> "beta" -> "rc" -> "stable".
     public const string Channel = "alpha";
 
-    // Pre-release build number. Auto-managed by tools/release.sh, which tracks
-    // it per (version, channel) in build.json and bakes the next value here on
-    // each release (it resets implicitly when Version changes). Don't hand-edit.
-    public const int Build = 2;
+    // Pre-release build number. The single source of truth is build.json
+    // (per version+channel); tools/release.sh bumps it there. At compile time
+    // the csproj's GenerateBuildInfo target reads build.json for this
+    // version+channel and emits BuildInfo.Number (obj/BuildInfo.g.cs), so the
+    // DLL always carries whatever build.json says — nothing is hand-edited or
+    // baked into this file. Defaults to 0 when build.json has no entry yet.
+    public static readonly int Build = BuildInfo.Number;
 
     // Typed channel + flags for runtime and update-check logic.
     public static ReleaseChannel ChannelKind => SemVer.ParseChannel(Channel);

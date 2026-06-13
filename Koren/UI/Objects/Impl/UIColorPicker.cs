@@ -120,6 +120,12 @@ public sealed class UIColorPicker : UIObject {
         OnChanged = onChanged;
         OnComplete = onComplete;
 
+        // The swatch and preview show the chosen colour, not a theme colour —
+        // exempt them so an accent change doesn't remap them when they happen
+        // to match a palette entry.
+        if(SwatchImage != null) SwatchImage.gameObject.AddComponent<Koren.UI.Utility.ThemeExempt>();
+        if(PreviewImage != null) PreviewImage.gameObject.AddComponent<Koren.UI.Utility.ThemeExempt>();
+
         SetupHexInput();
         Color.RGBToHSV(Value, out hue, out saturation, out brightness);
         BuildHueTexture();

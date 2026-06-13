@@ -44,6 +44,7 @@ public static class KeyViewerOverlay {
     private static readonly int[] BackSeq16 = [12, 13, 9, 8, 10, 11, 14, 15];
 
     private static GameObject canvasObj;
+    private static GraphicRaycaster raycaster;
     private static RectTransform root;
     private static GameObject dragObj;
     private static readonly List<Box> boxes = [];
@@ -62,7 +63,7 @@ public static class KeyViewerOverlay {
     private static float dmKeyDisplayDelayMs;
 
     // KPS = presses in the last second, same as v1's press log.
-    private static readonly List<float> pressLog = [];
+    private static readonly Queue<float> pressLog = new(64);
     private static int kpsMax;
     private static int kpsSum;
     private static int kpsSamples;
@@ -176,7 +177,8 @@ public static class KeyViewerOverlay {
         scaler.referenceResolution = new Vector2(1920, 1080);
         scaler.matchWidthOrHeight = 0.5f;
 
-        canvasObj.AddComponent<GraphicRaycaster>();
+        raycaster = canvasObj.AddComponent<GraphicRaycaster>();
+        raycaster.enabled = false;
 
         GameObject gridObj = new("KeyViewerGrid");
         gridObj.transform.SetParent(canvasObj.transform, false);
@@ -237,6 +239,7 @@ public static class KeyViewerOverlay {
         rainLayer.anchorMax = Vector2.one;
         rainLayer.offsetMin = Vector2.zero;
         rainLayer.offsetMax = Vector2.zero;
+        rainObj.AddComponent<Canvas>().overrideSorting = false;
         rainManager?.SetLayer(rainLayer);
 
         List<KeySlot> keySlots = [];
@@ -395,38 +398,73 @@ public static class KeyViewerOverlay {
             keys.Add(new KeySlot(i, ColX(i), 0f, KeyW, KeyH));
         }
 
+        // KPS/Total either sit on the outer edges (apart, v1 default) or side
+        // by side in the centre (together); the back-row keys fill whatever
+        // columns the stats don't, so the row stays 8 wide either way.
+        bool together = Conf != null && Conf.StatsTogether;
+
         switch(style) {
             case 0:
-                keys.Add(new KeySlot(8, ColX(2), RowGap, SpanW(2), KeyH));
-                keys.Add(new KeySlot(9, ColX(4), RowGap, SpanW(2), KeyH));
-                stats.Add(new StatSlot(false, ColX(0), RowGap, SpanW(2), KeyH));
-                stats.Add(new StatSlot(true, ColX(6), RowGap, SpanW(2), KeyH));
+                if(together) {
+                    keys.Add(new KeySlot(8, ColX(0), RowGap, SpanW(2), KeyH));
+                    keys.Add(new KeySlot(9, ColX(6), RowGap, SpanW(2), KeyH));
+                    stats.Add(new StatSlot(false, ColX(2), RowGap, SpanW(2), KeyH));
+                    stats.Add(new StatSlot(true, ColX(4), RowGap, SpanW(2), KeyH));
+                } else {
+                    keys.Add(new KeySlot(8, ColX(2), RowGap, SpanW(2), KeyH));
+                    keys.Add(new KeySlot(9, ColX(4), RowGap, SpanW(2), KeyH));
+                    stats.Add(new StatSlot(false, ColX(0), RowGap, SpanW(2), KeyH));
+                    stats.Add(new StatSlot(true, ColX(6), RowGap, SpanW(2), KeyH));
+                }
                 break;
             case 1:
-                keys.Add(new KeySlot(9, ColX(2), RowGap, KeyW, KeyH));
-                keys.Add(new KeySlot(8, ColX(3), RowGap, KeyW, KeyH));
-                keys.Add(new KeySlot(10, ColX(4), RowGap, KeyW, KeyH));
-                keys.Add(new KeySlot(11, ColX(5), RowGap, KeyW, KeyH));
-                stats.Add(new StatSlot(false, ColX(0), RowGap, SpanW(2), KeyH));
-                stats.Add(new StatSlot(true, ColX(6), RowGap, SpanW(2), KeyH));
+                if(together) {
+                    keys.Add(new KeySlot(9, ColX(0), RowGap, KeyW, KeyH));
+                    keys.Add(new KeySlot(8, ColX(1), RowGap, KeyW, KeyH));
+                    keys.Add(new KeySlot(10, ColX(2), RowGap, KeyW, KeyH));
+                    keys.Add(new KeySlot(11, ColX(3), RowGap, KeyW, KeyH));
+                    stats.Add(new StatSlot(false, ColX(4), RowGap, SpanW(2), KeyH));
+                    stats.Add(new StatSlot(true, ColX(6), RowGap, SpanW(2), KeyH));
+                } else {
+                    keys.Add(new KeySlot(9, ColX(2), RowGap, KeyW, KeyH));
+                    keys.Add(new KeySlot(8, ColX(3), RowGap, KeyW, KeyH));
+                    keys.Add(new KeySlot(10, ColX(4), RowGap, KeyW, KeyH));
+                    keys.Add(new KeySlot(11, ColX(5), RowGap, KeyW, KeyH));
+                    stats.Add(new StatSlot(false, ColX(0), RowGap, SpanW(2), KeyH));
+                    stats.Add(new StatSlot(true, ColX(6), RowGap, SpanW(2), KeyH));
+                }
                 break;
             case 2:
                 for(int i = 0; i < 8; i++) {
                     keys.Add(new KeySlot(BackSeq16[i], ColX(i), RowGap, KeyW, KeyH));
                 }
-                stats.Add(new StatSlot(false, ColX(0), RowGap * 2f, SpanW(4), 30f));
-                stats.Add(new StatSlot(true, ColX(4), RowGap * 2f, SpanW(4), 30f));
+                if(together) {
+                    stats.Add(new StatSlot(false, ColX(2), RowGap * 2f, SpanW(2), 30f));
+                    stats.Add(new StatSlot(true, ColX(4), RowGap * 2f, SpanW(2), 30f));
+                } else {
+                    stats.Add(new StatSlot(false, ColX(0), RowGap * 2f, SpanW(4), 30f));
+                    stats.Add(new StatSlot(true, ColX(4), RowGap * 2f, SpanW(4), 30f));
+                }
                 break;
             case 3:
                 for(int i = 0; i < 8; i++) {
                     keys.Add(new KeySlot(BackSeq16[i], ColX(i), RowGap, KeyW, KeyH));
                 }
-                keys.Add(new KeySlot(17, ColX(2), RowGap * 2f, KeyW, KeyH));
-                keys.Add(new KeySlot(16, ColX(3), RowGap * 2f, KeyW, KeyH));
-                keys.Add(new KeySlot(18, ColX(4), RowGap * 2f, KeyW, KeyH));
-                keys.Add(new KeySlot(19, ColX(5), RowGap * 2f, KeyW, KeyH));
-                stats.Add(new StatSlot(false, ColX(0), RowGap * 2f, SpanW(2), KeyH));
-                stats.Add(new StatSlot(true, ColX(6), RowGap * 2f, SpanW(2), KeyH));
+                if(together) {
+                    keys.Add(new KeySlot(17, ColX(0), RowGap * 2f, KeyW, KeyH));
+                    keys.Add(new KeySlot(16, ColX(1), RowGap * 2f, KeyW, KeyH));
+                    keys.Add(new KeySlot(18, ColX(2), RowGap * 2f, KeyW, KeyH));
+                    keys.Add(new KeySlot(19, ColX(3), RowGap * 2f, KeyW, KeyH));
+                    stats.Add(new StatSlot(false, ColX(4), RowGap * 2f, SpanW(2), KeyH));
+                    stats.Add(new StatSlot(true, ColX(6), RowGap * 2f, SpanW(2), KeyH));
+                } else {
+                    keys.Add(new KeySlot(17, ColX(2), RowGap * 2f, KeyW, KeyH));
+                    keys.Add(new KeySlot(16, ColX(3), RowGap * 2f, KeyW, KeyH));
+                    keys.Add(new KeySlot(18, ColX(4), RowGap * 2f, KeyW, KeyH));
+                    keys.Add(new KeySlot(19, ColX(5), RowGap * 2f, KeyW, KeyH));
+                    stats.Add(new StatSlot(false, ColX(0), RowGap * 2f, SpanW(2), KeyH));
+                    stats.Add(new StatSlot(true, ColX(6), RowGap * 2f, SpanW(2), KeyH));
+                }
                 break;
         }
     }
@@ -519,6 +557,7 @@ public static class KeyViewerOverlay {
         rainLayer.anchorMax = Vector2.one;
         rainLayer.offsetMin = Vector2.zero;
         rainLayer.offsetMax = Vector2.zero;
+        rainObj.AddComponent<Canvas>().overrideSorting = false;
         rainManager?.SetLayer(rainLayer);
 
         List<DmNoteSpec> specs = ParseDmNoteSpecs();
@@ -1122,17 +1161,43 @@ public static class KeyViewerOverlay {
         }
     }
 
+    // True while the key is held. Unity's legacy Input on Windows reports the
+    // numpad Enter as KeyCode.Return (it can't tell them apart), so a box bound
+    // to KeypadEnter would never light — accept Return as a fallback for it.
+    private static bool KeyHeld(KeyCode key) {
+        if(key == KeyCode.None) {
+            return false;
+        }
+        if(Input.GetKey(key)) {
+            return true;
+        }
+        return key == KeyCode.KeypadEnter && Input.GetKey(KeyCode.Return);
+    }
+
     // v1 SimplePresets.KeyCodeShortLabel: compact key captions.
     internal static string KeyCodeShortLabel(KeyCode kc) {
         string s = kc.ToString();
         if(s.StartsWith("Alpha")) s = s[5..];
-        if(s.StartsWith("Keypad")) s = "N" + s[6..];
+        // Numpad keys: "N" prefix + the symbol/digit (the generic transforms
+        // below would otherwise leave "NMultiply", "NEnter" etc.).
+        if(s.StartsWith("Keypad")) {
+            string rest = s[6..];
+            return "N" + rest switch {
+                "Enter" => "↵",
+                "Plus" => "+",
+                "Minus" => "-",
+                "Multiply" => "*",
+                "Divide" => "/",
+                "Period" => ".",
+                "Equals" => "=",
+                _ => rest,
+            };
+        }
         if(s.StartsWith("Left")) s = "L" + s[4..];
         if(s.StartsWith("Right")) s = "R" + s[5..];
         if(s.EndsWith("Shift")) s = s[..^5] + "⇧";
         if(s.EndsWith("Control")) s = s[..^7] + "Ctrl";
         return s switch {
-            "NDivide" => "/",
             "PageUp" => "PgUp",
             "PageDown" => "PgDn",
             "Insert" => "Ins",
@@ -1213,6 +1278,28 @@ public static class KeyViewerOverlay {
         if(normalized.StartsWith("DIGIT", StringComparison.OrdinalIgnoreCase) && normalized.Length == 6) {
             normalized = normalized[5..];
         }
+        // Numpad keys: the DM Note app names them "NUMPAD <x>" (e.g. "NUMPAD
+        // RETURN", "NUMPAD MULTIPLY"), which don't match Unity's "Keypad*"
+        // enum, so map them explicitly.
+        if(normalized.StartsWith("NUMPAD", StringComparison.OrdinalIgnoreCase) && normalized.Length > 6) {
+            string np = normalized.Substring(6).ToUpperInvariant();
+            KeyCode npk = np switch {
+                "ENTER" or "RETURN" => KeyCode.KeypadEnter,
+                "PLUS" or "ADD" => KeyCode.KeypadPlus,
+                "MINUS" or "SUBTRACT" => KeyCode.KeypadMinus,
+                "MULTIPLY" or "STAR" or "ASTERISK" => KeyCode.KeypadMultiply,
+                "DIVIDE" or "SLASH" => KeyCode.KeypadDivide,
+                "DELETE" or "DECIMAL" or "PERIOD" or "DOT" or "DEL" => KeyCode.KeypadPeriod,
+                "EQUALS" or "EQUAL" => KeyCode.KeypadEquals,
+                _ => np.Length == 1 && np[0] >= '0' && np[0] <= '9'
+                    ? (KeyCode)((int)KeyCode.Keypad0 + (np[0] - '0'))
+                    : KeyCode.None,
+            };
+            if(npk != KeyCode.None) {
+                return npk;
+            }
+        }
+
         // Enum.TryParse accepts numeric strings as raw enum values, so "3"
         // would become the undefined (KeyCode)3 instead of Alpha3 — digit
         // names must fall through to the single-char mapping below.
@@ -1229,9 +1316,13 @@ public static class KeyViewerOverlay {
             case "RIGHTSHIFT": return KeyCode.RightShift;
             case "LCONTROL":
             case "LEFTCONTROL":
+            case "LEFTCTRL":
+            case "CTRL":
+            case "CONTROL":
             case "LCTRL": return KeyCode.LeftControl;
             case "RCONTROL":
             case "RIGHTCONTROL":
+            case "RIGHTCTRL":
             case "RCTRL":
             case "HANJA": return KeyCode.RightControl;
             case "RALT":
@@ -1473,6 +1564,7 @@ public static class KeyViewerOverlay {
 
         Object.Destroy(canvasObj);
         canvasObj = null;
+        raycaster = null;
         root = null;
         dragObj = null;
         rainManager = null;
@@ -1484,7 +1576,7 @@ public static class KeyViewerOverlay {
         builtStyle = -1;
     }
 
-    // ===== rain (port of v1's KvRain* — pooled drops, one manager Update,
+    // ===== rain (port of v1's KvRain* — one manager Update, batched row meshes,
     // custom graphic with vertex-alpha fade; allocation only on key press) =====
 
     private static RawRain SpawnRain(Box box, float now) {
@@ -1559,87 +1651,156 @@ public static class KeyViewerOverlay {
         public Color ColorBottom;
     }
 
-    // One quad (two when the fade boundary crosses it) with KRP v2's
-    // vertex-alpha fade over the last FadePx units of the track.
+    // Batched row renderer for rain drops. One Graphic per row replaces one
+    // GameObject + Graphic + RectTransform write per live drop.
     private sealed class RainGraphic : MaskableGraphic {
-        private float dNear;
-        private float dFar;
-        private float trackHeight;
-        private float fadePx;
-        private bool reverseFade;
-        private Color colorTop = Color.white;
-        private Color colorBottom = Color.white;
+        private List<RawRain> active;
+        private float now;
+        private float roundingPx;
 
-        public void SetFadeParams(float near, float far, float track, float fade, bool reverse, Color top, Color bottom) {
-            bool changed = dNear != near || dFar != far || trackHeight != track
-                || fadePx != fade || reverseFade != reverse
-                || colorTop != top || colorBottom != bottom;
-            dNear = near;
-            dFar = far;
-            trackHeight = track;
-            fadePx = fade;
-            reverseFade = reverse;
-            colorTop = top;
-            colorBottom = bottom;
-            if(changed) {
-                SetVerticesDirty();
-            }
+        private readonly List<float> rows = new(16);
+
+        public void SetSource(List<RawRain> source) {
+            active = source;
+            SetVerticesDirty();
+        }
+
+        public void SetFrame(float frameTime, float rounding) {
+            now = frameTime;
+            roundingPx = rounding;
+            SetVerticesDirty();
         }
 
         protected override void OnPopulateMesh(VertexHelper vh) {
             vh.Clear();
-            Rect r = rectTransform.rect;
-            if(r.width <= 0f || r.height <= 0f) {
+            if(active == null || active.Count == 0) {
                 return;
             }
 
-            float fade = fadePx;
-            float trackH = trackHeight;
-            float span = dFar - dNear;
-
-            if(fade <= 0.5f || trackH <= 0.5f || span <= 0.0001f) {
-                Color colNearFull = ColorAtD(dNear, 1f);
-                Color colFarFull = ColorAtD(dFar, 1f);
-                if(reverseFade) {
-                    AddQuad(vh, r.xMin, r.yMin, r.xMax, r.yMax, colFarFull, colNearFull);
-                } else {
-                    AddQuad(vh, r.xMin, r.yMin, r.xMax, r.yMax, colNearFull, colFarFull);
-                }
-                return;
-            }
-
-            float fadeStartD = trackH - fade;
-            float aNear = AlphaAtD(dNear, fadeStartD, trackH, fade);
-            float aFar = AlphaAtD(dFar, fadeStartD, trackH, fade);
-            Color colNear = ColorAtD(dNear, aNear);
-            Color colFar = ColorAtD(dFar, aFar);
-
-            bool crosses = dNear < fadeStartD && dFar > fadeStartD;
-            if(!crosses) {
-                if(reverseFade) {
-                    AddQuad(vh, r.xMin, r.yMin, r.xMax, r.yMax, colFar, colNear);
-                } else {
-                    AddQuad(vh, r.xMin, r.yMin, r.xMax, r.yMax, colNear, colFar);
-                }
-                return;
-            }
-
-            float t = (fadeStartD - dNear) / span;
-            Color full = ColorAtD(fadeStartD, 1f);
-            if(reverseFade) {
-                float yMid = r.yMax - t * r.height;
-                AddQuad(vh, r.xMin, yMid, r.xMax, r.yMax, full, colNear);
-                AddQuad(vh, r.xMin, r.yMin, r.xMax, yMid, colFar, full);
-            } else {
-                float yMid = r.yMin + t * r.height;
-                AddQuad(vh, r.xMin, r.yMin, r.xMax, yMid, colNear, full);
-                AddQuad(vh, r.xMin, yMid, r.xMax, r.yMax, full, colFar);
+            Rect layer = rectTransform.rect;
+            for(int i = 0; i < active.Count; i++) {
+                AddDrop(vh, layer, active[i]);
             }
         }
 
-        private Color ColorAtD(float d, float alphaMul) {
-            float t = trackHeight <= 0.0001f ? 0f : Mathf.Clamp01(d / trackHeight);
-            Color c = Color.Lerp(colorBottom, colorTop, t);
+        private void AddDrop(VertexHelper vh, Rect layer, RawRain raw) {
+            float lead = (now - raw.StartTime) * raw.Speed;
+            float trail = raw.EndTime < 0f ? 0f : Mathf.Max(0f, (now - raw.EndTime) * raw.Speed);
+            float dNear = trail;
+            float dFar = Mathf.Min(lead, raw.TrackHeight);
+            float height = dFar - dNear;
+            if(height <= 0.5f || raw.Width <= 0.5f) {
+                return;
+            }
+
+            float dropY = raw.Reverse ? raw.BaseY + raw.TrackHeight - dFar : raw.BaseY + dNear;
+            Rect r = new(
+                layer.xMin + raw.AnchorX - raw.Width * 0.5f,
+                layer.yMax + dropY,
+                raw.Width,
+                height
+            );
+
+            float radius = Mathf.Clamp(roundingPx, 0f, Mathf.Min(r.width * 0.5f, r.height * 0.5f));
+
+            rows.Clear();
+            rows.Add(r.yMin);
+            rows.Add(r.yMax);
+
+            const int ArcSegments = 4;
+            if(radius > 0.5f) {
+                rows.Add(r.yMin + radius);
+                rows.Add(r.yMax - radius);
+                for(int k = 1; k < ArcSegments; k++) {
+                    float a = (k / (float)ArcSegments) * (Mathf.PI * 0.5f);
+                    float dy = radius * (1f - Mathf.Cos(a));
+                    rows.Add(r.yMin + dy);
+                    rows.Add(r.yMax - dy);
+                }
+            }
+
+            // Keep the alpha kink at the fade boundary as its own row.
+            if(raw.FadePx > 0.5f && raw.TrackHeight > 0.5f) {
+                float fadeStartD = raw.TrackHeight - raw.FadePx;
+                float span = dFar - dNear;
+                if(span > 0.0001f) {
+                    float tB = raw.Reverse
+                        ? (fadeStartD - dFar) / (dNear - dFar)
+                        : (fadeStartD - dNear) / span;
+                    if(tB > 0f && tB < 1f) {
+                        rows.Add(r.yMin + (tB * r.height));
+                    }
+                }
+            }
+
+            rows.Sort();
+
+            int prevIdx = -1;
+            float prevY = 0f;
+            UIVertex v = UIVertex.simpleVert;
+
+            for(int n = 0; n < rows.Count; n++) {
+                float rowY = rows[n];
+                if(prevIdx >= 0 && Mathf.Abs(rowY - prevY) < 0.001f) {
+                    continue;
+                }
+
+                EdgeX(rowY, r, radius, out float lx, out float rx);
+                Color c = ColorForY(raw, dNear, dFar, rowY, r);
+
+                int idx = vh.currentVertCount;
+                v.position = new Vector3(lx, rowY, 0f); v.color = c; vh.AddVert(v);
+                v.position = new Vector3(rx, rowY, 0f); v.color = c; vh.AddVert(v);
+
+                if(prevIdx >= 0) {
+                    vh.AddTriangle(prevIdx, prevIdx + 1, idx + 1);
+                    vh.AddTriangle(prevIdx, idx + 1, idx);
+                }
+
+                prevIdx = idx;
+                prevY = rowY;
+            }
+        }
+
+        // Left/right edge X at a given Y, pulling in over the rounded corners.
+        private static void EdgeX(float y, Rect r, float radius, out float left, out float right) {
+            left = r.xMin;
+            right = r.xMax;
+            if(radius <= 0.5f) {
+                return;
+            }
+
+            float cy;
+            if(y < r.yMin + radius) {
+                cy = r.yMin + radius;
+            } else if(y > r.yMax - radius) {
+                cy = r.yMax - radius;
+            } else {
+                return;
+            }
+
+            float dy = y - cy;
+            float dx = radius - Mathf.Sqrt(Mathf.Max(0f, (radius * radius) - (dy * dy)));
+            left = r.xMin + dx;
+            right = r.xMax - dx;
+        }
+
+        private static Color ColorForY(RawRain raw, float dNear, float dFar, float y, Rect r) {
+            float t = r.height <= 0.0001f ? 0f : (y - r.yMin) / r.height;
+            float d = raw.Reverse
+                ? Mathf.Lerp(dFar, dNear, t)
+                : Mathf.Lerp(dNear, dFar, t);
+
+            float alpha = (raw.FadePx > 0.5f && raw.TrackHeight > 0.5f)
+                ? AlphaAtD(d, raw.TrackHeight - raw.FadePx, raw.TrackHeight, raw.FadePx)
+                : 1f;
+
+            return ColorAtD(raw, d, alpha);
+        }
+
+        private static Color ColorAtD(RawRain raw, float d, float alphaMul) {
+            float t = raw.TrackHeight <= 0.0001f ? 0f : Mathf.Clamp01(d / raw.TrackHeight);
+            Color c = Color.Lerp(raw.ColorBottom, raw.ColorTop, t);
             c.a *= alphaMul;
             return c;
         }
@@ -1653,147 +1814,105 @@ public static class KeyViewerOverlay {
             }
             return (trackH - d) / fade;
         }
-
-        private static void AddQuad(VertexHelper vh, float xL, float yB, float xR, float yT, Color bot, Color top) {
-            int i = vh.currentVertCount;
-            UIVertex v = UIVertex.simpleVert;
-            v.position = new Vector3(xL, yB, 0f); v.color = bot; vh.AddVert(v);
-            v.position = new Vector3(xR, yB, 0f); v.color = bot; vh.AddVert(v);
-            v.position = new Vector3(xR, yT, 0f); v.color = top; vh.AddVert(v);
-            v.position = new Vector3(xL, yT, 0f); v.color = top; vh.AddVert(v);
-            vh.AddTriangle(i, i + 1, i + 2);
-            vh.AddTriangle(i, i + 2, i + 3);
-        }
     }
 
-    private sealed class RainDrop {
-        public readonly GameObject Obj;
+    private sealed class RainRow {
         public readonly RectTransform Rect;
         public readonly RainGraphic Graphic;
-        public RawRain Raw;
+        public readonly List<RawRain> Active = new(64);
 
-        public RainDrop(RectTransform layer) {
-            Obj = new GameObject("Rain", typeof(RectTransform));
-            Obj.transform.SetParent(layer, false);
-            Rect = (RectTransform)Obj.transform;
-            Rect.anchorMin = new Vector2(0f, 1f);
-            Rect.anchorMax = new Vector2(0f, 1f);
-            // Bottom-center pivot: the drop grows upward from the base line.
-            Rect.pivot = new Vector2(0.5f, 0f);
-            Rect.anchoredPosition = Vector2.zero;
-            Rect.sizeDelta = Vector2.zero;
+        public RainRow(RectTransform parent, int index) {
+            GameObject obj = new("Row" + index);
+            obj.transform.SetParent(parent, false);
+            Rect = obj.AddComponent<RectTransform>();
+            Rect.anchorMin = Vector2.zero;
+            Rect.anchorMax = Vector2.one;
+            Rect.offsetMin = Vector2.zero;
+            Rect.offsetMax = Vector2.zero;
 
-            Graphic = Obj.AddComponent<RainGraphic>();
+            Graphic = obj.AddComponent<RainGraphic>();
             Graphic.raycastTarget = false;
-            Graphic.color = Color.clear;
+            Graphic.color = Color.white;
+            Graphic.SetSource(Active);
         }
     }
 
-    // Single shared pool + one Update for every drop. Spawning dequeues from
-    // the pool (or builds a new drop when dry); finished drops go back.
-    // Drops are parented into per-row sub-layers so later rows always render
-    // above earlier ones, regardless of press order.
+    // One manager update. Drops are grouped into per-row meshes so row ordering
+    // stays stable without per-drop Unity components.
     private sealed class RainManager : MonoBehaviour {
-        private readonly RectTransform[] rowLayers = new RectTransform[3];
-        private readonly List<RainDrop> active = new(64);
+        private readonly RainRow[] rows = new RainRow[3];
         private readonly Queue<RawRain> pending = new(64);
-        private readonly Stack<RainDrop> pool = new(32);
 
         public void SetLayer(RectTransform value) {
-            // Old layers (and the pooled/active drops under them) are being
-            // destroyed by the rebuild.
-            active.Clear();
             pending.Clear();
-            pool.Clear();
 
-            for(int i = 0; i < rowLayers.Length; i++) {
+            for(int i = 0; i < rows.Length; i++) {
+                rows[i]?.Active.Clear();
                 if(value == null) {
-                    rowLayers[i] = null;
+                    rows[i] = null;
                     continue;
                 }
 
-                GameObject obj = new("Row" + (i + 1));
-                obj.transform.SetParent(value, false);
-                RectTransform rect = obj.AddComponent<RectTransform>();
-                rect.anchorMin = Vector2.zero;
-                rect.anchorMax = Vector2.one;
-                rect.offsetMin = Vector2.zero;
-                rect.offsetMax = Vector2.zero;
-                rowLayers[i] = rect;
+                rows[i] = new RainRow(value, i + 1);
             }
         }
 
-        public void Enqueue(RawRain raw) => pending.Enqueue(raw);
+        public void Enqueue(RawRain raw) {
+            if(raw != null) {
+                pending.Enqueue(raw);
+            }
+        }
 
         public void Clear() {
             pending.Clear();
-            for(int i = active.Count - 1; i >= 0; i--) {
-                Recycle(active[i]);
-                active.RemoveAt(i);
+            for(int i = 0; i < rows.Length; i++) {
+                if(rows[i] == null) {
+                    continue;
+                }
+                rows[i].Active.Clear();
+                rows[i].Graphic.SetVerticesDirty();
             }
         }
 
-        private void Recycle(RainDrop drop) {
-            drop.Raw = null;
-            drop.Obj.SetActive(false);
-            pool.Push(drop);
-        }
-
         private void Update() {
-            if(rowLayers[0] == null) {
+            if(rows[0] == null) {
                 pending.Clear();
                 return;
             }
 
             while(pending.Count > 0) {
                 RawRain raw = pending.Dequeue();
-                RectTransform rowLayer = rowLayers[Mathf.Clamp(raw.Group, 1, 3) - 1];
-                RainDrop drop = pool.Count > 0 ? pool.Pop() : new RainDrop(rowLayer);
-                if(drop.Rect.parent != rowLayer) {
-                    drop.Rect.SetParent(rowLayer, false);
-                }
-                drop.Obj.SetActive(true);
-                drop.Raw = raw;
-                drop.Graphic.color = raw.Color;
-                drop.Rect.sizeDelta = Vector2.zero;
-                active.Add(drop);
-            }
-
-            int count = active.Count;
-            if(count == 0) {
-                return;
+                rows[Mathf.Clamp(raw.Group, 1, 3) - 1].Active.Add(raw);
             }
 
             float now = Time.unscaledTime;
-            for(int i = 0; i < count; i++) {
-                RainDrop drop = active[i];
-                RawRain raw = drop.Raw;
+            float rounding = Mathf.Max(0f, Conf.RainRounding);
 
-                float lead = (now - raw.StartTime) * raw.Speed;
-                float trail = raw.EndTime < 0f ? 0f : Mathf.Max(0f, (now - raw.EndTime) * raw.Speed);
-                if(trail > raw.TrackHeight + 8f) {
-                    Recycle(drop);
-                    active.RemoveAt(i);
-                    i--;
-                    count--;
-                    continue;
+            for(int r = 0; r < rows.Length; r++) {
+                RainRow row = rows[r];
+                List<RawRain> active = row.Active;
+                bool dirty = active.Count > 0;
+                int write = 0;
+                for(int read = 0; read < active.Count; read++) {
+                    RawRain raw = active[read];
+                    float trail = raw.EndTime < 0f ? 0f : Mathf.Max(0f, (now - raw.EndTime) * raw.Speed);
+                    if(trail <= raw.TrackHeight + 8f) {
+                        if(write != read) {
+                            active[write] = raw;
+                        }
+                        write++;
+                        continue;
+                    }
+
+                    dirty = true;
+                }
+                if(write < active.Count) {
+                    active.RemoveRange(write, active.Count - write);
                 }
 
-                float dNear = trail;
-                float dFar = Mathf.Min(lead, raw.TrackHeight);
-                float height = dFar - dNear;
-                if(height <= 0.5f) {
-                    drop.Rect.sizeDelta = Vector2.zero;
-                    continue;
+                if(dirty) {
+                    row.Graphic.SetFrame(now, rounding);
                 }
-
-                drop.Graphic.SetFadeParams(
-                    dNear, dFar, raw.TrackHeight, raw.FadePx, raw.Reverse,
-                    raw.ColorTop, raw.ColorBottom
-                );
-                float y = raw.Reverse ? raw.BaseY + raw.TrackHeight - dFar : raw.BaseY + dNear;
-                drop.Rect.anchoredPosition = new Vector2(raw.AnchorX, y);
-                drop.Rect.sizeDelta = new Vector2(raw.Width, height);
             }
         }
     }
@@ -1801,7 +1920,7 @@ public static class KeyViewerOverlay {
     private static void RecordDmPress(Box box, float now) {
         box.Count++;
         totalCount++;
-        pressLog.Add(now);
+        pressLog.Enqueue(now);
         countsDirty = true;
     }
 
@@ -1879,8 +1998,8 @@ public static class KeyViewerOverlay {
     private static void UpdateDmNote(float now) {
         ApplyDmRuntimeSettings();
 
-        while(pressLog.Count > 0 && now - pressLog[0] > 1f) {
-            pressLog.RemoveAt(0);
+        while(pressLog.Count > 0 && now - pressLog.Peek() > 1f) {
+            pressLog.Dequeue();
         }
 
         if(now >= nextKpsSample) {
@@ -1922,12 +2041,12 @@ public static class KeyViewerOverlay {
                 continue;
             }
 
-            bool rawPressed = box.Key != KeyCode.None && Input.GetKey(box.Key);
+            bool rawPressed = KeyHeld(box.Key);
             bool blocked = box.Key != KeyCode.None && rawPressed && Features.KeyLimiter.KeyLimiter.ShouldBlockKey(box.Key);
             bool hidden = blocked && limiterMode == 0;
             bool rainOnly = blocked && limiterMode == 1;
             bool physicalPressed = rawPressed && !hidden && !rainOnly;
-            bool ghostPressed = (rainOnly || (spec.GhostKeyCode != KeyCode.None && Input.GetKey(spec.GhostKeyCode))) && !hidden;
+            bool ghostPressed = (rainOnly || KeyHeld(spec.GhostKeyCode)) && !hidden;
 
             if(physicalPressed && !box.RawPressed) {
                 RecordDmPress(box, now);
@@ -1944,7 +2063,7 @@ public static class KeyViewerOverlay {
                 }
                 if(rainOnly) {
                     totalCount++;
-                    pressLog.Add(now);
+                    pressLog.Enqueue(now);
                 }
             } else if(!ghostPressed && box.GhostPressed && box.LastGhostRain != null) {
                 float minLengthSeconds = dmNoteSpeed > 0f ? dmShortNoteMinLengthPx / dmNoteSpeed : 0f;
@@ -1996,6 +2115,9 @@ public static class KeyViewerOverlay {
             bool isReorganizing = UICore.IsReorganizing;
             bool overlayVisible = (Panels.PanelsOverlay.IsEnabled && Conf.Enabled && GameStats.InGame) || isReorganizing;
             bool show = (Conf.IsSimpleMode || Conf.IsDmNoteMode) && overlayVisible;
+            if(raycaster != null && raycaster.enabled != isReorganizing) {
+                raycaster.enabled = isReorganizing;
+            }
             if(root.gameObject.activeSelf != show) {
                 root.gameObject.SetActive(show);
             }
@@ -2023,8 +2145,8 @@ public static class KeyViewerOverlay {
             Conf.OffsetY = root.anchoredPosition.y;
 
             // KPS window: drop presses older than one second.
-            while(pressLog.Count > 0 && now - pressLog[0] > 1f) {
-                pressLog.RemoveAt(0);
+            while(pressLog.Count > 0 && now - pressLog.Peek() > 1f) {
+                pressLog.Dequeue();
             }
 
             TMP_FontAsset font = FontManager.Current;
@@ -2051,11 +2173,11 @@ public static class KeyViewerOverlay {
                     continue;
                 }
 
-                bool pressed = box.Key != KeyCode.None && Input.GetKey(box.Key);
+                bool pressed = KeyHeld(box.Key);
                 if(pressed && !box.Pressed) {
                     box.Count++;
                     totalCount++;
-                    pressLog.Add(now);
+                    pressLog.Enqueue(now);
                     countsDirty = true;
 
                     if(Conf.RainEnabled && box.RainGroup != 0 && rainManager != null) {

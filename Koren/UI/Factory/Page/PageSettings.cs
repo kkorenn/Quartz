@@ -368,6 +368,28 @@ internal static class PageSettings {
         var scrollTr = scrollSpeed.Label.gameObject.AddComponent<TextLocalization>().Init("SCROLL_SPEED", "Scroll Speed");
         objects[scrollTr] = (overlayerText.gameObject, scrollRow.gameObject);
 
+        var opacityRow = GenerateUI.Row(content.transform);
+        UISlider opacity = GenerateUI.Slider(
+            opacityRow,
+            100f,
+            20f,
+            100f,
+            MainCore.Conf.PanelOpacity * 100f,
+            Mathf.Round,
+            v => UICore.SetPanelOpacity(v / 100f, false),
+            v => UICore.SetPanelOpacity(v / 100f, true),
+            "Window Opacity",
+            "window_opacity"
+        );
+        // Literal % (a bare "0%" is .NET's percent specifier and multiplies by 100).
+        opacity.Format = "0'%'";
+        opacity.Rect.AddToolTip(
+            "DESC_WINDOW_OPACITY",
+            "Transparency of the settings window."
+        );
+        var opacityTr = opacity.Label.gameObject.AddComponent<TextLocalization>().Init("WINDOW_OPACITY", "Window Opacity");
+        objects[opacityTr] = (overlayerText.gameObject, opacityRow.gameObject);
+
         var accentRow = GenerateUI.Row(content.transform);
         UIColorPicker accentPicker = GenerateUI.ColorPicker(
             accentRow,

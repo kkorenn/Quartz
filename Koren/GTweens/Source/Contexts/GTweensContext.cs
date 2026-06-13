@@ -61,7 +61,16 @@ public sealed class GTweensContext {
 
         foreach(GTween tween in _aliveTweens) {
             if(tween.IsPlaying) {
-                tween.Tick(scaledDeltaTime);
+                // Isolate each tween: a throw here (e.g. a setter touching a
+                // destroyed Unity object) must not abort the whole batch —
+                // otherwise every later tween and tick stops for the frame and
+                // the UI appears frozen. Drop the offender so it can't respam.
+                try {
+                    tween.Tick(scaledDeltaTime);
+                } catch(System.Exception e) {
+                    Koren.Core.MainCore.Log.Err($"[GTween] tween threw, dropping it: {e}");
+                    _tweensToRemove.Add(tween);
+                }
             } else {
                 _tweensToRemove.Add(tween);
             }

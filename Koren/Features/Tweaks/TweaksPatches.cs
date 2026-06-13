@@ -244,6 +244,31 @@ public static partial class Tweaks {
         private static void Postfix(scrConductor __instance) => ApplyMenuMusicMute(__instance);
     }
 
+    // Custom main-menu BPM: the rabbit floor only exists on the menu, so these
+    // patches are menu-only. Start sets the resting (slow) speed; StartEffect's
+    // prefix replaces the 1x/2x toggle with our slow/high BPM speeds.
+    [HarmonyPatch(typeof(ffxMenuPlanetSpeedChange), "Start")]
+    private static class MenuBpmInitPatch {
+        private static void Postfix() {
+            try {
+                ApplyInitialMenuBpm();
+            } catch {
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(ffxMenuPlanetSpeedChange), "StartEffect", new[] { typeof(scrPlanet) })]
+    private static class MenuBpmTogglePatch {
+        private static bool Prefix(ffxMenuPlanetSpeedChange __instance) {
+            try {
+                // Skip the original only when we handled the toggle.
+                return !HandleMenuBpmToggle(__instance.floor);
+            } catch {
+                return true;
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(DetailedResults), "GenerateResults")]
     private static class DetailedResultsGeneratePatch {
         private static void Postfix(ref string __result) {

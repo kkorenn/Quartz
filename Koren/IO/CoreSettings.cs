@@ -15,6 +15,10 @@ public sealed class CoreSettings : ISettingsFile {
     public float UIScale = 1.0f;
     public string FontName = "";
     public float ScrollSpeed = 80f;
+
+    // Settings-window opacity (0..1). Default fully opaque (shown as 100%).
+    public float PanelOpacity = 1.0f;
+
     public Dictionary<string, bool> CollapsibleStates = [];
 
     // Menu toggle keybind, stored as ints (Keybind.KeyModifier and KeyCode).
@@ -78,6 +82,7 @@ public sealed class CoreSettings : ISettingsFile {
             [nameof(UIScale)] = UIScale,
             [nameof(FontName)] = FontName,
             [nameof(ScrollSpeed)] = ScrollSpeed,
+            [nameof(PanelOpacity)] = PanelOpacity,
             [nameof(ToggleModifier)] = ToggleModifier,
             [nameof(ToggleKey)] = ToggleKey,
             [nameof(UpdateChannel)] = UpdateChannel,
@@ -99,6 +104,7 @@ public sealed class CoreSettings : ISettingsFile {
         UIScale = IOUtils.Read(token, nameof(UIScale), UIScale);
         FontName = IOUtils.Read(token, nameof(FontName), FontName);
         ScrollSpeed = IOUtils.Read(token, nameof(ScrollSpeed), ScrollSpeed);
+        PanelOpacity = IOUtils.Read(token, nameof(PanelOpacity), PanelOpacity);
         ToggleModifier = IOUtils.Read(token, nameof(ToggleModifier), ToggleModifier);
         ToggleKey = IOUtils.Read(token, nameof(ToggleKey), ToggleKey);
         UpdateChannel = IOUtils.Read(token, nameof(UpdateChannel), UpdateChannel);

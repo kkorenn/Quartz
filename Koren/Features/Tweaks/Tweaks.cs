@@ -120,6 +120,71 @@ public static partial class Tweaks {
         return false;
     }
 
+    // ===== Custom main-menu BPM =====
+    // The menu's rabbit floor (ffxMenuPlanetSpeedChange) toggles planet speed
+    // 1x<->2x and fades song2. With the feature on we drive the speed from the
+    // configured slow/high BPMs (speed = targetBpm / authored menu bpm) and
+    // track the toggle state ourselves, since the original toggles by reading
+    // ctrl.speed == 1.0 which our custom speeds break.
+    private static bool menuFast;
+
+    private static bool ShouldCustomMenuBpm => Enabled && Conf.MenuBpmEnabled;
+
+    // Sets the resting (slow) speed when the menu's rabbit floor spawns.
+    internal static void ApplyInitialMenuBpm() {
+        if(!ShouldCustomMenuBpm) {
+            return;
+        }
+        scrConductor cond = ADOBase.conductor;
+        if(cond == null || cond.bpm <= 0f) {
+            return;
+        }
+        menuFast = false;
+        SetAllPlayerSpeed(Conf.MenuSlowBpm / cond.bpm);
+        SetMenuSong2(false);
+    }
+
+    // Replaces the rabbit toggle. Returns true when handled (the original
+    // StartEffect should be skipped).
+    internal static bool HandleMenuBpmToggle(scrFloor floor) {
+        if(!ShouldCustomMenuBpm || floor == null) {
+            return false;
+        }
+        scrConductor cond = ADOBase.conductor;
+        if(cond == null || cond.bpm <= 0f) {
+            return false;
+        }
+
+        menuFast = !menuFast;
+        SetAllPlayerSpeed((menuFast ? Conf.MenuHighBpm : Conf.MenuSlowBpm) / cond.bpm);
+        floor.floorIcon = menuFast ? FloorIcon.Snail : FloorIcon.Rabbit;
+        floor.UpdateIconSprite();
+        SetMenuSong2(menuFast);
+        return true;
+    }
+
+    // Speed lives on each player's PlanetarySystem in this game version.
+    private static void SetAllPlayerSpeed(double speed) {
+        try {
+            foreach(scrPlayer p in ADOBase.playerManager) {
+                if(p != null && p.planetarySystem != null) {
+                    p.planetarySystem.speed = speed;
+                }
+            }
+        } catch {
+        }
+    }
+
+    private static void SetMenuSong2(bool fast) {
+        try {
+            AudioSource song2 = ADOBase.conductor?.song2;
+            if(song2 != null) {
+                song2.volume = fast ? 0.7f : 0f;
+            }
+        } catch {
+        }
+    }
+
     // Mutes the theme song on the title / island-select screen. Enforced via
     // the mute flag every conductor Update: the game writes song.volume from
     // lots of places (level data, ducking, fades) but never touches mute, so

@@ -57,6 +57,39 @@ public static class Restriction {
         } catch { }
     }
 
+    // Display name for the judgement that broke the restriction, reusing the
+    // same labels shown in the custom-allowed list so the vocabulary matches.
+    public static string JudgementName(HitMargin hit) {
+        string key = hit switch {
+            HitMargin.TooEarly => "JR_ALLOW_TOOEARLY",
+            HitMargin.VeryEarly => "JR_ALLOW_VERYEARLY",
+            HitMargin.EarlyPerfect => "JR_ALLOW_EARLYPERFECT",
+            HitMargin.Perfect => "JR_ALLOW_PERFECT",
+            HitMargin.LatePerfect => "JR_ALLOW_LATEPERFECT",
+            HitMargin.VeryLate => "JR_ALLOW_VERYLATE",
+            HitMargin.TooLate => "JR_ALLOW_TOOLATE",
+            HitMargin.Multipress => "JR_ALLOW_MULTIPRESS",
+            HitMargin.FailMiss => "JR_ALLOW_MISS",
+            HitMargin.FailOverload => "JR_ALLOW_OVERLOAD_FAIL",
+            HitMargin.OverPress => "JR_ALLOW_OVERLOAD_FAIL",
+            _ => null,
+        };
+
+        string fallback = hit.ToString();
+        return key == null ? fallback : MainCore.Tr.Get(key, fallback);
+    }
+
+    // Substitutes the {judgement} tag in the fail message with the judgement
+    // that broke the restriction. Also accepts the US spelling {judgment}.
+    private static string FormatJrMessage(string msg, HitMargin hit) {
+        if(string.IsNullOrEmpty(msg)) {
+            return msg;
+        }
+
+        string name = JudgementName(hit);
+        return msg.Replace("{judgement}", name).Replace("{judgment}", name);
+    }
+
     private static bool ShouldFailFor(HitMargin margin) {
         int marginInt = (int)margin;
         switch(Conf.JRestrictMode) {
@@ -120,7 +153,7 @@ public static class Restriction {
         }
 
         if(jrOn && ShouldFailFor(hit)) {
-            TriggerFail(Conf.JRestrictMessage);
+            TriggerFail(FormatJrMessage(Conf.JRestrictMessage, hit));
             return;
         }
 

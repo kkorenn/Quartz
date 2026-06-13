@@ -19,6 +19,13 @@ public sealed class TweaksSettings : ISettingsFile {
     public bool BlockMouseWheelScrollWhilePlaying = false;
     public bool DisableMenuMusic = false;
 
+    // Custom main-menu BPM: the menu's rabbit floor toggles the planet speed
+    // between slow and fast. When enabled, those two states run at these BPMs
+    // instead of the authored 1x / 2x. Off by default — leaves the menu alone.
+    public bool MenuBpmEnabled = false;
+    public float MenuSlowBpm = 100f;
+    public float MenuHighBpm = 200f;
+
     // === Detailed results tweaks (Tweaks tab) ===
     public bool HideResultXAccuracy = true;
     public bool HideResultAccuracy = true;
@@ -34,6 +41,9 @@ public sealed class TweaksSettings : ISettingsFile {
             [nameof(DisableAutoPause)] = DisableAutoPause,
             [nameof(BlockMouseWheelScrollWhilePlaying)] = BlockMouseWheelScrollWhilePlaying,
             [nameof(DisableMenuMusic)] = DisableMenuMusic,
+            [nameof(MenuBpmEnabled)] = MenuBpmEnabled,
+            [nameof(MenuSlowBpm)] = MenuSlowBpm,
+            [nameof(MenuHighBpm)] = MenuHighBpm,
             [nameof(HideResultXAccuracy)] = HideResultXAccuracy,
             [nameof(HideResultAccuracy)] = HideResultAccuracy,
             [nameof(HideResultCheckpoints)] = HideResultCheckpoints,
@@ -49,6 +59,9 @@ public sealed class TweaksSettings : ISettingsFile {
         DisableAutoPause = IOUtils.Read(token, nameof(DisableAutoPause), DisableAutoPause);
         BlockMouseWheelScrollWhilePlaying = IOUtils.Read(token, nameof(BlockMouseWheelScrollWhilePlaying), BlockMouseWheelScrollWhilePlaying);
         DisableMenuMusic = IOUtils.Read(token, nameof(DisableMenuMusic), DisableMenuMusic);
+        MenuBpmEnabled = IOUtils.Read(token, nameof(MenuBpmEnabled), MenuBpmEnabled);
+        MenuSlowBpm = IOUtils.Read(token, nameof(MenuSlowBpm), MenuSlowBpm);
+        MenuHighBpm = IOUtils.Read(token, nameof(MenuHighBpm), MenuHighBpm);
         HideResultXAccuracy = IOUtils.Read(token, nameof(HideResultXAccuracy), HideResultXAccuracy);
         HideResultAccuracy = IOUtils.Read(token, nameof(HideResultAccuracy), HideResultAccuracy);
         HideResultCheckpoints = IOUtils.Read(token, nameof(HideResultCheckpoints), HideResultCheckpoints);

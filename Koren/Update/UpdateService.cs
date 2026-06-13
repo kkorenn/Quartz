@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -35,7 +36,8 @@ public sealed class UpdateInfo {
     public string Tag;          // e.g. "v2.0.0-alpha-2"
     public SemVer Version;
     public string Url;          // release page
-    public string KorenDllUrl;  // download URL for Koren.dll
+    public string AssetUrl;     // download URL for the release asset (null = none)
+    public bool AssetIsZip;     // true: full Koren.zip; false: legacy bare Koren.dll
 }
 
 // Checks GitHub Releases for a newer build on the user's chosen channel and,
@@ -183,17 +185,23 @@ public static class UpdateService {
                 continue;
             }
 
-            string korenUrl = null;
+            // Prefer the full Koren.zip (DLL + lang + fonts); fall back to a
+            // bare Koren.dll for older releases that shipped only that.
+            string zipUrl = null;
+            string dllUrl = null;
             if(rel["assets"] is JArray assets) {
                 foreach(JToken a in assets) {
                     string name = (string)a["name"];
-                    if(name == "Koren.dll") {
-                        korenUrl = (string)a["browser_download_url"];
+                    if(name == "Koren.zip") {
+                        zipUrl = (string)a["browser_download_url"];
+                    } else if(name == "Koren.dll") {
+                        dllUrl = (string)a["browser_download_url"];
                     }
                 }
             }
-            // A release without the DLL can't be installed; skip it.
-            if(korenUrl == null) {
+            string assetUrl = zipUrl ?? dllUrl;
+            // A release without an installable asset can't be applied; skip it.
+            if(assetUrl == null) {
                 continue;
             }
 
@@ -202,7 +210,8 @@ public static class UpdateService {
                     Tag = tag,
                     Version = v,
                     Url = (string)rel["html_url"],
-                    KorenDllUrl = korenUrl,
+                    AssetUrl = assetUrl,
+                    AssetIsZip = zipUrl != null,
                 };
             }
         }
@@ -219,7 +228,7 @@ public static class UpdateService {
         // A dev-simulated update has no real assets — play a fake download
         // through the same Installing/Progress states the real path uses, so
         // the progress UI can be exercised, but don't touch any files.
-        if(info.KorenDllUrl == null) {
+        if(info.AssetUrl == null) {
             lastPercent = -1;
             Progress = 0f;
             Set(UpdateStatus.Installing);
@@ -247,20 +256,104 @@ public static class UpdateService {
 
     private static async Task Download(UpdateInfo info) {
         string staging = Path.Combine(MainCore.Paths.TempPath, "Update");
+
+        // Clear any half-finished prior attempt.
+        if(Directory.Exists(staging)) {
+            Directory.Delete(staging, true);
+        }
         Directory.CreateDirectory(staging);
 
-        string stagedKoren = Path.Combine(staging, "Koren.dll");
-
-        // Download to staging first so a failure can't leave a half-written DLL
-        // in the live folder.
-        await DownloadFile(info.KorenDllUrl, stagedKoren, 0f, 1f);
-
-        File.Copy(stagedKoren, Path.Combine(MainCore.Host.ModsPath, "Koren.dll"), true);
+        // Download to staging first so a failure can't leave half-written files
+        // in the live folders.
+        if(info.AssetIsZip) {
+            string stagedZip = Path.Combine(staging, "Koren.zip");
+            await DownloadFile(info.AssetUrl, stagedZip, 0f, 1f);
+            ExtractOverInstall(stagedZip);
+        } else {
+            string stagedKoren = Path.Combine(staging, "Koren.dll");
+            await DownloadFile(info.AssetUrl, stagedKoren, 0f, 1f);
+            ReplaceFile(stagedKoren, Path.Combine(MainCore.Host.ModsPath, "Koren.dll"));
+        }
 
         // Pre-merge installs shipped a separate loader in Mods and the core DLL
         // in UserLibs; leaving either behind would double-load the mod.
         DeleteIfExists(Path.Combine(MainCore.Host.ModsPath, "Koren.Loader.ML.dll"));
         DeleteIfExists(Path.Combine(MainCore.Host.UserLibsPath, "Koren.dll"));
+    }
+
+    // Extracts the release zip over the live install. Entry paths are
+    // game-root-relative (Mods/Koren.dll, UserData/Koren/Lang/*,
+    // UserData/Koren/Fonts/*), so they land exactly where the build's
+    // dist/Koren.zip placed them. Shipped files are overwritten; the user's
+    // settings (Settings.json, profiles) and their own custom fonts aren't in
+    // the zip, so they're left untouched.
+    private static void ExtractOverInstall(string zipPath) {
+        string gameRoot = Directory.GetParent(MainCore.Host.ModsPath)?.FullName;
+        if(string.IsNullOrEmpty(gameRoot)) {
+            throw new System.Exception("couldn't resolve game root from ModsPath");
+        }
+
+        string rootFull = Path.GetFullPath(gameRoot);
+        string rootPrefix = rootFull.EndsWith(Path.DirectorySeparatorChar.ToString())
+            ? rootFull
+            : rootFull + Path.DirectorySeparatorChar;
+
+        using ZipArchive archive = ZipFile.OpenRead(zipPath);
+        foreach(ZipArchiveEntry entry in archive.Entries) {
+            // Directory entries carry an empty Name.
+            if(string.IsNullOrEmpty(entry.Name)) {
+                continue;
+            }
+
+            string dest = Path.GetFullPath(Path.Combine(gameRoot, entry.FullName));
+
+            // Guard against zip-slip (entries escaping the game root).
+            if(!dest.StartsWith(rootPrefix, System.StringComparison.Ordinal)) {
+                MainCore.Log.Wrn($"[Update] skipped suspicious zip entry: {entry.FullName}");
+                continue;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(dest));
+
+            // Extract to a temp beside the target, then swap it in. The swap
+            // handles the running Koren.dll, which is memory-mapped by
+            // MelonLoader and can't be overwritten directly (Win32 1224).
+            string tmp = dest + ".krnew";
+            try {
+                if(File.Exists(tmp)) {
+                    File.Delete(tmp);
+                }
+            } catch {
+            }
+            entry.ExtractToFile(tmp, true);
+            ReplaceFile(tmp, dest);
+        }
+    }
+
+    // Puts `src` at `dest`, replacing whatever's there. A plain overwrite of a
+    // loaded DLL fails on Windows (ERROR_USER_MAPPED_FILE / 1224) because the
+    // file is memory-mapped, but renaming it aside is allowed: the new build
+    // takes the path and the old mapping keeps working until the game exits.
+    // The leftover ".old" is cleaned up on the next launch (see KorenRuntime).
+    private static void ReplaceFile(string src, string dest) {
+        Directory.CreateDirectory(Path.GetDirectoryName(dest));
+
+        if(File.Exists(dest)) {
+            try {
+                File.Delete(dest);
+            } catch {
+                string old = dest + ".old";
+                try {
+                    if(File.Exists(old)) {
+                        File.Delete(old);
+                    }
+                } catch {
+                }
+                File.Move(dest, old);
+            }
+        }
+
+        File.Move(src, dest);
     }
 
     private static void DeleteIfExists(string path) {
@@ -353,7 +446,7 @@ public static class UpdateService {
         Tag = "v" + Info.DisplayVersion,
         Version = Info.Current,
         Url = Info.GithubLink,
-        KorenDllUrl = null,
+        AssetUrl = null,
     };
 
     // Dev-only: toggle a fake available update (current version, no assets) to

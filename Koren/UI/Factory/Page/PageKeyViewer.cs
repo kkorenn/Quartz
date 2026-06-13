@@ -100,6 +100,26 @@ internal static class PageKeyViewer {
             "Style"
         );
 
+        GenerateUI.DropDown(
+            GenerateUI.Row(simpleBody),
+            false,
+            conf.StatsTogether,
+            new[] { false, true },
+            t => MainCore.Tr.Get(
+                t ? "KEYVIEWER_STATS_TOGETHER" : "KEYVIEWER_STATS_APART",
+                t ? "Together" : "Apart"
+            ),
+            v => {
+                conf.StatsTogether = v;
+                KeyViewerOverlay.Rebuild();
+                Save();
+                rebuildPreview?.Invoke();
+            },
+            "keyviewer_stats_layout",
+            260f,
+            "KPS / Total"
+        );
+
         UISlider size = GenerateUI.Slider(
             GenerateUI.Row(simpleBody),
             def.Size, 0.25f, 3f, conf.Size,
@@ -341,6 +361,10 @@ internal static class PageKeyViewer {
         AddSlider(simpleBody, "Rain Fade", "keyviewer_rainfade",
             def.RainFade, 0f, 300f, conf.RainFade, "0 px", 5f,
             v => conf.RainFade = v, Save);
+
+        AddSlider(simpleBody, "Rain Rounding", "keyviewer_rainrounding",
+            def.RainRounding, 0f, 40f, conf.RainRounding, "0 px", 1f,
+            v => conf.RainRounding = v, Save);
 
         UISlider rainWidth = AddSlider(simpleBody, "Rain Width (0 = key width)", "keyviewer_rainwidth",
             def.RainWidth, 0f, 100f, conf.RainWidth, "0 px", 1f,
@@ -706,6 +730,14 @@ internal static class PageKeyViewer {
             }
 
             if(!Input.anyKeyDown) {
+                return;
+            }
+
+            // Numpad Enter and Return can land on the same frame on some
+            // keyboards; the loop below would bind Return first (lower value),
+            // so capture the distinct numpad code when it's down.
+            if(Input.GetKeyDown(KeyCode.KeypadEnter)) {
+                OnCaptured?.Invoke(KeyCode.KeypadEnter);
                 return;
             }
 
