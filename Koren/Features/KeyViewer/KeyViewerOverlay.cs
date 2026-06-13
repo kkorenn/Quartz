@@ -1583,7 +1583,14 @@ public static class KeyViewerOverlay {
         bool frontRow = box.RainGroup == 1;
         float width = frontRow ? Conf.RainWidth : Conf.Rain2Width;
         if(width <= 0.5f) {
+            // 0 = the key's full width.
             width = box.BoxW;
+        } else {
+            // A fixed width is per key-column, so a 2-wide key (e.g. the
+            // 10-key's bottom row) gets 2x. Columns from the box width, where
+            // SpanW(n) = KeyW*n + KeyGap*(n-1).
+            int cols = Mathf.Max(1, Mathf.RoundToInt((box.BoxW + KeyGap) / (KeyW + KeyGap)));
+            width *= cols;
         }
 
         RawRain raw = new() {
@@ -2113,7 +2120,7 @@ public static class KeyViewerOverlay {
             }
 
             bool isReorganizing = UICore.IsReorganizing;
-            bool overlayVisible = (Panels.PanelsOverlay.IsEnabled && Conf.Enabled && GameStats.InGame) || isReorganizing;
+            bool overlayVisible = (Panels.PanelsOverlay.IsEnabled && Conf.Enabled && (Conf.ShowOutsideGame || GameStats.InGame)) || isReorganizing;
             bool show = (Conf.IsSimpleMode || Conf.IsDmNoteMode) && overlayVisible;
             if(raycaster != null && raycaster.enabled != isReorganizing) {
                 raycaster.enabled = isReorganizing;

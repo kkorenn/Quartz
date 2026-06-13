@@ -77,6 +77,18 @@ internal static class PageKeyViewer {
         AddModeButton(modeRow, "Simple", "KEYVIEWER_MODE_SIMPLE", () => SetMode(KeyViewerSettings.ModeSimple), out simpleModeBg, out simpleModeLabel);
         AddModeButton(modeRow, "DM Note", "KEYVIEWER_MODE_DMNOTE", () => SetMode(KeyViewerSettings.ModeDmNote), out dmNoteModeBg, out dmNoteModeLabel);
 
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.ShowOutsideGame,
+            conf.ShowOutsideGame,
+            v => { conf.ShowOutsideGame = v; Save(); },
+            "Show Outside Gameplay",
+            "keyviewer_showoutside"
+        ).Rect.AddToolTip(
+            "DESC_KEYVIEWER_SHOWOUTSIDE",
+            "Keep the key viewer visible in menus and outside of gameplay, not just while a level is playing."
+        );
+
         simpleBody = AddModeBody(sec.Body, "SimpleMode");
         dmNoteBody = AddModeBody(sec.Body, "DmNoteMode");
 

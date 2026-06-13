@@ -17,6 +17,10 @@ public sealed class KeyViewerSettings : ISettingsFile {
 
     public bool Enabled = true;
 
+    // Keep the viewer on screen in menus and outside of gameplay, not just
+    // while a level is playing. Default on so it behaves like a static HUD.
+    public bool ShowOutsideGame = true;
+
     // Renderer mode (v1 KeyViewerMode): "simple" = the key grid, "dmnote" =
     // the DM-note preset renderer.
     public string Mode = ModeSimple;
@@ -41,6 +45,9 @@ public sealed class KeyViewerSettings : ISettingsFile {
     public float RainSpeed = 400f;
     public float RainHeight = 200f;
     public float RainFade = 60f;
+    // Rain streak width per row group; 0 = match the key's width. A positive
+    // value is per key-column, so a 2-wide key (e.g. the 10-key's bottom row)
+    // gets 2x that width.
     public float RainWidth = 0f;
     public float Rain2Width = 40f;
     public float RainOffsetY = 0f;
@@ -166,6 +173,7 @@ public sealed class KeyViewerSettings : ISettingsFile {
 
         return new JObject {
             [nameof(Enabled)] = Enabled,
+            [nameof(ShowOutsideGame)] = ShowOutsideGame,
             [nameof(Mode)] = NormalizeMode(Mode),
             [nameof(Style)] = Style,
             [nameof(Size)] = Size,
@@ -225,6 +233,7 @@ public sealed class KeyViewerSettings : ISettingsFile {
 
     public void Deserialize(JToken token) {
         Enabled = IOUtils.Read(token, nameof(Enabled), Enabled);
+        ShowOutsideGame = IOUtils.Read(token, nameof(ShowOutsideGame), ShowOutsideGame);
         Mode = NormalizeMode(IOUtils.Read(token, nameof(Mode), Mode));
         Style = Mathf.Clamp(IOUtils.Read(token, nameof(Style), Style), 0, 3);
         Size = IOUtils.Read(token, nameof(Size), Size);
