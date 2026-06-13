@@ -26,10 +26,6 @@ internal static class PageJudgement {
         // === Layout ===
         GenerateUI.Localize(GenerateUI.AddTextH1(GenerateUI.Row(sec.Body)), "HEADING_LAYOUT", "Layout");
 
-        AddSlider(sec.Body, "Vertical Offset", "judgement_offsety",
-            def.OffsetY, -100f, 200f, conf.OffsetY, "0 px", 1f,
-            v => conf.OffsetY = v, Apply, Save);
-
         AddSlider(sec.Body, "Size", "judgement_size",
             def.Size, 0.3f, 3f, conf.Size, "0.00 x", 0.01f,
             v => conf.Size = v, Apply, Save);

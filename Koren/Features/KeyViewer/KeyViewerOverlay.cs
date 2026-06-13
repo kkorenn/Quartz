@@ -79,6 +79,11 @@ public static class KeyViewerOverlay {
         public Image Fill;
         public TextMeshProUGUI Label;
         public TextMeshProUGUI Value;
+        // Simple-mode KPS/Total stat boxes: when StatTogether, the caption and
+        // value render centred together in the Value text ("KPS  0") and Label
+        // is hidden; otherwise the caption sits left and the value right.
+        public string StatCaption;
+        public bool StatTogether;
         public bool Pressed;
         public bool GhostPressed;
         public bool RawPressed;
@@ -394,73 +399,41 @@ public static class KeyViewerOverlay {
             keys.Add(new KeySlot(i, ColX(i), 0f, KeyW, KeyH));
         }
 
-        // KPS/Total either sit on the outer edges (apart, v1 default) or side
-        // by side in the centre (together); the back-row keys fill whatever
-        // columns the stats don't, so the row stays 8 wide either way.
-        bool together = Conf != null && Conf.StatsTogether;
-
+        // KPS/Total sit on the outer edges with the back-row keys between them.
+        // (The Together/Apart setting no longer moves these boxes — it controls
+        // the caption/value arrangement inside each stat box; see AddStat.)
         switch(style) {
             case 0:
-                if(together) {
-                    keys.Add(new KeySlot(8, ColX(0), RowGap, SpanW(2), KeyH));
-                    keys.Add(new KeySlot(9, ColX(6), RowGap, SpanW(2), KeyH));
-                    stats.Add(new StatSlot(false, ColX(2), RowGap, SpanW(2), KeyH));
-                    stats.Add(new StatSlot(true, ColX(4), RowGap, SpanW(2), KeyH));
-                } else {
-                    keys.Add(new KeySlot(8, ColX(2), RowGap, SpanW(2), KeyH));
-                    keys.Add(new KeySlot(9, ColX(4), RowGap, SpanW(2), KeyH));
-                    stats.Add(new StatSlot(false, ColX(0), RowGap, SpanW(2), KeyH));
-                    stats.Add(new StatSlot(true, ColX(6), RowGap, SpanW(2), KeyH));
-                }
+                keys.Add(new KeySlot(8, ColX(2), RowGap, SpanW(2), KeyH));
+                keys.Add(new KeySlot(9, ColX(4), RowGap, SpanW(2), KeyH));
+                stats.Add(new StatSlot(false, ColX(0), RowGap, SpanW(2), KeyH));
+                stats.Add(new StatSlot(true, ColX(6), RowGap, SpanW(2), KeyH));
                 break;
             case 1:
-                if(together) {
-                    keys.Add(new KeySlot(9, ColX(0), RowGap, KeyW, KeyH));
-                    keys.Add(new KeySlot(8, ColX(1), RowGap, KeyW, KeyH));
-                    keys.Add(new KeySlot(10, ColX(2), RowGap, KeyW, KeyH));
-                    keys.Add(new KeySlot(11, ColX(3), RowGap, KeyW, KeyH));
-                    stats.Add(new StatSlot(false, ColX(4), RowGap, SpanW(2), KeyH));
-                    stats.Add(new StatSlot(true, ColX(6), RowGap, SpanW(2), KeyH));
-                } else {
-                    keys.Add(new KeySlot(9, ColX(2), RowGap, KeyW, KeyH));
-                    keys.Add(new KeySlot(8, ColX(3), RowGap, KeyW, KeyH));
-                    keys.Add(new KeySlot(10, ColX(4), RowGap, KeyW, KeyH));
-                    keys.Add(new KeySlot(11, ColX(5), RowGap, KeyW, KeyH));
-                    stats.Add(new StatSlot(false, ColX(0), RowGap, SpanW(2), KeyH));
-                    stats.Add(new StatSlot(true, ColX(6), RowGap, SpanW(2), KeyH));
-                }
+                keys.Add(new KeySlot(9, ColX(2), RowGap, KeyW, KeyH));
+                keys.Add(new KeySlot(8, ColX(3), RowGap, KeyW, KeyH));
+                keys.Add(new KeySlot(10, ColX(4), RowGap, KeyW, KeyH));
+                keys.Add(new KeySlot(11, ColX(5), RowGap, KeyW, KeyH));
+                stats.Add(new StatSlot(false, ColX(0), RowGap, SpanW(2), KeyH));
+                stats.Add(new StatSlot(true, ColX(6), RowGap, SpanW(2), KeyH));
                 break;
             case 2:
                 for(int i = 0; i < 8; i++) {
                     keys.Add(new KeySlot(BackSeq16[i], ColX(i), RowGap, KeyW, KeyH));
                 }
-                if(together) {
-                    stats.Add(new StatSlot(false, ColX(2), RowGap * 2f, SpanW(2), 30f));
-                    stats.Add(new StatSlot(true, ColX(4), RowGap * 2f, SpanW(2), 30f));
-                } else {
-                    stats.Add(new StatSlot(false, ColX(0), RowGap * 2f, SpanW(4), 30f));
-                    stats.Add(new StatSlot(true, ColX(4), RowGap * 2f, SpanW(4), 30f));
-                }
+                stats.Add(new StatSlot(false, ColX(0), RowGap * 2f, SpanW(4), 30f));
+                stats.Add(new StatSlot(true, ColX(4), RowGap * 2f, SpanW(4), 30f));
                 break;
             case 3:
                 for(int i = 0; i < 8; i++) {
                     keys.Add(new KeySlot(BackSeq16[i], ColX(i), RowGap, KeyW, KeyH));
                 }
-                if(together) {
-                    keys.Add(new KeySlot(17, ColX(0), RowGap * 2f, KeyW, KeyH));
-                    keys.Add(new KeySlot(16, ColX(1), RowGap * 2f, KeyW, KeyH));
-                    keys.Add(new KeySlot(18, ColX(2), RowGap * 2f, KeyW, KeyH));
-                    keys.Add(new KeySlot(19, ColX(3), RowGap * 2f, KeyW, KeyH));
-                    stats.Add(new StatSlot(false, ColX(4), RowGap * 2f, SpanW(2), KeyH));
-                    stats.Add(new StatSlot(true, ColX(6), RowGap * 2f, SpanW(2), KeyH));
-                } else {
-                    keys.Add(new KeySlot(17, ColX(2), RowGap * 2f, KeyW, KeyH));
-                    keys.Add(new KeySlot(16, ColX(3), RowGap * 2f, KeyW, KeyH));
-                    keys.Add(new KeySlot(18, ColX(4), RowGap * 2f, KeyW, KeyH));
-                    keys.Add(new KeySlot(19, ColX(5), RowGap * 2f, KeyW, KeyH));
-                    stats.Add(new StatSlot(false, ColX(0), RowGap * 2f, SpanW(2), KeyH));
-                    stats.Add(new StatSlot(true, ColX(6), RowGap * 2f, SpanW(2), KeyH));
-                }
+                keys.Add(new KeySlot(17, ColX(2), RowGap * 2f, KeyW, KeyH));
+                keys.Add(new KeySlot(16, ColX(3), RowGap * 2f, KeyW, KeyH));
+                keys.Add(new KeySlot(18, ColX(4), RowGap * 2f, KeyW, KeyH));
+                keys.Add(new KeySlot(19, ColX(5), RowGap * 2f, KeyW, KeyH));
+                stats.Add(new StatSlot(false, ColX(0), RowGap * 2f, SpanW(2), KeyH));
+                stats.Add(new StatSlot(true, ColX(6), RowGap * 2f, SpanW(2), KeyH));
                 break;
         }
     }
@@ -512,9 +485,11 @@ public static class KeyViewerOverlay {
         box.IsKps = !total;
         box.IsTotal = total;
         string caption = total ? "Total" : "KPS";
+        box.StatCaption = caption;
 
-        // v1: tall stat boxes stack label over value, short ones go inline.
-        bool stacked = h >= 40f;
+        bool together = Conf != null && Conf.StatsTogether;
+        box.StatTogether = together;
+
         box.Label = NewText(box.Fill.transform, "Label", caption, StatFontSize);
         box.Value = NewText(box.Fill.transform, "Value", "0", StatFontSize);
 
@@ -522,18 +497,23 @@ public static class KeyViewerOverlay {
         RectTransform valueRect = box.Value.rectTransform;
         labelRect.anchorMin = Vector2.zero;
         labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
         valueRect.anchorMin = Vector2.zero;
         valueRect.anchorMax = Vector2.one;
         valueRect.offsetMin = Vector2.zero;
         valueRect.offsetMax = Vector2.zero;
 
-        if(stacked) {
-            labelRect.offsetMin = new Vector2(0f, h * 0.42f);
-            labelRect.offsetMax = Vector2.zero;
-            valueRect.offsetMax = new Vector2(0f, -(h * 0.42f));
+        if(together) {
+            // Caption + value centred together as one group ("KPS  0"). The
+            // value text carries the caption (see the stat update in Update),
+            // so the standalone label is hidden.
+            box.Label.gameObject.SetActive(false);
+            box.Value.alignment = TextAlignmentOptions.Center;
+            box.Value.text = caption + "  0";
         } else {
+            // Spread apart on one line: caption pinned left, value pinned right.
             labelRect.offsetMin = new Vector2(10f, 0f);
-            labelRect.offsetMax = Vector2.zero;
             box.Label.alignment = TextAlignmentOptions.MidlineLeft;
             valueRect.offsetMax = new Vector2(-10f, 0f);
             box.Value.alignment = TextAlignmentOptions.MidlineRight;
@@ -2124,7 +2104,10 @@ public static class KeyViewerOverlay {
                     // to equal the pre-rebuild value.
                     int value = box.IsKps ? pressLog.Count : totalCount;
                     if(box.Value != null && box.LastShown != value) {
-                        box.Value.text = value.ToString(CultureInfo.InvariantCulture);
+                        // Together mode renders the caption inline with the value.
+                        box.Value.text = box.StatTogether
+                            ? box.StatCaption + "  " + value.ToString(CultureInfo.InvariantCulture)
+                            : value.ToString(CultureInfo.InvariantCulture);
                         box.LastShown = value;
                     }
                     continue;

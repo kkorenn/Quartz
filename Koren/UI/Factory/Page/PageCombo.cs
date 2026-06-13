@@ -45,10 +45,6 @@ internal static class PageCombo {
             def.MasterSize, 0.25f, 3f, conf.MasterSize, "0.00 x", 0.01f,
             v => conf.MasterSize = v, Apply, Save);
 
-        AddSlider(sec.Body, "Vertical Offset", "combo_offsety",
-            def.OffsetY, -500f, 500f, conf.OffsetY, "0 px", 1f,
-            v => conf.OffsetY = v, Apply, Save);
-
         // === Label ===
         GenerateUI.Localize(GenerateUI.AddTextH1(GenerateUI.Row(sec.Body)), "HEADING_LABEL", "Label");
 
