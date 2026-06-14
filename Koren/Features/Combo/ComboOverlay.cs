@@ -188,7 +188,11 @@ public static class ComboOverlay {
     private static float GetOffsetYFromPosition(float anchoredY) {
         ProgressBarOverlay.EnsureConf();
         ProgressBarSettings bar = ProgressBarOverlay.Conf;
-        return anchoredY + bar.TopOffset + bar.Height + VerticalGap;
+        // Exact inverse of GetDefaultPosition's y = -(B + OffsetY), i.e.
+        // OffsetY = -(anchoredY + B). The old "+(anchoredY + B)" had the wrong
+        // sign, so every reorganize/Dispose writeback negated OffsetY and the
+        // combo crept to the top of the screen across launches.
+        return -(anchoredY + bar.TopOffset + bar.Height + VerticalGap);
     }
 
     private static void ApplyValueMaterial() {
@@ -239,6 +243,7 @@ public static class ComboOverlay {
         private bool lastCaptionShown;
         private float lastCaptionSize = float.NaN;
         private float lastLabelKick = float.NaN;
+        private float lastCaptionOffsetY = float.NaN;
         private float lastBlockH = float.NaN;
         // Cached value-text preferred size per point, so the pulse (which only
         // scales the size, not the text) doesn't pay a full GetPreferredValues
@@ -341,7 +346,10 @@ public static class ComboOverlay {
                         || valueChanged
                         || !lastCaptionShown
                         || captionSize != lastCaptionSize
-                        || labelKick != lastLabelKick;
+                        || labelKick != lastLabelKick
+                        // Without this a live CaptionOffsetY edit didn't move the
+                        // caption until the next tile hit flipped valueChanged.
+                        || Conf.CaptionOffsetY != lastCaptionOffsetY;
                     if(captionChanged) {
                         captionText.fontSize = captionSize;
                         captionText.color = Color.white;
@@ -356,6 +364,7 @@ public static class ComboOverlay {
                         ApplyCaptionMaterial();
                         lastCaptionSize = captionSize;
                         lastLabelKick = labelKick;
+                        lastCaptionOffsetY = Conf.CaptionOffsetY;
                     }
                 } else if(lastCaptionShown || captionFontChanged) {
                     // Caption just turned off (or font swapped while off): one apply

@@ -102,6 +102,10 @@ public static class KeyViewerOverlay {
         public int RainGroup;
         public float CenterX;
         public float BoxW;
+        // Horizontal rain alignment within the box: -1 = left edge, 0 = center,
+        // +1 = right edge. Only matters when the rain is narrower than the box
+        // (a wide key); single keys leave it 0 (centered).
+        public float RainAlign;
         public RawRain LastRain;
         public RawRain LastGhostRain;
         public DmNoteSpec Dm;
@@ -460,6 +464,19 @@ public static class KeyViewerOverlay {
         box.RainGroup = slot < 8 ? 1 : builtStyle == 3 && slot >= 16 ? 3 : 2;
         box.CenterX = x + w * 0.5f;
         box.BoxW = w;
+
+        // A wide key (e.g. the 10-key back row's 2-wide keys) pulls its one-key
+        // rain toward the grid center: a key left of center aligns its rain to its
+        // RIGHT edge, one right of center to its LEFT edge — so the two inner
+        // rains sit next to each other instead of each emitting from the middle of
+        // a wide key. Single keys (cols == 1) stay centered.
+        int cols = Mathf.Max(1, Mathf.RoundToInt((w + KeyGap) / (KeyW + KeyGap)));
+        if(cols > 1) {
+            float gridCenter = SpanW(8) * 0.5f;
+            box.RainAlign = box.CenterX < gridCenter - 0.5f ? 1f
+                : box.CenterX > gridCenter + 0.5f ? -1f
+                : 0f;
+        }
 
         // Key label: centered, lifted off the counter strip at the bottom.
         box.Label = NewText(box.Fill.transform, "Label", LabelFor(builtStyle, slot), KeyFontSize);
@@ -1559,20 +1576,22 @@ public static class KeyViewerOverlay {
         bool frontRow = box.RainGroup == 1;
         float width = frontRow ? Conf.RainWidth : Conf.Rain2Width;
         if(width <= 0.5f) {
-            // 0 = the key's full width.
-            width = box.BoxW;
-        } else {
-            // A fixed width is per key-column, so a 2-wide key (e.g. the
-            // 10-key's bottom row) gets 2x. Columns from the box width, where
-            // SpanW(n) = KeyW*n + KeyGap*(n-1).
-            int cols = Mathf.Max(1, Mathf.RoundToInt((box.BoxW + KeyGap) / (KeyW + KeyGap)));
-            width *= cols;
+            // 0 = one key wide. A multi-column key (e.g. a wide spacebar or the
+            // 10-key back row's 2-wide keys) gets a single-key-wide rain, NOT one
+            // spanning the whole box — so it never reads as "2 keys wide".
+            width = KeyW;
         }
+        // A set width is used as-is — never multiplied per column — so a 2-wide
+        // key keeps a one-key rain unless the width is deliberately set wider.
+
+        // Shift the rain within the box per its alignment (wide keys pull toward
+        // the grid center); the slack is the free space the narrower rain has.
+        float slack = Mathf.Max(0f, box.BoxW - width);
 
         RawRain raw = new() {
             Group = box.RainGroup,
             StartTime = now,
-            AnchorX = box.CenterX,
+            AnchorX = box.CenterX + box.RainAlign * (slack * 0.5f),
             Width = width,
             // Offset moves the base line; rain rises from the grid top.
             BaseY = -(frontRow ? Conf.RainOffsetY : Conf.Rain2OffsetY),

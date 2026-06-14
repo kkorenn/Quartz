@@ -108,6 +108,7 @@ internal static class PageOverlay {
         PageCombo.AppendTo(content.transform);
         PageJudgement.AppendTo(content.transform);
         PageKeyViewer.AppendTo(content.transform);
+        PageSongTitle.AppendTo(content.transform);
 
         // === Panels ===
 
@@ -174,6 +175,13 @@ internal static class PageOverlay {
                 () => Koren.Features.Judgement.JudgementOverlay.ResetPosition(),
                 "Reset Judgement Position",
                 "overlay_resetjudgement"
+            );
+
+            GenerateUI.Button(
+                GenerateUI.Row(sec.Body),
+                () => Koren.Features.SongTitle.SongTitleOverlay.ResetPosition(),
+                "Reset Song Title Position",
+                "overlay_resetsongtitle"
             );
 
             GenerateUI.Button(

@@ -56,6 +56,11 @@ public class ResizeHandle : MonoBehaviour {
         var upEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
         upEntry.callback.AddListener(_ => {
             dragging = false;
+            // Persist the new size only when an actual resize happened (not a bare
+            // click), so it's restored on the next launch.
+            if(Panel != null && Panel.sizeDelta != startSize) {
+                UICore.SavePanelSize();
+            }
             if(!hovered) {
                 NativeCursor.Reset();
             }

@@ -23,8 +23,24 @@ public static class FontManager {
     // action row. Picked up by the settings page, never used as a real font.
     public const string AddSentinel = "koren-add-custom-font";
 
+    // Dropdown sentinel for "use the mod's overlay font" in the in-game-font
+    // picker. Stored as an empty CoreSettings.GameOverlayFontName.
+    public const string SameAsOverlay = "koren-overlay-font-same";
+
     public static TMP_FontAsset Current { get; private set; }
     public static string CurrentName { get; private set; } = DefaultName;
+
+    // Font for the in-game overlay (the GameOverlayFont feature). Follows the
+    // mod's overlay font when GameOverlayFontName is empty / "same as overlay",
+    // otherwise the named font (falling back to the default if it's gone).
+    public static TMP_FontAsset GameOverlayFontAsset {
+        get {
+            string name = MainCore.Conf?.GameOverlayFontName;
+            return string.IsNullOrEmpty(name) || name == SameAsOverlay
+                ? Current
+                : GetFont(name);
+        }
+    }
 
     // Raised after the selected font changes (and after ApplyToAll re-points the
     // mod's UI). The GameOverlayFont feature listens so it can re-apply the font

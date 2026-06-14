@@ -15,6 +15,7 @@ using Koren.Features.OttoIcon;
 using Koren.Features.Panels;
 using Koren.Features.PlanetColors;
 using Koren.Features.ProgressBar;
+using Koren.Features.SongTitle;
 using Koren.Features.Status;
 using Koren.Features.Tweaks;
 using Koren.Features.UiHider;
@@ -216,6 +217,7 @@ public sealed class KorenRuntime {
             ProgressBarOverlay.Initialize(RootObject);
             JudgementOverlay.Initialize(RootObject);
             KeyViewerOverlay.Initialize(RootObject);
+            SongTitleOverlay.Initialize(RootObject);
 
             // Re-disable editor Save buttons if the Effect Remover is on.
             EffectRemover.RefreshEditorSaveButtons();
@@ -234,6 +236,7 @@ public sealed class KorenRuntime {
         } else {
             OnModEnabledChanged?.Invoke(false, isDispose);
 
+            SongTitleOverlay.Dispose();
             KeyViewerOverlay.Dispose();
             JudgementOverlay.Dispose();
             ProgressBarOverlay.Dispose();

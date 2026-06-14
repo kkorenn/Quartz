@@ -388,7 +388,7 @@ public static class UICore {
         Panel.anchorMin = new(0.5f, 0.5f);
         Panel.anchorMax = new(0.5f, 0.5f);
         Panel.pivot = new(0.5f, 0.5f);
-        Panel.sizeDelta = LastPanelSize = DefaultPanelSize;
+        Panel.sizeDelta = LastPanelSize = LoadSavedPanelSize();
         LastPanelPosition = Panel.position;
 
         panel.AddComponent<RectMask2D>();
@@ -682,6 +682,41 @@ public static class UICore {
         Mathf.Min(720f / MainCore.Conf.UIScale, Screen.height / MainCore.Conf.UIScale)
     );
 
+    // The user-resized panel size saved from a previous session, clamped to the
+    // current screen and the resize minimums; falls back to the default when
+    // unset (first run) or if the screen shrank, so a restored panel can't land
+    // off-screen or below a usable size.
+    private static Vector2 LoadSavedPanelSize() {
+        float w = MainCore.Conf.PanelWidth;
+        float h = MainCore.Conf.PanelHeight;
+        if(w <= 0f || h <= 0f) {
+            return DefaultPanelSize;
+        }
+
+        float scale = MainCore.Conf.UIScale;
+        float minW = ResizeHandle.MIN_WIDTH / scale;
+        float minH = ResizeHandle.MIN_HEIGHT / scale;
+        float maxW = Screen.width / scale;
+        float maxH = Screen.height / scale;
+        return new Vector2(
+            Mathf.Clamp(w, minW, Mathf.Max(minW, maxW)),
+            Mathf.Clamp(h, minH, Mathf.Max(minH, maxH))
+        );
+    }
+
+    // Persists the current panel size so a resize is restored next launch. Called
+    // when a resize-drag ends.
+    public static void SavePanelSize() {
+        if(Panel == null) {
+            return;
+        }
+
+        LastPanelSize = Panel.sizeDelta;
+        MainCore.Conf.PanelWidth = Panel.sizeDelta.x;
+        MainCore.Conf.PanelHeight = Panel.sizeDelta.y;
+        MainCore.ConfMgr.RequestSave();
+    }
+
     public static void HandleUpdate() {
         if(canvasObj == null) {
             return;
@@ -864,6 +899,11 @@ public static class UICore {
 
         LastPanelPosition = Vector2.zero;
         LastPanelSize = targetSize;
+
+        // Reset clears the saved size too, so the next launch uses the default.
+        MainCore.Conf.PanelWidth = 0f;
+        MainCore.Conf.PanelHeight = 0f;
+        MainCore.ConfMgr.RequestSave();
 
         panelTweener?.Kill();
         resetSequence?.Kill();

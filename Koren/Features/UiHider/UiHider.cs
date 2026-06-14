@@ -92,7 +92,9 @@ public static partial class UiHider {
             return;
         }
 
-        if(IsEditingLevel()) {
+        if(IsEditingLevel() || scnEditor.instance != null) {
+            HideGameplayDifficultyContainer(uiController);
+
             object editor = scnEditor.instance;
             SetEnabled(GetMemberValue(editor, "autoImage"), !hideOtto);
             SetEnabled(GetMemberValue(editor, "buttonAuto"), !hideOtto);
@@ -251,6 +253,29 @@ public static partial class UiHider {
         }
         if(gameObject.activeSelf == hide) {
             gameObject.SetActive(!hide);
+        }
+    }
+
+    internal static void HideGameplayDifficultyContainer(scrUIController uiController) {
+        if(uiController == null) {
+            return;
+        }
+
+        try {
+            if(uiController.difficultyContainer != null) {
+                uiController.difficultyContainer.gameObject.SetActive(false);
+            }
+            if(uiController.difficultyFadeContainer != null) {
+                uiController.difficultyFadeContainer.blocksRaycasts = false;
+                uiController.difficultyFadeContainer.gameObject.SetActive(false);
+            }
+            if(uiController.difficultyButtonLeft != null) {
+                uiController.difficultyButtonLeft.enabled = false;
+            }
+            if(uiController.difficultyButtonRight != null) {
+                uiController.difficultyButtonRight.enabled = false;
+            }
+        } catch {
         }
     }
 

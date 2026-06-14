@@ -117,6 +117,46 @@ public static class GameStats {
 
     public static int Combo => Koren.Features.Combo.Combo.Count;
 
+    // Current level's song artist and title from the custom-level metadata.
+    // levelData.artist is the *song* artist (what the game shows in the title);
+    // levelData.author is the chart creator — not what we want here. Empty for
+    // built-in levels (no scnGame) — callers fall back to SongTitleRaw. Safe to
+    // poll every frame.
+    public static string SongArtist {
+        get {
+            try {
+                var g = scnGame.instance;
+                return g != null && g.levelData != null ? g.levelData.artist ?? "" : "";
+            } catch {
+                return "";
+            }
+        }
+    }
+
+    public static string SongTitle {
+        get {
+            try {
+                var g = scnGame.instance;
+                return g != null && g.levelData != null ? g.levelData.song ?? "" : "";
+            } catch {
+                return "";
+            }
+        }
+    }
+
+    // The game's own combined title text (e.g. "artist - title"), used as a
+    // fallback when the separate author/song metadata isn't available.
+    public static string SongTitleRaw {
+        get {
+            try {
+                scrController c = scrController.instance;
+                return c != null && c.txtLevelName != null ? c.txtLevelName.text ?? "" : "";
+            } catch {
+                return "";
+            }
+        }
+    }
+
     // True when the current run started mid-level (via checkpoint). The HUD
     // can use this to render Progress as a "start% - now%" range.
     public static bool RunHasStartProgress => !ProgressTracker.RunStartedFromFirstTile

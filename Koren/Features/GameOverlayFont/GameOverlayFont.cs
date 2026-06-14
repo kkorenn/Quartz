@@ -57,7 +57,7 @@ public static class GameOverlayFont {
     }
 
     private static bool Active =>
-        MainCore.IsModEnabled && MainCore.Conf.ApplyFontToGameOverlay && FontManager.Current != null;
+        MainCore.IsModEnabled && MainCore.Conf.ApplyFontToGameOverlay && FontManager.GameOverlayFontAsset != null;
 
     public static void Refresh() {
         if(!Active) {
@@ -117,7 +117,7 @@ public static class GameOverlayFont {
         graphic == null || (root != null && graphic.transform.IsChildOf(root.transform));
 
     private static void OverrideTmp(TMP_Text tmp) {
-        TMP_FontAsset want = FontManager.Current;
+        TMP_FontAsset want = FontManager.GameOverlayFontAsset;
         if(tmp == null || want == null) {
             return;
         }
@@ -208,7 +208,7 @@ public static class GameOverlayFont {
             return;
         }
 
-        TMP_FontAsset want = FontManager.Current;
+        TMP_FontAsset want = FontManager.GameOverlayFontAsset;
         foreach(Capture cap in tmpCaptures.Values) {
             if(cap.Tmp == null) {
                 continue;
@@ -238,6 +238,25 @@ public static class GameOverlayFont {
             }
             try {
                 OverrideTmp(text);
+            } catch {
+            }
+        }
+    }
+
+    // Legacy UnityEngine.UI.Text is fonted through the same RDString call, but it
+    // can't render the runtime mod .ttf, so it's mirrored onto a TMP twin. Hooking
+    // the apply means the twin is created — and the game font hidden — the very
+    // instant the game fonts the label (panel open / language change), instead of
+    // waiting for the next periodic sweep. That closes the window where the game
+    // font shows for a few frames before the swap.
+    [HarmonyPatch(typeof(RDString), "SetLocalizedFont", new[] { typeof(Text) })]
+    private static class TextFontPatch {
+        private static void Postfix(Text text) {
+            if(!Active || IsModUi(text, MainCore.Root)) {
+                return;
+            }
+            try {
+                GameFontMirror.Ensure()?.Track(text);
             } catch {
             }
         }
@@ -320,7 +339,7 @@ public sealed class GameFontMirror : MonoBehaviour {
         rt.localScale = Vector3.one;
 
         var twin = twinGo.AddComponent<TextMeshProUGUI>();
-        twin.font = FontManager.Current;
+        twin.font = FontManager.GameOverlayFontAsset;
         twin.raycastTarget = false;
         twinIds.Add(twin.GetInstanceID());
 
@@ -358,7 +377,25 @@ public sealed class GameFontMirror : MonoBehaviour {
             rescanCountdown = GameStats.InGame ? 300 : 30;
             GameOverlayFont.TrackScene();
         }
+    }
 
+    // The per-frame twin sync runs on the canvas pre-render, NOT in LateUpdate.
+    // willRenderCanvases is the last main-thread callback before the UI is drawn
+    // (after every Update/LateUpdate and any coroutine), and SetAlpha(0) on the
+    // source's CanvasRenderer there takes effect this frame with no rebuild — so a
+    // label the game shows or re-enables late in the frame (e.g. a panel re-open,
+    // which doesn't re-run SetLocalizedFont) is hidden behind its twin before it
+    // can draw even one frame of the game font. Same work as before, just moved to
+    // the latest possible point — no extra cost.
+    private void OnEnable() {
+        Canvas.willRenderCanvases += SyncPairs;
+    }
+
+    private void OnDisable() {
+        Canvas.willRenderCanvases -= SyncPairs;
+    }
+
+    private void SyncPairs() {
         for(int i = pairs.Count - 1; i >= 0; i--) {
             Pair pair = pairs[i];
             if(pair.Source == null || pair.Twin == null) {
@@ -377,9 +414,11 @@ public sealed class GameFontMirror : MonoBehaviour {
     }
 
     private static void Apply(Text source, TextMeshProUGUI twin) {
-        // Follow the current font live, so changing it in the mod refreshes here.
-        if(twin.font != FontManager.Current) {
-            twin.font = FontManager.Current;
+        // Follow the in-game overlay font live, so changing it (or the overlay
+        // font it may follow) in the mod refreshes here.
+        TMP_FontAsset want = FontManager.GameOverlayFontAsset;
+        if(twin.font != want) {
+            twin.font = want;
         }
         // TMP's text setter does NOT early-out on an equal string — it re-parses
         // and re-tessellates the whole mesh. Most mirrored labels never change
@@ -404,15 +443,18 @@ public sealed class GameFontMirror : MonoBehaviour {
             : TextOverflowModes.Overflow;
 
         if(source.resizeTextForBestFit) {
-            // The game shrinks this label's font to fit its box (whether one line
-            // or wrapped). The mod font is wider, so a fixed point size overflows
-            // and clips ("Selfmade Disc" -> "Selfmade Dis"). Mirror the best-fit
-            // with TMP auto-sizing — it shrinks the font until the text (wrapped or
-            // not) fits the box, exactly like the game, so nothing clips. Cap/min
-            // are constant per label, so once the text settles TMP does no work.
+            // The game best-fits this label between its min/max to FILL its box
+            // (one line or wrapped). Auto-sizing the twin to the SAME box makes it
+            // fill identically — and "fill the box" is metric-independent, so it
+            // matches the game's rendered size without the fixed-label SizeScale
+            // guess. (That guess halved the size and left short words like the
+            // editor's "Strict" badge tiny, and a fixed point size clipped wide
+            // titles — auto-fit fixes both.) Cap at the game's OWN best-fit ceiling
+            // so the twin never overshoots it; min 1 lets it shrink to dodge clips.
+            float maxPx = source.resizeTextMaxSize > 0 ? source.resizeTextMaxSize : source.fontSize;
             twin.enableAutoSizing = true;
             twin.fontSizeMin = 1f;
-            twin.fontSizeMax = Mathf.Max(1f, source.fontSize * SizeScale);
+            twin.fontSizeMax = Mathf.Max(1f, maxPx);
         } else {
             // Fixed-size game label: copy its size directly.
             twin.enableAutoSizing = false;

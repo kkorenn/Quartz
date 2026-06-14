@@ -21,10 +21,21 @@ public sealed class CoreSettings : ISettingsFile {
     // own localized font in place.
     public bool ApplyFontToGameOverlay = false;
 
+    // Font for the in-game overlay when ApplyFontToGameOverlay is on. Empty means
+    // "follow the mod's overlay font (FontName)"; otherwise a font display name
+    // from the same picker, so the in-game text can use a different face.
+    public string GameOverlayFontName = "";
+
     public float ScrollSpeed = 80f;
 
     // Settings-window opacity (0..1). Default fully opaque (shown as 100%).
     public float PanelOpacity = 1.0f;
+
+    // User-resized settings-window size, in panel-local (reference) units. 0 =
+    // unset → use the screen-derived default. Restored (clamped to screen/min)
+    // on next launch so a resize persists across sessions.
+    public float PanelWidth = 0f;
+    public float PanelHeight = 0f;
 
     public Dictionary<string, bool> CollapsibleStates = [];
 
@@ -89,8 +100,11 @@ public sealed class CoreSettings : ISettingsFile {
             [nameof(UIScale)] = UIScale,
             [nameof(FontName)] = FontName,
             [nameof(ApplyFontToGameOverlay)] = ApplyFontToGameOverlay,
+            [nameof(GameOverlayFontName)] = GameOverlayFontName,
             [nameof(ScrollSpeed)] = ScrollSpeed,
             [nameof(PanelOpacity)] = PanelOpacity,
+            [nameof(PanelWidth)] = PanelWidth,
+            [nameof(PanelHeight)] = PanelHeight,
             [nameof(ToggleModifier)] = ToggleModifier,
             [nameof(ToggleKey)] = ToggleKey,
             [nameof(UpdateChannel)] = UpdateChannel,
@@ -112,8 +126,11 @@ public sealed class CoreSettings : ISettingsFile {
         UIScale = IOUtils.Read(token, nameof(UIScale), UIScale);
         FontName = IOUtils.Read(token, nameof(FontName), FontName);
         ApplyFontToGameOverlay = IOUtils.Read(token, nameof(ApplyFontToGameOverlay), ApplyFontToGameOverlay);
+        GameOverlayFontName = IOUtils.Read(token, nameof(GameOverlayFontName), GameOverlayFontName);
         ScrollSpeed = IOUtils.Read(token, nameof(ScrollSpeed), ScrollSpeed);
         PanelOpacity = IOUtils.Read(token, nameof(PanelOpacity), PanelOpacity);
+        PanelWidth = IOUtils.Read(token, nameof(PanelWidth), PanelWidth);
+        PanelHeight = IOUtils.Read(token, nameof(PanelHeight), PanelHeight);
         ToggleModifier = IOUtils.Read(token, nameof(ToggleModifier), ToggleModifier);
         ToggleKey = IOUtils.Read(token, nameof(ToggleKey), ToggleKey);
         UpdateChannel = IOUtils.Read(token, nameof(UpdateChannel), UpdateChannel);
