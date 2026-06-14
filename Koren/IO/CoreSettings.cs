@@ -14,6 +14,13 @@ public sealed class CoreSettings : ISettingsFile {
     public bool MiddleClickToDefault = true;
     public float UIScale = 1.0f;
     public string FontName = "";
+
+    // Apply FontName to A Dance of Fire and Ice's own in-game overlay (the
+    // scrHUDText title/artist HUD shown during play), not just the mod's UI.
+    // "Default (SUIT)" has no standalone font file, so it leaves the game's
+    // own localized font in place.
+    public bool ApplyFontToGameOverlay = false;
+
     public float ScrollSpeed = 80f;
 
     // Settings-window opacity (0..1). Default fully opaque (shown as 100%).
@@ -81,6 +88,7 @@ public sealed class CoreSettings : ISettingsFile {
             [nameof(MiddleClickToDefault)] = MiddleClickToDefault,
             [nameof(UIScale)] = UIScale,
             [nameof(FontName)] = FontName,
+            [nameof(ApplyFontToGameOverlay)] = ApplyFontToGameOverlay,
             [nameof(ScrollSpeed)] = ScrollSpeed,
             [nameof(PanelOpacity)] = PanelOpacity,
             [nameof(ToggleModifier)] = ToggleModifier,
@@ -103,6 +111,7 @@ public sealed class CoreSettings : ISettingsFile {
         MiddleClickToDefault = IOUtils.Read(token, nameof(MiddleClickToDefault), MiddleClickToDefault);
         UIScale = IOUtils.Read(token, nameof(UIScale), UIScale);
         FontName = IOUtils.Read(token, nameof(FontName), FontName);
+        ApplyFontToGameOverlay = IOUtils.Read(token, nameof(ApplyFontToGameOverlay), ApplyFontToGameOverlay);
         ScrollSpeed = IOUtils.Read(token, nameof(ScrollSpeed), ScrollSpeed);
         PanelOpacity = IOUtils.Read(token, nameof(PanelOpacity), PanelOpacity);
         ToggleModifier = IOUtils.Read(token, nameof(ToggleModifier), ToggleModifier);

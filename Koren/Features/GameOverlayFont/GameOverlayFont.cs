@@ -1,0 +1,290 @@
+using HarmonyLib;
+using Koren.Async;
+using Koren.Core;
+using Koren.Resource;
+using TMPro;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+namespace Koren.Features.GameOverlayFont;
+
+// Applies the mod's selected font to A Dance of Fire and Ice's OWN text — the
+// menus, level titles and in-game HUD — rather than only the mod's UI (which
+// FontManager.ApplyToAll already covers).
+//
+// Most of that text is legacy UnityEngine.UI.Text, which can't render a
+// runtime-loaded .ttf, and which the game's own scripts hold references to (for
+// fading, sizing and show/hide). Rather than convert or re-font those — which
+// breaks the game's control of them — each legacy label is left completely
+// intact but made transparent, and a TextMeshProUGUI "twin" is laid over it
+// that copies its text, colour (so fades follow), font size and visibility every
+// frame, drawn in the mod's TMP font. Text that is already TMP just has its font
+// swapped directly.
+//
+// GameFontMirror (a MonoBehaviour on the mod root) drives the per-frame copy.
+public static class GameOverlayFont {
+    private sealed class Capture {
+        public TMP_Text Tmp;
+        public TMP_FontAsset Original;
+    }
+
+    // Native-TMP game labels we re-fonted, kept so the font can be put back.
+    private static readonly Dictionary<int, Capture> tmpCaptures = [];
+    private static bool hooked;
+
+    public static void Initialize() {
+        if(hooked) {
+            return;
+        }
+        hooked = true;
+        SceneManager.sceneLoaded += (_, _) => MainThread.Enqueue(Refresh);
+    }
+
+    private static bool Active =>
+        MainCore.IsModEnabled && MainCore.Conf.ApplyFontToGameOverlay && FontManager.Current != null;
+
+    public static void Refresh() {
+        if(!Active) {
+            Restore();
+            return;
+        }
+        TrackScene();
+    }
+
+    // Sweeps the live scene: twins any new legacy Text, swaps the font on any new
+    // TMP. Re-run periodically by the mirror so text shown after a scene loads
+    // (pause menu, popups) is picked up too. Idempotent.
+    internal static void TrackScene() {
+        if(!Active) {
+            return;
+        }
+
+        GameFontMirror mirror = GameFontMirror.Ensure();
+        if(mirror == null) {
+            return;
+        }
+
+        GameObject root = MainCore.Root;
+        foreach(Text text in UnityEngine.Object.FindObjectsOfType<Text>()) {
+            if(!IsModUi(text, root)) {
+                mirror.Track(text);
+            }
+        }
+        foreach(TMP_Text tmp in UnityEngine.Object.FindObjectsOfType<TMP_Text>()) {
+            if(!IsModUi(tmp, root) && !GameFontMirror.IsTwin(tmp)) {
+                OverrideTmp(tmp);
+            }
+        }
+    }
+
+    public static void Restore() {
+        GameFontMirror.DisposeInstance();
+
+        foreach(Capture cap in tmpCaptures.Values) {
+            if(cap.Tmp != null && cap.Tmp.font != cap.Original) {
+                cap.Tmp.font = cap.Original;
+            }
+        }
+        tmpCaptures.Clear();
+    }
+
+    internal static bool IsModUi(Graphic graphic, GameObject root) =>
+        graphic == null || (root != null && graphic.transform.IsChildOf(root.transform));
+
+    private static void OverrideTmp(TMP_Text tmp) {
+        TMP_FontAsset want = FontManager.Current;
+        if(tmp == null || want == null) {
+            return;
+        }
+
+        int id = tmp.GetInstanceID();
+        if(!tmpCaptures.ContainsKey(id)) {
+            tmpCaptures[id] = new Capture { Tmp = tmp, Original = tmp.font };
+        }
+        if(tmp.font != want) {
+            tmp.font = want;
+            tmp.fontSharedMaterial = want.material;
+        }
+    }
+
+    [HarmonyPatch(typeof(RDString), "SetLocalizedFont", new[] { typeof(TMP_Text) })]
+    private static class TmpFontPatch {
+        private static void Postfix(TMP_Text text) {
+            if(!Active || IsModUi(text, MainCore.Root) || GameFontMirror.IsTwin(text)) {
+                return;
+            }
+            try {
+                OverrideTmp(text);
+            } catch {
+            }
+        }
+    }
+
+    // The in-game judgement hit text ("Perfect", "Early"…) renders larger in the
+    // mod font. Init sets its fontSize (after the font swap) and animates only
+    // transform scale, so trimming fontSize here sticks without fighting the
+    // punch animation.
+    private const float HitTextScale = 0.75f;
+
+    [HarmonyPatch(typeof(scrHitTextMesh), "Init")]
+    private static class HitTextSizePatch {
+        private static void Postfix(scrHitTextMesh __instance) {
+            if(!Active) {
+                return;
+            }
+            try {
+                if(__instance.text != null) {
+                    __instance.text.fontSize *= HitTextScale;
+                }
+            } catch {
+            }
+        }
+    }
+}
+
+// Mirrors each tracked legacy UI.Text onto an overlaid TextMeshProUGUI twin in
+// the mod font, hiding the original's glyphs (CanvasRenderer alpha, which is
+// independent of the Text's own colour/enabled state, so the game keeps full
+// control). Lives on the mod root so it survives scene loads.
+public sealed class GameFontMirror : MonoBehaviour {
+    private sealed class Pair {
+        public Text Source;
+        public TextMeshProUGUI Twin;
+    }
+
+    private const string TwinName = "KorenFontTwin";
+    // Twin point size relative to the original's nominal point size.
+    private const float SizeScale = 0.5f;
+
+    private static GameFontMirror instance;
+    private static readonly HashSet<int> twinIds = [];
+
+    private readonly List<Pair> pairs = [];
+    private readonly HashSet<int> trackedSources = [];
+
+    public static GameFontMirror Ensure() {
+        if(instance == null && MainCore.Root != null) {
+            instance = MainCore.Root.AddComponent<GameFontMirror>();
+        }
+        return instance;
+    }
+
+    public static bool IsTwin(Component c) => c != null && twinIds.Contains(c.GetInstanceID());
+
+    public static void DisposeInstance() {
+        if(instance != null) {
+            instance.Clear();
+            Destroy(instance);
+            instance = null;
+        }
+        twinIds.Clear();
+    }
+
+    public void Track(Text source) {
+        if(source == null || !trackedSources.Add(source.GetInstanceID())) {
+            return;
+        }
+
+        var twinGo = new GameObject(TwinName);
+        twinGo.transform.SetParent(source.transform, false);
+
+        var rt = twinGo.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+        rt.localScale = Vector3.one;
+
+        var twin = twinGo.AddComponent<TextMeshProUGUI>();
+        twin.font = FontManager.Current;
+        twin.raycastTarget = false;
+        twinIds.Add(twin.GetInstanceID());
+
+        pairs.Add(new Pair { Source = source, Twin = twin });
+        Apply(source, twin);
+    }
+
+    private int rescanCountdown;
+
+    private void LateUpdate() {
+        // Periodically re-sweep so text shown after the scene loaded (pause menu,
+        // popups, results) gets picked up too.
+        if(--rescanCountdown <= 0) {
+            rescanCountdown = 30;
+            GameOverlayFont.TrackScene();
+        }
+
+        for(int i = pairs.Count - 1; i >= 0; i--) {
+            Pair pair = pairs[i];
+            if(pair.Source == null || pair.Twin == null) {
+                if(pair.Twin != null) {
+                    twinIds.Remove(pair.Twin.GetInstanceID());
+                    Destroy(pair.Twin.gameObject);
+                }
+                if(pair.Source != null) {
+                    trackedSources.Remove(pair.Source.GetInstanceID());
+                }
+                pairs.RemoveAt(i);
+                continue;
+            }
+            Apply(pair.Source, pair.Twin);
+        }
+    }
+
+    private static void Apply(Text source, TextMeshProUGUI twin) {
+        twin.text = source.text;
+        twin.color = source.color;
+        twin.fontStyle = MapStyle(source.fontStyle);
+        twin.alignment = MapAnchor(source.alignment);
+        twin.richText = source.supportRichText;
+        twin.enableWordWrapping = source.horizontalOverflow == HorizontalWrapMode.Wrap;
+        twin.overflowMode = source.verticalOverflow == VerticalWrapMode.Truncate
+            ? TextOverflowModes.Truncate
+            : TextOverflowModes.Overflow;
+        twin.enabled = source.enabled;
+
+        // Just scale the nominal point size — the twin is a child of the source,
+        // so any transform scale the game animates on the label carries over and
+        // keeps the relative size correct.
+        twin.enableAutoSizing = false;
+        twin.fontSize = source.fontSize * SizeScale;
+
+        // Hide the original's pixels without touching its colour/enabled state,
+        // so the game's own fade and show/hide logic keeps driving the twin.
+        source.canvasRenderer.SetAlpha(0f);
+    }
+
+    private void Clear() {
+        foreach(Pair pair in pairs) {
+            if(pair.Twin != null) {
+                Destroy(pair.Twin.gameObject);
+            }
+            if(pair.Source != null) {
+                pair.Source.canvasRenderer.SetAlpha(1f);
+            }
+        }
+        pairs.Clear();
+        trackedSources.Clear();
+    }
+
+    private static FontStyles MapStyle(FontStyle style) => style switch {
+        FontStyle.Bold => FontStyles.Bold,
+        FontStyle.Italic => FontStyles.Italic,
+        FontStyle.BoldAndItalic => FontStyles.Bold | FontStyles.Italic,
+        _ => FontStyles.Normal,
+    };
+
+    private static TextAlignmentOptions MapAnchor(TextAnchor anchor) => anchor switch {
+        TextAnchor.UpperLeft => TextAlignmentOptions.TopLeft,
+        TextAnchor.UpperCenter => TextAlignmentOptions.Top,
+        TextAnchor.UpperRight => TextAlignmentOptions.TopRight,
+        TextAnchor.MiddleLeft => TextAlignmentOptions.Left,
+        TextAnchor.MiddleCenter => TextAlignmentOptions.Center,
+        TextAnchor.MiddleRight => TextAlignmentOptions.Right,
+        TextAnchor.LowerLeft => TextAlignmentOptions.BottomLeft,
+        TextAnchor.LowerCenter => TextAlignmentOptions.Bottom,
+        TextAnchor.LowerRight => TextAlignmentOptions.BottomRight,
+        _ => TextAlignmentOptions.Center,
+    };
+}

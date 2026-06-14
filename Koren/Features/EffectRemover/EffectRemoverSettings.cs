@@ -43,7 +43,11 @@ public sealed class EffectRemoverSettings : ISettingsFile {
 
     // === Misc ===
     public bool RemoveAllDecorations = true;
-    public bool ResetTrackOpacity = false;
+    // Background sub-option (shown only when Backgrounds is on): also hide the
+    // default/tutorial background's tiled pattern. Its pulsing shapes are
+    // always disabled whenever Backgrounds is on.
+    public bool RemoveTutorialPatterns = true;
+    public bool LimitTrackOpacity = false;
     public bool SetCameraZoom = false;
     public float CameraZoomScale = 250f;
     public bool ResetTrackAnimation = false;
@@ -72,7 +76,8 @@ public sealed class EffectRemoverSettings : ISettingsFile {
             [nameof(HoldSounds)] = HoldSounds,
             [nameof(HideIcons)] = HideIcons,
             [nameof(RemoveAllDecorations)] = RemoveAllDecorations,
-            [nameof(ResetTrackOpacity)] = ResetTrackOpacity,
+            [nameof(RemoveTutorialPatterns)] = RemoveTutorialPatterns,
+            [nameof(LimitTrackOpacity)] = LimitTrackOpacity,
             [nameof(SetCameraZoom)] = SetCameraZoom,
             [nameof(CameraZoomScale)] = CameraZoomScale,
             [nameof(ResetTrackAnimation)] = ResetTrackAnimation,
@@ -102,7 +107,8 @@ public sealed class EffectRemoverSettings : ISettingsFile {
         HoldSounds = IOUtils.Read(token, nameof(HoldSounds), HoldSounds);
         HideIcons = IOUtils.Read(token, nameof(HideIcons), HideIcons);
         RemoveAllDecorations = IOUtils.Read(token, nameof(RemoveAllDecorations), RemoveAllDecorations);
-        ResetTrackOpacity = IOUtils.Read(token, nameof(ResetTrackOpacity), ResetTrackOpacity);
+        RemoveTutorialPatterns = IOUtils.Read(token, nameof(RemoveTutorialPatterns), RemoveTutorialPatterns);
+        LimitTrackOpacity = IOUtils.Read(token, nameof(LimitTrackOpacity), LimitTrackOpacity);
         SetCameraZoom = IOUtils.Read(token, nameof(SetCameraZoom), SetCameraZoom);
         CameraZoomScale = IOUtils.Read(token, nameof(CameraZoomScale), CameraZoomScale);
         ResetTrackAnimation = IOUtils.Read(token, nameof(ResetTrackAnimation), ResetTrackAnimation);

@@ -4,6 +4,7 @@ using GTweens.Extensions;
 using GTweens.Tweens;
 using Koren.Async;
 using Koren.Core;
+using Koren.Features.GameOverlayFont;
 using Koren.IO;
 using Koren.Localization;
 using Koren.Resource;
@@ -15,6 +16,7 @@ using Koren.Utility;
 using Koren.Update;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityFileDialog;
 using GTweenExtensions = GTweens.Extensions.GTweenExtensions;
 
 using TMPro;
@@ -24,6 +26,17 @@ namespace Koren.UI.Factory.Page;
 internal static class PageSettings {
     private static readonly Dictionary<TextLocalization, (GameObject LabelRow, GameObject MainRow)> objects = [];
     private static UIDropDown<string> languageDropdown;
+
+    // Font picker + custom-font management.
+    private static UIDropDown<string> fontDropdown;
+    private static GameObject fontManageRow;
+    private static UIInput fontRenameInput;
+    private static UIButton fontDeleteBtn;
+    private static Func<Color> fontDeleteRestColor;
+    private static bool fontDeleteArmed;
+    private static GameObject fontStatusRow;
+    private static TextMeshProUGUI fontStatusText;
+    private static string pendingFontName = "";
 
     // Update UI, refreshed from UpdateService.OnChanged.
     private static UIButton updateCheckButton;
@@ -616,21 +629,255 @@ internal static class PageSettings {
         var fontText = GenerateUI.AddTextH1(fontLabelRow);
         var fontTextTr = fontText.gameObject.AddComponent<TextLocalization>().Init("FONT", "Font");
 
-        var fontRow = GenerateUI.Row(content.transform);
-        var fontDropdown = GenerateUI.DropDown(
+        // Dropdown + the custom-font manage controls live in one container so
+        // the settings search shows/hides them together.
+        GameObject fontGroup = new("FontGroup");
+        fontGroup.transform.SetParent(content.transform, false);
+        fontGroup.AddComponent<RectTransform>();
+        var fontGroupLayout = fontGroup.AddComponent<VerticalLayoutGroup>();
+        fontGroupLayout.spacing = 8f;
+        fontGroupLayout.childControlWidth = true;
+        fontGroupLayout.childControlHeight = true;
+        fontGroupLayout.childForceExpandWidth = true;
+        fontGroupLayout.childForceExpandHeight = false;
+
+        var fontRow = GenerateUI.Row(fontGroup.transform);
+        fontDropdown = GenerateUI.DropDown(
             fontRow,
             FontManager.DefaultName,
             FontManager.CurrentName,
-            FontManager.GetAvailableFonts(),
-            name => name,
-            name => FontManager.SetFont(name, true),
+            BuildFontValues(),
+            DisplayFont,
+            OnFontSelected,
             "font_dropdown"
         );
         // Render each option in the face it names (e.g. the "JetBrains Mono"
         // row draws in JetBrains Mono).
         fontDropdown.ItemFont = FontManager.GetFont;
-        objects[fontTextTr] = (fontLabelRow.gameObject, fontRow.gameObject);
+
+        // Rename / delete row — shown only when a custom font is selected.
+        var manageRow = GenerateUI.Row(fontGroup.transform);
+        fontManageRow = manageRow.gameObject;
+
+        fontRenameInput = GenerateUI.Input(
+            manageRow,
+            null,
+            FontManager.CurrentName,
+            v => pendingFontName = v,
+            "Font Name",
+            MainCore.Spr.Get(UISprite.Text128),
+            "font_rename"
+        );
+        fontRenameInput.Placeholder.gameObject.AddComponent<TextLocalization>().Init("FONT_NAME", "Font Name");
+        fontRenameInput.InputField.characterLimit = 40;
+
+        fontDeleteBtn = GenerateUI.Button(
+            manageRow,
+            () => DeleteCurrentFont(),
+            "Delete",
+            "font_delete"
+        ).SetSecondary();
+        fontDeleteRestColor = fontDeleteBtn.RestColor;
+        {
+            var br = fontDeleteBtn.Rect;
+            br.pivot = new(1f, 1f);
+            br.anchorMin = new(1f, 1f);
+            br.anchorMax = new(1f, 1f);
+            br.sizeDelta = new(104f, 50f);
+            // anchoredPosition, not offsetMax: BackGround() leaves a non-zero
+            // anchoredPosition (-125) from its stretch inset, and the offsetMax
+            // setter folds that into sizeDelta, blowing up the button width.
+            br.anchoredPosition = Vector2.zero;
+        }
+        fontDeleteBtn.Label.gameObject.AddComponent<TextLocalization>().Init("FONT_DELETE", "Delete");
+
+        UIButton fontRenameBtn = GenerateUI.Button(
+            manageRow,
+            RenameCurrentFont,
+            "Rename",
+            "font_rename_btn"
+        );
+        {
+            var br = fontRenameBtn.Rect;
+            br.pivot = new(1f, 1f);
+            br.anchorMin = new(1f, 1f);
+            br.anchorMax = new(1f, 1f);
+            br.sizeDelta = new(104f, 50f);
+            // 104 wide + 8 gap = 112 left of the Delete button. anchoredPosition
+            // for the same reason as Delete above.
+            br.anchoredPosition = new(-112f, 0f);
+        }
+        fontRenameBtn.Label.gameObject.AddComponent<TextLocalization>().Init("FONT_RENAME", "Rename");
+
+        var fontStatusRowRect = GenerateUI.Row(fontGroup.transform, 28f);
+        fontStatusRow = fontStatusRowRect.gameObject;
+        fontStatusText = GenerateUI.AddText(fontStatusRowRect, noPad: true);
+        fontStatusText.fontSize = 16f;
+        fontStatusText.color = new Color(1f, 1f, 1f, 0.5f);
+        fontStatusText.text = "";
+        fontStatusRow.SetActive(false);
+
+        RefreshFontManageRow();
+
+        objects[fontTextTr] = (fontLabelRow.gameObject, fontGroup);
+
+        // Applies the chosen font to ADOFAI's own in-game overlay (the level
+        // title/artist HUD), handled by the GameOverlayFont feature.
+        var gameFontRow = GenerateUI.Row(content.transform);
+        UIToggle gameFontToggle = GenerateUI.Toggle(
+            gameFontRow,
+            defSet.ApplyFontToGameOverlay,
+            MainCore.Conf.ApplyFontToGameOverlay,
+            toggle => {
+                MainCore.Conf.ApplyFontToGameOverlay = toggle;
+                MainCore.ConfMgr.RequestSave();
+                GameOverlayFont.Refresh();
+            },
+            "Use font in the in-game overlay",
+            "use_font_in_game_overlay"
+        );
+        gameFontToggle.Rect.AddToolTip(
+            "DESC_USE_FONT_IN_GAME_OVERLAY",
+            "Apply the selected font to A Dance of Fire and Ice's own in-game overlay (the level title and artist shown during play), not just this mod's UI. The default SUIT font keeps the game's own font."
+        );
+        var gameFontToggleTr = gameFontToggle.Label.gameObject.AddComponent<TextLocalization>().Init("USE_FONT_IN_GAME_OVERLAY", "Use font in the in-game overlay");
+        objects[gameFontToggleTr] = (fontLabelRow.gameObject, gameFontRow.gameObject);
     }
+
+    private static IReadOnlyList<string> BuildFontValues() {
+        var list = new List<string>(FontManager.GetAvailableFonts()) { FontManager.AddSentinel };
+        return list;
+    }
+
+    private static string DisplayFont(string name) =>
+        name == FontManager.AddSentinel
+            ? Tr("FONT_ADD", "＋  Add custom font…")
+            : name;
+
+    private static void OnFontSelected(string name) {
+        if(name == FontManager.AddSentinel) {
+            // Action row, not a real font — restore the live selection and pick.
+            fontDropdown.Set(FontManager.CurrentName, false);
+            AddCustomFont();
+            return;
+        }
+
+        SetFontStatus(null);
+        FontManager.SetFont(name, true);
+        RefreshFontManageRow();
+    }
+
+    private static void AddCustomFont() {
+        string path;
+        try {
+            path = FileBrowser.PickFile(
+                null,
+                "Font",
+                ["ttf", "otf", "ttc"],
+                Tr("FONT_PICK_TITLE", "Select a font file")
+            );
+        } catch(Exception e) {
+            MainCore.Log.Err($"[{nameof(PageSettings)}] font PickFile failed: {e}");
+            return;
+        }
+
+        if(string.IsNullOrEmpty(path)) {
+            return;
+        }
+
+        string name = FontManager.ImportFont(path);
+        if(name == null) {
+            SetFontStatus(Tr("FONT_IMPORT_FAILED", "Couldn't import that file."));
+            return;
+        }
+
+        fontDropdown.SetValues(BuildFontValues());
+        fontDropdown.Set(name, true); // selects + applies via OnFontSelected
+        SetFontStatus(string.Format(Tr("FONT_ADDED", "Added '{0}'."), name));
+    }
+
+    private static void RenameCurrentFont() {
+        string cur = FontManager.CurrentName;
+        if(!FontManager.IsCustomFont(cur)) {
+            return;
+        }
+
+        if(FontManager.RenameFont(cur, pendingFontName, out string error)) {
+            fontDropdown.SetValues(BuildFontValues());
+            fontDropdown.Set(FontManager.CurrentName, false);
+            RefreshFontManageRow();
+            SetFontStatus(string.Format(Tr("FONT_RENAMED", "Renamed to '{0}'."), FontManager.CurrentName));
+        } else {
+            SetFontStatus(error);
+        }
+    }
+
+    private static void DeleteCurrentFont() {
+        string cur = FontManager.CurrentName;
+        if(!FontManager.IsCustomFont(cur)) {
+            return;
+        }
+
+        // Two-step delete: first click arms the button (red "Sure?").
+        if(!fontDeleteArmed) {
+            fontDeleteArmed = true;
+            fontDeleteBtn.Label.text = Tr("FONT_DELETE_CONFIRM", "Sure?");
+            fontDeleteBtn.RestColor = static () => UIColors.SoftRed;
+            fontDeleteBtn.Background.color = UIColors.SoftRed;
+            return;
+        }
+
+        if(FontManager.DeleteFont(cur)) {
+            fontDropdown.SetValues(BuildFontValues());
+            fontDropdown.Set(FontManager.CurrentName, false);
+            RefreshFontManageRow();
+            SetFontStatus(string.Format(Tr("FONT_DELETED", "Deleted '{0}'."), cur));
+        }
+    }
+
+    // Shows the rename/delete row for custom fonts only, refills the rename
+    // field, and disarms the delete button.
+    private static void RefreshFontManageRow() {
+        if(fontManageRow == null) {
+            return;
+        }
+
+        bool custom = FontManager.IsCustomFont(FontManager.CurrentName);
+        fontManageRow.SetActive(custom);
+
+        fontDeleteArmed = false;
+        if(fontDeleteBtn != null) {
+            fontDeleteBtn.Label.text = Tr("FONT_DELETE", "Delete");
+            if(fontDeleteRestColor != null) {
+                fontDeleteBtn.RestColor = fontDeleteRestColor;
+                fontDeleteBtn.Background.color = fontDeleteRestColor();
+            }
+        }
+
+        if(custom) {
+            pendingFontName = FontManager.CurrentName;
+            fontRenameInput?.Set(FontManager.CurrentName, false);
+        }
+
+        if(pageContent != null) {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(pageContent);
+        }
+    }
+
+    private static void SetFontStatus(string message) {
+        if(fontStatusText == null || fontStatusRow == null) {
+            return;
+        }
+
+        fontStatusText.text = message ?? "";
+        fontStatusRow.SetActive(!string.IsNullOrEmpty(message));
+
+        if(pageContent != null) {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(pageContent);
+        }
+    }
+
+    private static string Tr(string key, string def) => MainCore.Tr.Get(key, def);
 
     // Scrolls the page so the Updates section heading sits at the top of the
     // viewport. Used by the update toast after switching to this page.

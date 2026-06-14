@@ -100,7 +100,7 @@ public static class EffectRemover {
             events.Add(Event(63));
         }
         if(conf.Backgrounds) {
-            RemoveBackgrounds(events, levelData);
+            RemoveBackgrounds(events, levelData, conf);
         }
         if(conf.Cameras) {
             RemoveCameras(events, levelData, conf);
@@ -142,8 +142,8 @@ public static class EffectRemover {
         if(conf.HideIcons) {
             events.Add(Event(50));
         }
-        if(conf.ResetTrackOpacity) {
-            ResetTrackOpacityValues(levelData);
+        if(conf.LimitTrackOpacity) {
+            LimitTrackOpacityValues(levelData);
         }
 
         if(events.Count == 0) {
@@ -164,11 +164,20 @@ public static class EffectRemover {
         events.Add(Event(37));
     }
 
-    private static void RemoveBackgrounds(List<LevelEventType> events, LevelData levelData) {
+    private static void RemoveBackgrounds(List<LevelEventType> events, LevelData levelData, EffectRemoverSettings conf) {
         events.Add(Event(13));
 
         levelData.backgroundSettings = new LevelEvent(0, Event(7), GCS.settingsInfo["BackgroundSettings"]);
         levelData.miscSettings["bgVideo"] = "";
+
+        // Resetting to the default background still draws the tutorial
+        // background's pulsing shapes (and tiled pattern). Always strip the
+        // shapes; strip the tile too when the user asked. Keys are read back as
+        // levelData.bgShapeType / bgShowDefaultBGTile in scnGame.SetBackground.
+        levelData.backgroundSettings["defaultBGShapeType"] = BGShapeType.Disabled;
+        if(conf.RemoveTutorialPatterns) {
+            levelData.backgroundSettings["showDefaultBGTile"] = false;
+        }
     }
 
     private static void RemoveCameras(List<LevelEventType> events, LevelData levelData, EffectRemoverSettings conf) {
@@ -329,7 +338,7 @@ public static class EffectRemover {
         }
     }
 
-    private static void ResetTrackOpacityValues(LevelData levelData) {
+    private static void LimitTrackOpacityValues(LevelData levelData) {
         foreach(LevelEvent eventData in levelData.levelEvents) {
             if(eventData == null) {
                 continue;
@@ -337,7 +346,8 @@ public static class EffectRemover {
             if(eventData.eventType != Event(18) && eventData.eventType != Event(30)) {
                 continue;
             }
-            if(eventData.ContainsKey("opacity")) {
+            // Cap at 100% — leave anything already at or below 100 untouched.
+            if(eventData.ContainsKey("opacity") && eventData.GetFloat("opacity") > 100.0f) {
                 eventData["opacity"] = 100.0f;
             }
         }

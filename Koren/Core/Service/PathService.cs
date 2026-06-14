@@ -8,6 +8,7 @@ public sealed class PathService(string rootPath) {
     public string TempPath => Path.Combine(RootPath, "Temp");
     public string ModulePath => Path.Combine(RootPath, "Module");
     public string FontPath => Path.Combine(RootPath, "Fonts");
+    public string CustomFontPath => Path.Combine(RootPath, "CustomFonts");
 
     public string UserResourcePath => Path.Combine(RootPath, "UserResources.json");
 
@@ -17,5 +18,6 @@ public sealed class PathService(string rootPath) {
         Directory.CreateDirectory(TempPath);
         Directory.CreateDirectory(ModulePath);
         Directory.CreateDirectory(FontPath);
+        Directory.CreateDirectory(CustomFontPath);
     }
 }

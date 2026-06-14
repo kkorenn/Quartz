@@ -109,6 +109,7 @@ internal static class PageVisuals {
         RectTransform zoomSliderRow = null;
         RectTransform resetAnimRow = null;
         RectTransform resetColorRow = null;
+        RectTransform tutorialPatternsRow = null;
 
         void RefreshConditionalRows() {
             removeAllRow?.gameObject.SetActive(conf.Decorations);
@@ -116,6 +117,7 @@ internal static class PageVisuals {
             zoomSliderRow?.gameObject.SetActive(conf.Cameras && conf.SetCameraZoom);
             resetAnimRow?.gameObject.SetActive(conf.TrackAnimations);
             resetColorRow?.gameObject.SetActive(conf.TrackColors);
+            tutorialPatternsRow?.gameObject.SetActive(conf.Backgrounds);
         }
 
         void SimpleToggle(Transform body, bool defVal, bool val, System.Action<bool> set, string label, string id) {
@@ -227,9 +229,9 @@ internal static class PageVisuals {
             "Off keeps decorations that judgement-conditional events reference (hit/miss feedback) and removes the rest."
         );
 
-        SimpleToggle(sec.Body, def.ResetTrackOpacity, conf.ResetTrackOpacity,
-            v => conf.ResetTrackOpacity = v,
-            "Reset All 'Track Opacity' Values to 100%", "fxrm_reset_opacity");
+        SimpleToggle(sec.Body, def.LimitTrackOpacity, conf.LimitTrackOpacity,
+            v => conf.LimitTrackOpacity = v,
+            "Limit 'Track Opacity' Values to 100%", "fxrm_limit_opacity");
 
         setZoomRow = GenerateUI.Row(sec.Body);
         GenerateUI.Toggle(
@@ -271,6 +273,17 @@ internal static class PageVisuals {
             v => { conf.ResetTrackColor = v; Save(); },
             "Set Track Color to Default",
             "fxrm_reset_color"
+        );
+
+        tutorialPatternsRow = GenerateUI.Row(sec.Body);
+        GenerateUI.Toggle(
+            tutorialPatternsRow, def.RemoveTutorialPatterns, conf.RemoveTutorialPatterns,
+            v => { conf.RemoveTutorialPatterns = v; Save(); },
+            "Turn off Tutorial Background Patterns",
+            "fxrm_tutorial_patterns"
+        ).Rect.AddToolTip(
+            "DESC_FXRM_TUTORIAL_PATTERNS",
+            "Also hides the default background's tiled pattern. Its pulsing shapes are always removed while Background is on."
         );
 
         RefreshConditionalRows();

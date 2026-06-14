@@ -6,6 +6,7 @@ using Koren.Core.Service;
 using Koren.Features.PlayCount;
 using Koren.Features.Combo;
 using Koren.Features.EffectRemover;
+using Koren.Features.GameOverlayFont;
 using Koren.Features.Optimizer;
 using Koren.Features.Judgement;
 using Koren.Features.KeyViewer;
@@ -121,6 +122,10 @@ public sealed class KorenRuntime {
 
         sw.Restart();
         FontManager.Initialize();
+        // Re-apply the font to ADOFAI's own text whenever the selection changes
+        // or a new scene loads.
+        FontManager.OnFontChanged += GameOverlayFont.Refresh;
+        GameOverlayFont.Initialize();
         Logger.Msg($"[Startup] FontManager took {sw.ElapsedMilliseconds} ms");
 
         Localization = new LocalizationService(Paths.LangPath, Config, Logger);
@@ -216,6 +221,7 @@ public sealed class KorenRuntime {
             PlanetColors.Refresh();
             OttoIcon.Refresh();
             Optimizer.Apply();
+            GameOverlayFont.Refresh();
 
             OnModEnabledChanged?.Invoke(true, isDispose);
 
@@ -238,6 +244,7 @@ public sealed class KorenRuntime {
             OttoIcon.Restore();
             UiHider.Restore();
             Optimizer.Restore();
+            GameOverlayFont.Restore();
             Features.AutoDeafen.AutoDeafen.Stop();
 
             Logger.Msg("Mod Disabled");

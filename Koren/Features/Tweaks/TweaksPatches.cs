@@ -225,6 +225,13 @@ public static partial class Tweaks {
                 return true;
             }
 
+            // In the level editor the play-mode space-pause sets
+            // scnEditor.pausedInPlayMode (and greys the autoplay button) before
+            // it ever calls TogglePauseGame, so swallowing the pause alone would
+            // wedge the "Autoplay + Paused" text on with the game still running.
+            // Roll that back so suppression keeps auto-play cleanly running.
+            ResetEditorPlayModePauseState();
+
             __result = false;
             return false;
         }

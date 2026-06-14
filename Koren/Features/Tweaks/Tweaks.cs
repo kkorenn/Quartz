@@ -719,4 +719,20 @@ public static partial class Tweaks {
         } catch { }
         return false;
     }
+
+    // Undo the editor's play-mode pause bookkeeping when we swallow its pause,
+    // so auto-play keeps running with no "+ Paused" status text and the auto
+    // button stays usable. No-ops outside the level editor (editor is null).
+    private static void ResetEditorPlayModePauseState() {
+        try {
+            scnEditor editor = ADOBase.editor;
+            if(editor == null) {
+                return;
+            }
+            editor.pausedInPlayMode = false;
+            if(editor.buttonAuto != null) {
+                editor.buttonAuto.interactable = true;
+            }
+        } catch { }
+    }
 }

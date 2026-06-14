@@ -30,6 +30,10 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
     private static string currentMapKey = "";
     private static int sessionAttempts;
     private static float bestObservedThisRun;
+    // A "fail" here = a Miss or Overload hit, which is what ADOFAI counts as a
+    // death. Set the instant the first fail lands (even under No Fail, where the
+    // run keeps going) so Best stops advancing — Best = furthest clean progress.
+    private static bool runHadFail;
     private static bool dirty;
 
     public void Initialize() => Load();
@@ -106,6 +110,12 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
     // Called from the HUD per frame so the live in-run high-water mark is
     // visible on the Best line even before a death/clear writes it back.
     public static void ObserveProgress(float progress) {
+        // Once the run has failed, the clean high-water mark is frozen: no
+        // progress past the first Miss/Overload counts toward Best.
+        if(runHadFail) {
+            return;
+        }
+
         if(float.IsNaN(progress) || float.IsInfinity(progress)) {
             return;
         }
@@ -125,6 +135,7 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
 
         sessionAttempts++;
         bestObservedThisRun = 0f;
+        runHadFail = false;
 
         PlayData d = For(key);
         d.TotalAttempts++;
@@ -136,9 +147,15 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
             return;
         }
 
-        float progress = CurrentProgress();
-        if(progress > bestObservedThisRun) {
-            bestObservedThisRun = progress;
+        // If the run never registered a Miss/Overload (e.g. a hold/timeout
+        // fail), everything up to here was clean, so capture the death point.
+        // If it did fail, bestObservedThisRun is already frozen at the first
+        // fail — don't let the death point push it higher.
+        if(!runHadFail) {
+            float progress = CurrentProgress();
+            if(progress > bestObservedThisRun) {
+                bestObservedThisRun = progress;
+            }
         }
 
         PlayData d = For(currentMapKey);
@@ -157,13 +174,25 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
         }
 
         PlayData d = For(currentMapKey);
-        if(1f > d.BestProgress) {
-            d.BestProgress = 1f;
-            d.BestStartProgress = CurrentRunStart();
-            dirty = true;
+        if(!runHadFail) {
+            // Clean clear (no Miss/Overload all run, No Fail on or off) — the
+            // only way Best reaches 100%.
+            if(1f > d.BestProgress) {
+                d.BestProgress = 1f;
+                d.BestStartProgress = CurrentRunStart();
+                dirty = true;
+            }
+            bestObservedThisRun = 1f;
+        } else {
+            // Reached the end but failed along the way (e.g. No Fail carried the
+            // run past a Miss). Persist only the frozen clean prefix, never 100%.
+            if(bestObservedThisRun > d.BestProgress) {
+                d.BestProgress = bestObservedThisRun;
+                d.BestStartProgress = CurrentRunStart();
+                dirty = true;
+            }
         }
 
-        bestObservedThisRun = 1f;
         FlushIfDirty();
     }
 
@@ -232,6 +261,7 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
         currentMapKey = "";
         sessionAttempts = 0;
         bestObservedThisRun = 0f;
+        runHadFail = false;
         dirty = false;
 
         try {
@@ -308,6 +338,31 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
                 OnRunDeath();
             } else if(state == States.Won) {
                 OnRunClear();
+            }
+        }
+    }
+
+    // A Miss/Overload is a "death" in ADOFAI's bookkeeping. Watch every hit so
+    // the first fail freezes Best. This fires even under No Fail — where the run
+    // continues and scrController.deaths never increments — so a No-Fail run
+    // that racks up misses can't inflate Best past where it stopped being clean.
+    // Restriction patches the same method; multiple Harmony postfixes coexist.
+    [HarmonyPatch(typeof(scrMarginTracker), "AddHit", typeof(HitMargin))]
+    private static class AddHitPatch {
+        private static void Postfix(HitMargin hit) {
+            if(!MainCore.IsModEnabled) {
+                return;
+            }
+
+            if(runHadFail) {
+                return;
+            }
+
+            if(hit == HitMargin.FailMiss || hit == HitMargin.FailOverload) {
+                // Capture progress up to the failing tile before freezing, so a
+                // clean run that dies at 80% still records ~80%.
+                ObserveProgress(CurrentProgress());
+                runHadFail = true;
             }
         }
     }

@@ -1,6 +1,6 @@
-using System.Collections.Generic;
 using Koren.Core;
 using Koren.Resource;
+using Koren.UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -29,115 +29,67 @@ public class ResizeHandle : MonoBehaviour {
     private Vector2 startSize;
     private Vector2 startPos;
 
+    private bool hovered;
+    private bool dragging;
+
     public const float MIN_WIDTH = 900f;
     public const float MIN_HEIGHT = 500f;
+
+    private ResizeCursorShape Shape => Type switch {
+        ResizeHandleType.Left or ResizeHandleType.Right => ResizeCursorShape.Horizontal,
+        ResizeHandleType.Top or ResizeHandleType.Bottom => ResizeCursorShape.Vertical,
+        ResizeHandleType.TopRight or ResizeHandleType.BottomLeft => ResizeCursorShape.DiagNESW,
+        _ => ResizeCursorShape.DiagNWSE, // TopLeft / BottomRight
+    };
 
     private void Awake() {
         var trigger = gameObject.AddComponent<EventTrigger>();
 
         var downEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerDown };
-        downEntry.callback.AddListener(_ => OnPointerDownInternal());
+        downEntry.callback.AddListener(_ => { dragging = true; OnPointerDownInternal(); });
         trigger.triggers.Add(downEntry);
 
         var dragEntry = new EventTrigger.Entry { eventID = EventTriggerType.Drag };
         dragEntry.callback.AddListener(_ => OnDragInternal());
         trigger.triggers.Add(dragEntry);
 
+        var upEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
+        upEntry.callback.AddListener(_ => {
+            dragging = false;
+            if(!hovered) {
+                NativeCursor.Reset();
+            }
+        });
+        trigger.triggers.Add(upEntry);
+
         var enterEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-        enterEntry.callback.AddListener(_ => ApplyCursor());
+        enterEntry.callback.AddListener(_ => { hovered = true; NativeCursor.Apply(Shape); });
         trigger.triggers.Add(enterEntry);
 
         var exitEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-        exitEntry.callback.AddListener(_ => ResetCursor());
-        trigger.triggers.Add(exitEntry);
-
-        var upEntry = new EventTrigger.Entry { eventID = EventTriggerType.PointerUp };
-        upEntry.callback.AddListener(_ => ResetCursor());
-        trigger.triggers.Add(upEntry);
-    }
-
-    private void OnDisable() => ResetCursor();
-
-    // ===== resize cursor =====
-
-    // One generated double-headed arrow per orientation, cached by angle.
-    private static readonly Dictionary<int, Texture2D> cursorCache = new();
-    private static bool cursorActive;
-
-    private int CursorAngle => Type switch {
-        ResizeHandleType.Left or ResizeHandleType.Right => 0,
-        ResizeHandleType.Top or ResizeHandleType.Bottom => 90,
-        ResizeHandleType.TopRight or ResizeHandleType.BottomLeft => 45,
-        _ => 135, // TopLeft / BottomRight
-    };
-
-    private void ApplyCursor() {
-        Texture2D tex = GetCursor(CursorAngle);
-        if(tex != null) {
-            Cursor.SetCursor(tex, new Vector2(tex.width * 0.5f, tex.height * 0.5f), CursorMode.Auto);
-            cursorActive = true;
-        }
-    }
-
-    private static void ResetCursor() {
-        if(cursorActive) {
-            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
-            cursorActive = false;
-        }
-    }
-
-    private static Texture2D GetCursor(int angleDeg) {
-        if(cursorCache.TryGetValue(angleDeg, out Texture2D cached)) {
-            return cached;
-        }
-
-        const int size = 32;
-        const float c = (size - 1) * 0.5f;
-        float rad = angleDeg * Mathf.Deg2Rad;
-        float cos = Mathf.Cos(rad);
-        float sin = Mathf.Sin(rad);
-
-        Texture2D tex = new(size, size, TextureFormat.RGBA32, false);
-        Color clear = new(0f, 0f, 0f, 0f);
-
-        for(int y = 0; y < size; y++) {
-            for(int x = 0; x < size; x++) {
-                float px = x - c;
-                float py = y - c;
-                // Rotate into the arrow's axis (u along the arrow, v across).
-                float u = (px * cos) + (py * sin);
-                float v = (-px * sin) + (py * cos);
-
-                Color col = clear;
-                // Black outline first, white core on top.
-                if(IsArrow(u, v, 14f, 6f, 5f, 2.6f)) {
-                    col = Color.black;
-                }
-                if(IsArrow(u, v, 13f, 5f, 4f, 1.5f)) {
-                    col = Color.white;
-                }
-                tex.SetPixel(x, y, col);
+        exitEntry.callback.AddListener(_ => {
+            hovered = false;
+            if(!dragging) {
+                NativeCursor.Reset();
             }
-        }
-
-        tex.Apply(false);
-        tex.filterMode = FilterMode.Bilinear;
-        cursorCache[angleDeg] = tex;
-        return tex;
+        });
+        trigger.triggers.Add(exitEntry);
     }
 
-    // Double-headed arrow test: a shaft of half-thickness t out to (ltip - hh),
-    // then a triangular head tapering to the tip at ltip.
-    private static bool IsArrow(float u, float v, float ltip, float hh, float headHalf, float t) {
-        float au = Mathf.Abs(u);
-        float shaft = ltip - hh;
-        if(au <= shaft) {
-            return Mathf.Abs(v) <= t;
+    // The OS reclaims the cursor on every mouse-move message, so re-assert it
+    // each frame while this handle is hovered or being dragged.
+    private void Update() {
+        if(hovered || dragging) {
+            NativeCursor.Apply(Shape);
         }
-        if(au <= ltip) {
-            return Mathf.Abs(v) <= headHalf * (ltip - au) / hh;
+    }
+
+    private void OnDisable() {
+        if(hovered || dragging) {
+            hovered = false;
+            dragging = false;
+            NativeCursor.Reset();
         }
-        return false;
     }
 
     private void OnPointerDownInternal() {
@@ -212,107 +164,119 @@ public class ResizeHandle : MonoBehaviour {
         ResizeHandleType.BottomRight
     };
 
-    // Handles sit fully INSIDE the panel: the panel's RectMask2D culls (and
-    // stops raycasts on) anything past its edge, so edge-straddling handles
-    // only caught clicks on their inner half. Corners are square hit zones;
-    // edges are strips between the corners.
-    private const float HANDLE_CORNER = 40f;
-    private const float HANDLE_SIDE = 22f;
+    // Edge band thickness (the ring that sits OUTSIDE the panel) and the corner
+    // square size. The handles live on a frame parented to the canvas — not the
+    // panel — so the panel's RectMask2D no longer clips them and they never
+    // overlap interior controls like the close button.
+    private const float RING = 12f;
+    private const float CORNER = 20f;
+
     public static void CreateResizeHandles(RectTransform panel, RectTransform panelParent) {
+        // Frame sits on the canvas, mirrors the panel's centre, and is RING
+        // larger on every side so its outer band falls just outside the panel.
+        GameObject frameObj = new("ResizeFrame");
+        frameObj.transform.SetParent(panelParent, false);
+
+        RectTransform frame = frameObj.AddComponent<RectTransform>();
+        frame.anchorMin = panel.anchorMin;
+        frame.anchorMax = panel.anchorMax;
+        frame.pivot = panel.pivot;
+
+        // Child container so the frame root can stay active (and keep ticking
+        // LateUpdate) while the handles themselves are shown/hidden with the menu.
+        GameObject handlesObj = new("Handles");
+        handlesObj.transform.SetParent(frame, false);
+        RectTransform handles = handlesObj.AddComponent<RectTransform>();
+        handles.anchorMin = Vector2.zero;
+        handles.anchorMax = Vector2.one;
+        handles.offsetMin = Vector2.zero;
+        handles.offsetMax = Vector2.zero;
+
         foreach(ResizeHandleType type in HandleOrder) {
             GameObject handle = new($"Resize_{type}");
-            handle.transform.SetParent(panel, false);
+            handle.transform.SetParent(handles, false);
 
-            RectTransform rect =
-                handle.AddComponent<RectTransform>();
+            RectTransform rect = handle.AddComponent<RectTransform>();
 
             switch(type) {
                 case ResizeHandleType.Top:
                     rect.anchorMin = new(0, 1);
                     rect.anchorMax = new(1, 1);
-                    rect.pivot = new(0.5f, 1f);
-                    rect.offsetMin = new(HANDLE_CORNER, -HANDLE_SIDE);
-                    rect.offsetMax = new(-HANDLE_CORNER, 0f);
+                    rect.offsetMin = new(CORNER, -RING);
+                    rect.offsetMax = new(-CORNER, 0f);
                     break;
 
                 case ResizeHandleType.Bottom:
                     rect.anchorMin = new(0, 0);
                     rect.anchorMax = new(1, 0);
-                    rect.pivot = new(0.5f, 0f);
-                    rect.offsetMin = new(HANDLE_CORNER, 0f);
-                    rect.offsetMax = new(-HANDLE_CORNER, HANDLE_SIDE);
+                    rect.offsetMin = new(CORNER, 0f);
+                    rect.offsetMax = new(-CORNER, RING);
                     break;
 
                 case ResizeHandleType.Left:
                     rect.anchorMin = new(0, 0);
                     rect.anchorMax = new(0, 1);
-                    rect.pivot = new(0f, 0.5f);
-                    rect.offsetMin = new(0f, HANDLE_CORNER);
-                    rect.offsetMax = new(HANDLE_SIDE, -HANDLE_CORNER);
+                    rect.offsetMin = new(0f, CORNER);
+                    rect.offsetMax = new(RING, -CORNER);
                     break;
 
                 case ResizeHandleType.Right:
                     rect.anchorMin = new(1, 0);
                     rect.anchorMax = new(1, 1);
-                    rect.pivot = new(1f, 0.5f);
-                    rect.offsetMin = new(-HANDLE_SIDE, HANDLE_CORNER);
-                    rect.offsetMax = new(0f, -HANDLE_CORNER);
+                    rect.offsetMin = new(-RING, CORNER);
+                    rect.offsetMax = new(0f, -CORNER);
                     break;
 
                 case ResizeHandleType.TopLeft:
                     rect.anchorMin = rect.anchorMax = new(0, 1);
                     rect.pivot = new(0f, 1f);
                     rect.anchoredPosition = Vector2.zero;
-                    rect.sizeDelta = new(HANDLE_CORNER, HANDLE_CORNER);
+                    rect.sizeDelta = new(CORNER, CORNER);
                     break;
 
                 case ResizeHandleType.TopRight:
                     rect.anchorMin = rect.anchorMax = new(1, 1);
                     rect.pivot = new(1f, 1f);
                     rect.anchoredPosition = Vector2.zero;
-                    rect.sizeDelta = new(HANDLE_CORNER, HANDLE_CORNER);
+                    rect.sizeDelta = new(CORNER, CORNER);
                     break;
 
                 case ResizeHandleType.BottomLeft:
                     rect.anchorMin = rect.anchorMax = new(0, 0);
                     rect.pivot = new(0f, 0f);
                     rect.anchoredPosition = Vector2.zero;
-                    rect.sizeDelta = new(HANDLE_CORNER, HANDLE_CORNER);
+                    rect.sizeDelta = new(CORNER, CORNER);
                     break;
 
                 case ResizeHandleType.BottomRight:
                     rect.anchorMin = rect.anchorMax = new(1, 0);
                     rect.pivot = new(1f, 0f);
                     rect.anchoredPosition = Vector2.zero;
-                    rect.sizeDelta = new(HANDLE_CORNER, HANDLE_CORNER);
+                    rect.sizeDelta = new(CORNER, CORNER);
                     break;
             }
 
             Image image = handle.AddComponent<Image>();
-            image.sprite = MainCore.Spr.Get(UISprite.Circle256);
             image.color = Color.clear;
 
             ResizeHandle resize = handle.AddComponent<ResizeHandle>();
-
             resize.Type = type;
             resize.Panel = panel;
             resize.PanelParent = panelParent;
         }
 
-        // Visible bottom-right grip so resizing is discoverable. The corner
-        // handles above straddle the panel edge and get culled by the panel's
-        // RectMask2D; this grip sits fully inside the corner so it shows and
-        // stays grabbable.
+        // Visible bottom-right grip so resizing stays discoverable now that the
+        // hit zones are invisible and sit outside the panel.
         {
             GameObject grip = new("ResizeGrip");
-            grip.transform.SetParent(panel, false);
+            grip.transform.SetParent(handles, false);
 
             RectTransform gr = grip.AddComponent<RectTransform>();
             gr.anchorMin = new(1f, 0f);
             gr.anchorMax = new(1f, 0f);
             gr.pivot = new(1f, 0f);
-            gr.anchoredPosition = new(-5f, 5f);
-            gr.sizeDelta = new(20f, 20f);
+            gr.anchoredPosition = new(-2f, 2f);
+            gr.sizeDelta = new(16f, 16f);
             // Triangle128 points up; rotate so its right angle fills the corner.
             gr.localEulerAngles = new Vector3(0f, 0f, -135f);
 
@@ -320,11 +284,41 @@ public class ResizeHandle : MonoBehaviour {
             gi.sprite = MainCore.Spr.Get(UISprite.Triangle128);
             gi.color = new Color(1f, 1f, 1f, 0.35f);
             gi.preserveAspect = true;
+            gi.raycastTarget = false;
+        }
 
-            ResizeHandle grh = grip.AddComponent<ResizeHandle>();
-            grh.Type = ResizeHandleType.BottomRight;
-            grh.Panel = panel;
-            grh.PanelParent = panelParent;
+        ResizeFrame follow = frameObj.AddComponent<ResizeFrame>();
+        follow.Panel = panel;
+        follow.Self = frame;
+        follow.Handles = handlesObj;
+        follow.Ring = RING;
+    }
+}
+
+// Keeps the canvas-level resize frame glued to the panel: matches its centre,
+// grows by the ring on every side, and hides the handles while the menu is
+// closed or in reorganize mode.
+public sealed class ResizeFrame : MonoBehaviour {
+
+    public RectTransform Panel;
+    public RectTransform Self;
+    public GameObject Handles;
+    public float Ring;
+
+    private void LateUpdate() {
+        if(Panel == null || Self == null) {
+            return;
+        }
+
+        Self.anchoredPosition = Panel.anchoredPosition;
+        Self.sizeDelta = Panel.sizeDelta + new Vector2(Ring * 2f, Ring * 2f);
+
+        bool show = Panel.gameObject.activeInHierarchy
+            && UICore.IsOpen
+            && !UICore.IsReorganizing;
+
+        if(Handles != null && Handles.activeSelf != show) {
+            Handles.SetActive(show);
         }
     }
 }
