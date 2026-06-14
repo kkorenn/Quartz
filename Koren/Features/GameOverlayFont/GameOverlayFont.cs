@@ -27,6 +27,7 @@ public static class GameOverlayFont {
     private sealed class Capture {
         public TMP_Text Tmp;
         public TMP_FontAsset Original;
+        public float OriginalSize;
     }
 
     // Native-TMP game labels we re-fonted, kept so the font can be put back.
@@ -82,8 +83,14 @@ public static class GameOverlayFont {
         GameFontMirror.DisposeInstance();
 
         foreach(Capture cap in tmpCaptures.Values) {
-            if(cap.Tmp != null && cap.Tmp.font != cap.Original) {
+            if(cap.Tmp == null) {
+                continue;
+            }
+            if(cap.Tmp.font != cap.Original) {
                 cap.Tmp.font = cap.Original;
+            }
+            if(cap.OriginalSize > 0f && cap.Tmp.fontSize != cap.OriginalSize) {
+                cap.Tmp.fontSize = cap.OriginalSize;
             }
         }
         tmpCaptures.Clear();
@@ -98,15 +105,38 @@ public static class GameOverlayFont {
             return;
         }
 
+        // Hit text is short-lived and spawned per-hit; don't capture it (would
+        // leak) — its font swap still happens below and its size is handled by
+        // HitTextSizePatch.
+        // Hit text is short-lived and spawned per-hit; don't capture it (would
+        // leak) — its font swap still happens below and its size is handled by
+        // HitTextSizePatch.
+        bool isHitText = tmp.name.Contains("HitText");
         int id = tmp.GetInstanceID();
-        if(!tmpCaptures.ContainsKey(id)) {
-            tmpCaptures[id] = new Capture { Tmp = tmp, Original = tmp.font };
+        if(!isHitText && !tmpCaptures.ContainsKey(id)) {
+            // Same scaling as the legacy twins so all game text is uniform —
+            // the mod font renders larger than the game's at a given size.
+            tmpCaptures[id] = new Capture { Tmp = tmp, Original = tmp.font, OriginalSize = tmp.fontSize };
+            if(!tmp.enableAutoSizing) {
+                tmp.fontSize *= GameFontMirror.SizeScale;
+            }
         }
         if(tmp.font != want) {
             tmp.font = want;
             tmp.fontSharedMaterial = want.material;
         }
+        // The wider mod font wraps single-line labels that fit in their box with
+        // the game font; let it overflow on one line instead.
+        if(!AllowsWrap(tmp.rectTransform, tmp.fontSize)) {
+            tmp.enableWordWrapping = false;
+        }
     }
+
+    // True only when the text's box is tall enough for more than one line, so
+    // genuine multi-line paragraphs keep wrapping while single-line labels
+    // overflow rather than break under the wider mod font.
+    internal static bool AllowsWrap(RectTransform rect, float fontSize) =>
+        rect != null && fontSize > 0f && rect.rect.height > fontSize * 1.8f;
 
     [HarmonyPatch(typeof(RDString), "SetLocalizedFont", new[] { typeof(TMP_Text) })]
     private static class TmpFontPatch {
@@ -154,8 +184,9 @@ public sealed class GameFontMirror : MonoBehaviour {
     }
 
     private const string TwinName = "KorenFontTwin";
-    // Twin point size relative to the original's nominal point size.
-    private const float SizeScale = 0.5f;
+    // Twin point size relative to the original's nominal point size. Shared so
+    // the TMP path scales game text to match.
+    internal const float SizeScale = 0.5f;
 
     private static GameFontMirror instance;
     private static readonly HashSet<int> twinIds = [];
@@ -238,17 +269,27 @@ public sealed class GameFontMirror : MonoBehaviour {
         twin.fontStyle = MapStyle(source.fontStyle);
         twin.alignment = MapAnchor(source.alignment);
         twin.richText = source.supportRichText;
-        twin.enableWordWrapping = source.horizontalOverflow == HorizontalWrapMode.Wrap;
+        twin.enableWordWrapping = source.horizontalOverflow == HorizontalWrapMode.Wrap
+            && GameOverlayFont.AllowsWrap(source.rectTransform, source.fontSize);
         twin.overflowMode = source.verticalOverflow == VerticalWrapMode.Truncate
             ? TextOverflowModes.Truncate
             : TextOverflowModes.Overflow;
         twin.enabled = source.enabled;
 
-        // Just scale the nominal point size — the twin is a child of the source,
-        // so any transform scale the game animates on the label carries over and
-        // keeps the relative size correct.
+        // Use the original's ACTUAL rendered point size: for best-fit labels the
+        // nominal fontSize is just the max, and the game shrinks it to fit (e.g.
+        // the pause-menu labels), so read the size the layout settled on. Cap it
+        // at the nominal so a bogus value can't blow up. The twin inherits the
+        // source's transform scale, so the relative size stays correct.
+        float basePx = source.fontSize;
+        if(source.resizeTextForBestFit) {
+            float fit = source.cachedTextGenerator.fontSizeUsedForBestFit;
+            if(fit > 0f) {
+                basePx = Mathf.Min(fit, source.fontSize);
+            }
+        }
         twin.enableAutoSizing = false;
-        twin.fontSize = source.fontSize * SizeScale;
+        twin.fontSize = basePx * SizeScale;
 
         // Hide the original's pixels without touching its colour/enabled state,
         // so the game's own fade and show/hide logic keeps driving the twin.
