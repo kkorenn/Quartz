@@ -1,6 +1,7 @@
 using HarmonyLib;
 using Koren.Async;
 using Koren.Core;
+using Koren.Features.Status;
 using Koren.Resource;
 using TMPro;
 using UnityEngine;
@@ -46,7 +47,13 @@ public static class GameOverlayFont {
             return;
         }
         hooked = true;
-        SceneManager.sceneLoaded += (_, _) => MainThread.Enqueue(Refresh);
+        SceneManager.sceneLoaded += (_, _) => {
+            // Sweep hard for a short window right after the load so freshly-spawned
+            // game labels get their twin the same frame they appear, instead of
+            // flashing the game font until the next idle sweep.
+            GameFontMirror.ArmBurst();
+            MainThread.Enqueue(Refresh);
+        };
     }
 
     private static bool Active =>
@@ -58,6 +65,9 @@ public static class GameOverlayFont {
             return;
         }
         TrackScene();
+        // Enabling the feature (or a fresh scene) should pick up text instantly,
+        // so burst-sweep for a moment rather than waiting on the idle timer.
+        GameFontMirror.ArmBurst();
     }
 
     // Sweeps the live scene: twins any new legacy Text, swaps the font on any new
@@ -237,7 +247,7 @@ public static class GameOverlayFont {
     // mod font. Init sets its fontSize (after the font swap) and animates only
     // transform scale, so trimming fontSize here sticks without fighting the
     // punch animation.
-    private const float HitTextScale = 0.6f;
+    private const float HitTextScale = 0.45f;
 
     [HarmonyPatch(typeof(scrHitTextMesh), "Init")]
     private static class HitTextSizePatch {
@@ -318,13 +328,34 @@ public sealed class GameFontMirror : MonoBehaviour {
         Apply(source, twin);
     }
 
+    // Frames remaining of the aggressive post-load sweep (see ArmBurst). Starts
+    // armed so a freshly-created mirror catches the current scene immediately.
+    private int burstFrames = BurstFrames;
     private int rescanCountdown;
 
+    // ~0.75s at 60fps: long enough to catch a HUD that animates in over the first
+    // frames of a level, short enough to stay off the steady gameplay hot path.
+    private const int BurstFrames = 45;
+
+    // Re-arm the post-load burst on the live mirror (scene load / feature enable).
+    public static void ArmBurst() {
+        if(instance != null) {
+            instance.burstFrames = BurstFrames;
+        }
+    }
+
     private void LateUpdate() {
-        // Periodically re-sweep so text shown after the scene loaded (pause menu,
-        // popups, results) gets picked up too.
-        if(--rescanCountdown <= 0) {
-            rescanCountdown = 30;
+        // Right after a load, sweep every frame so new labels are twinned the
+        // moment they appear (no game-font flash). Once that window closes, idle:
+        // during an active run nothing new spawns and the HUD is static, so the
+        // two whole-scene FindObjectsOfType scans would only add a recurring
+        // main-thread + GC hitch to the gameplay hot path. So rescan rarely while
+        // dancing (InGame), gently in menus/pause where popups appear.
+        if(burstFrames > 0) {
+            burstFrames--;
+            GameOverlayFont.TrackScene();
+        } else if(--rescanCountdown <= 0) {
+            rescanCountdown = GameStats.InGame ? 300 : 30;
             GameOverlayFont.TrackScene();
         }
 
@@ -350,32 +381,44 @@ public sealed class GameFontMirror : MonoBehaviour {
         if(twin.font != FontManager.Current) {
             twin.font = FontManager.Current;
         }
-        twin.text = source.text;
+        // TMP's text setter does NOT early-out on an equal string — it re-parses
+        // and re-tessellates the whole mesh. Most mirrored labels never change
+        // their text, so guard the assignment to keep that per-frame re-mesh off
+        // the gameplay hot path. (The other TMP setters below already early-out
+        // internally on unchanged values, so they stay unconditional.)
+        if(twin.text != source.text) {
+            twin.text = source.text;
+        }
         twin.color = source.color;
         twin.fontStyle = MapStyle(source.fontStyle);
         twin.alignment = MapAnchor(source.alignment);
         twin.richText = source.supportRichText;
+        // Wrapping mirrors the source: best-fit is orthogonal to wrap (the game
+        // best-fits BOTH single-line titles AND wrapped paragraphs like the
+        // difficulty blurb), so the line count must come from the source's own
+        // wrap setting, not from whether it best-fits.
         twin.enableWordWrapping = source.horizontalOverflow == HorizontalWrapMode.Wrap
             && GameOverlayFont.AllowsWrap(source.rectTransform, source.fontSize);
         twin.overflowMode = source.verticalOverflow == VerticalWrapMode.Truncate
             ? TextOverflowModes.Truncate
             : TextOverflowModes.Overflow;
-        twin.enabled = source.enabled;
 
-        // Use the original's ACTUAL rendered point size: for best-fit labels the
-        // nominal fontSize is just the max, and the game shrinks it to fit (e.g.
-        // the pause-menu labels), so read the size the layout settled on. Cap it
-        // at the nominal so a bogus value can't blow up. The twin inherits the
-        // source's transform scale, so the relative size stays correct.
-        float basePx = source.fontSize;
         if(source.resizeTextForBestFit) {
-            float fit = source.cachedTextGenerator.fontSizeUsedForBestFit;
-            if(fit > 0f) {
-                basePx = Mathf.Min(fit, source.fontSize);
-            }
+            // The game shrinks this label's font to fit its box (whether one line
+            // or wrapped). The mod font is wider, so a fixed point size overflows
+            // and clips ("Selfmade Disc" -> "Selfmade Dis"). Mirror the best-fit
+            // with TMP auto-sizing — it shrinks the font until the text (wrapped or
+            // not) fits the box, exactly like the game, so nothing clips. Cap/min
+            // are constant per label, so once the text settles TMP does no work.
+            twin.enableAutoSizing = true;
+            twin.fontSizeMin = 1f;
+            twin.fontSizeMax = Mathf.Max(1f, source.fontSize * SizeScale);
+        } else {
+            // Fixed-size game label: copy its size directly.
+            twin.enableAutoSizing = false;
+            twin.fontSize = source.fontSize * SizeScale;
         }
-        twin.enableAutoSizing = false;
-        twin.fontSize = basePx * SizeScale;
+        twin.enabled = source.enabled;
 
         // Hide the original's pixels without touching its colour/enabled state,
         // so the game's own fade and show/hide logic keeps driving the twin.

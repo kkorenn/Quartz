@@ -139,6 +139,7 @@ internal static class PageSearch {
         OriginalMenuState.Profiles => Tr("PROFILES", "Profiles"),
         OriginalMenuState.Settings => Tr("SETTINGS", "Settings"),
         OriginalMenuState.Credits => Tr("CREDITS", "Credits"),
+        OriginalMenuState.Editor => Tr("EDITOR", "Editor"),
         OriginalMenuState.Developer => Tr("DEVELOPER", "Developer"),
         _ => "?",
     };

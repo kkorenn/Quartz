@@ -5,6 +5,7 @@ using Koren.Compat.Interface;
 using Koren.Core.Service;
 using Koren.Features.PlayCount;
 using Koren.Features.Combo;
+using Koren.Features.Editor;
 using Koren.Features.EffectRemover;
 using Koren.Features.GameOverlayFont;
 using Koren.Features.Optimizer;
@@ -151,6 +152,10 @@ public sealed class KorenRuntime {
         ticks.Add(tweenService);
         ticks.Add(Optimizer.Ticker);
 
+        // Keeps the editor's property-row template in sync with the
+        // "Horizontal Properties" toggle (and reverts it when the mod is off).
+        ticks.Add(EditorFeature.Ticker);
+
         services.Initialize(Logger);
 
         sw.Restart();
@@ -245,6 +250,7 @@ public sealed class KorenRuntime {
             UiHider.Restore();
             Optimizer.Restore();
             GameOverlayFont.Restore();
+            EditorFeature.Restore();
             Features.AutoDeafen.AutoDeafen.Stop();
 
             Logger.Msg("Mod Disabled");

@@ -37,6 +37,7 @@ public static class PageFactory {
         PageGameplay.Create(UICore.Pages[(int)OriginalMenuState.Gameplay]);
         PageVisuals.Create(UICore.Pages[(int)OriginalMenuState.Visuals]);
         PageTweaks.Create(UICore.Pages[(int)OriginalMenuState.Tweaks]);
+        PageEditor.Create(UICore.Pages[(int)OriginalMenuState.Editor]);
         PageSearch.Create(UICore.Pages[(int)OriginalMenuState.Search]);
 
         // Developer page — only populated in "dev" builds (its tab is likewise

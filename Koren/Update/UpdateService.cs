@@ -65,6 +65,13 @@ public static class UpdateService {
     public static string SkippedTag => lastSkipped?.Tag ?? MainCore.Conf.SkippedVersion;
     private static UpdateInfo lastSkipped;
 
+    // The version downloaded this session (pending a restart). The running build
+    // is still the old one until then, so a re-check would otherwise find this
+    // same release "newer than running" and re-offer it; we keep reporting
+    // Installed for it instead. Cleared naturally on restart (it's not persisted,
+    // and after restart Info.Current already excludes it).
+    private static SemVer? installedVersion;
+
     // Dev-only: when on, a fake update (same version, no real assets) is
     // offered so the update flow can be exercised without a real release.
     public static bool DevSimulate { get; private set; }
@@ -115,6 +122,13 @@ public static class UpdateService {
     // Kicks off a background check. Safe to call from the main thread.
     public static async void Check() {
         if(Status is UpdateStatus.Checking or UpdateStatus.Installing) {
+            return;
+        }
+
+        // An update downloaded this session is just waiting for a restart — keep
+        // reporting that rather than re-checking and re-offering it.
+        if(installedVersion.HasValue) {
+            Set(UpdateStatus.Installed);
             return;
         }
 
@@ -236,6 +250,7 @@ public static class UpdateService {
             await SimulateDownload();
 
             Available = null;
+            installedVersion = info.Version;
             Set(UpdateStatus.Installed, "DEV: simulated install — no files changed.");
             return;
         }
@@ -247,6 +262,7 @@ public static class UpdateService {
         try {
             await Task.Run(() => Download(info));
             Available = null;
+            installedVersion = info.Version;
             Set(UpdateStatus.Installed);
         } catch(System.Exception ex) {
             Fail(UpdateFailure.InstallError, ex.Message);

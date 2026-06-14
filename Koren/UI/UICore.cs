@@ -30,6 +30,7 @@ public enum OriginalMenuState {
     Settings,
     Search,
     Credits,
+    Editor,
     Developer, // dev-only tab; the menu item is created only in "dev" builds
 }
 

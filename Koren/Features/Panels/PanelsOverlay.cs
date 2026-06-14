@@ -433,18 +433,16 @@ public static class PanelsOverlay {
                     StatColor color = entry.Color;
                     if(color is { Enabled: true }) {
                         Color tint = color.Evaluate(ColorRatio(entry.Id, color));
-                        sb.Append("<color=#")
-                          .Append(ColorUtility.ToHtmlStringRGBA(tint))
-                          .Append('>')
-                          .Append(value)
-                          .AppendLine("</color>");
+                        sb.Append("<color=#");
+                        AppendHex(sb, tint);
+                        sb.Append('>').Append(value).AppendLine("</color>");
                     } else {
                         sb.AppendLine(value);
                     }
                 }
             }
 
-            string body = sb.Length == 0 ? "" : sb.ToString().TrimEnd();
+            string body = TrimmedBody(sb);
             // Reorganize mode forces an empty panel to render its name so the
             // user has a hit target to grab.
             if(isReorganizing && body.Length == 0) {
@@ -511,6 +509,32 @@ public static class PanelsOverlay {
                 }
             }
             return null;
+        }
+
+        // Appends `tint` as 8 uppercase hex chars (RRGGBBAA) straight into the
+        // builder — same output as ColorUtility.ToHtmlStringRGBA, but without the
+        // intermediate string it allocates per colored stat per frame.
+        private static void AppendHex(StringBuilder sb, Color tint) {
+            Color32 c = tint;
+            AppendHexByte(sb, c.r);
+            AppendHexByte(sb, c.g);
+            AppendHexByte(sb, c.b);
+            AppendHexByte(sb, c.a);
+        }
+
+        private static void AppendHexByte(StringBuilder sb, byte b) {
+            const string hex = "0123456789ABCDEF";
+            sb.Append(hex[b >> 4]).Append(hex[b & 0xF]);
+        }
+
+        // sb.ToString().TrimEnd() with one allocation instead of two: scan past
+        // trailing whitespace, then copy once. Byte-identical to the old result.
+        private static string TrimmedBody(StringBuilder sb) {
+            int len = sb.Length;
+            while(len > 0 && char.IsWhiteSpace(sb[len - 1])) {
+                len--;
+            }
+            return len == 0 ? "" : sb.ToString(0, len);
         }
 
         // The 0..1 value that drives a stat's color gradient — mirrors which

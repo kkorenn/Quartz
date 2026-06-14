@@ -54,6 +54,11 @@ public static class ChatterBlocker {
     private static readonly HashSet<KeyCode> reportedKeysThisFrame = [];
     private static readonly HashSet<KeyCode> injectedKeyHeldPrev = [];
 
+    // Per-blocked-key diagnostic logging. Off by default: the $"..." interpolation
+    // plus a synchronous console write on every blocked key is measurable on macOS,
+    // and chatter fires bursts of blocks. Flip to true only when debugging.
+    private const bool DebugLog = false;
+
     private static bool AcceptNormalKey(KeyCode key, long now, long thresholdMs, bool active) {
         if(!active) {
             return true;
@@ -70,7 +75,9 @@ public static class ChatterBlocker {
             return true;
         }
 
-        MainCore.Log.Msg($"[ChatterBlocker] Blocked Key: {key} time: {elapsed}ms.");
+        if(DebugLog) {
+            MainCore.Log.Msg($"[ChatterBlocker] Blocked Key: {key} time: {elapsed}ms.");
+        }
         return false;
     }
 
@@ -232,7 +239,9 @@ public static class ChatterBlocker {
                 return true;
             }
 
-            MainCore.Log.Msg($"[ChatterBlocker] Blocked Async Key: {ev.Label} time: {elapsed}ms.");
+            if(DebugLog) {
+                MainCore.Log.Msg($"[ChatterBlocker] Blocked Async Key: {ev.Label} time: {elapsed}ms.");
+            }
             return false;
         }
     }

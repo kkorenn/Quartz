@@ -240,6 +240,10 @@ public static class ComboOverlay {
         private float lastCaptionSize = float.NaN;
         private float lastLabelKick = float.NaN;
         private float lastBlockH = float.NaN;
+        // Cached value-text preferred size per point, so the pulse (which only
+        // scales the size, not the text) doesn't pay a full GetPreferredValues
+        // layout pass every frame — re-measured only when the digits change.
+        private Vector2 prefPerPoint;
 
         private void Update() {
             if(root == null || valueText == null) {
@@ -302,15 +306,25 @@ public static class ComboOverlay {
                 || color != lastColor;
 
             if(valueChanged) {
-                if(count != cachedCount) {
+                bool textChanged = count != cachedCount;
+                if(textChanged) {
                     cachedCount = count;
                     valueText.text = count.ToString(CultureInfo.InvariantCulture);
                 }
                 valueText.fontSize = valueSize;
                 valueText.color = color;
 
-                Vector2 pref = valueText.GetPreferredValues(valueText.text);
-                valueText.rectTransform.sizeDelta = new Vector2(Mathf.Max(pref.x, 200f), pref.y);
+                // TMP preferred size scales linearly with point size, so only
+                // re-measure when the digits change (a digit added/removed). During
+                // the post-hit pulse the text is identical and only valueSize moves,
+                // so scale the cached per-point size instead of paying for a full
+                // GetPreferredValues layout pass on every pulse frame.
+                if(textChanged || prefPerPoint == Vector2.zero) {
+                    Vector2 pref = valueText.GetPreferredValues(valueText.text);
+                    prefPerPoint = valueSize > 0f ? pref / valueSize : Vector2.zero;
+                }
+                Vector2 scaled = prefPerPoint * valueSize;
+                valueText.rectTransform.sizeDelta = new Vector2(Mathf.Max(scaled.x, 200f), scaled.y);
                 ApplyValueMaterial();
 
                 lastValueSize = valueSize;
