@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -182,7 +183,11 @@ public static class TMPTextShadow {
         rect.offsetMax = offset;
 
         layer.font = source.font;
-        layer.text = source.text;
+        // A drop shadow is a flat silhouette: strip the source's <color> tags so
+        // every glyph renders in the shadow's own `color`, not the title's
+        // per-glyph rich-text colors. <size>/<b>/etc. (zero geometry change from
+        // removing colors) stay, so the silhouette still matches the text.
+        layer.text = StripColorTags(source.text);
         layer.fontSize = source.fontSize;
         layer.fontStyle = source.fontStyle;
         layer.alignment = source.alignment;
@@ -192,6 +197,10 @@ public static class TMPTextShadow {
         layer.wordSpacing = source.wordSpacing;
         layer.paragraphSpacing = source.paragraphSpacing;
         layer.richText = source.richText;
+        // Must mirror wrap state — a fresh TMP defaults word-wrap ON, so without
+        // this the shadow of a no-wrap title wrapped to one word per line inside
+        // the narrow layer rect while the title itself stayed on one line.
+        layer.enableWordWrapping = source.enableWordWrapping;
         layer.overflowMode = source.overflowMode;
         layer.enableAutoSizing = source.enableAutoSizing;
         layer.fontSizeMin = source.fontSizeMin;
@@ -199,6 +208,17 @@ public static class TMPTextShadow {
         layer.margin = source.margin;
         layer.raycastTarget = false;
     }
+
+    // Removes <color ...> / </color> tags only. Color tags carry no width, so
+    // dropping them leaves layout identical — the shadow silhouette still lines
+    // up with the colored source text.
+    private static readonly Regex ColorTagRegex =
+        new(@"</?color[^>]*>", RegexOptions.IgnoreCase);
+
+    private static string StripColorTags(string s) =>
+        string.IsNullOrEmpty(s) || s.IndexOf("color", System.StringComparison.OrdinalIgnoreCase) < 0
+            ? s
+            : ColorTagRegex.Replace(s, string.Empty);
 
     private static Vector2 SoftnessOffset(int index, float spread) {
         if(spread <= 0.001f) {

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using HarmonyLib;
 using Koren.Async;
 using Koren.Core;
@@ -292,6 +293,9 @@ public sealed class GameFontMirror : MonoBehaviour {
     private sealed class Pair {
         public Text Source;
         public TextMeshProUGUI Twin;
+        // Last raw source string we sanitized into the twin. Cached so the regex
+        // sweep + TMP re-tessellate only run when the title text actually changes.
+        public string LastRaw;
     }
 
     private const string TwinName = "KorenFontTwin";
@@ -343,8 +347,9 @@ public sealed class GameFontMirror : MonoBehaviour {
         twin.raycastTarget = false;
         twinIds.Add(twin.GetInstanceID());
 
-        pairs.Add(new Pair { Source = source, Twin = twin });
-        Apply(source, twin);
+        var pair = new Pair { Source = source, Twin = twin };
+        pairs.Add(pair);
+        Apply(pair);
     }
 
     // Frames remaining of the aggressive post-load sweep (see ArmBurst). Starts
@@ -409,11 +414,14 @@ public sealed class GameFontMirror : MonoBehaviour {
                 pairs.RemoveAt(i);
                 continue;
             }
-            Apply(pair.Source, pair.Twin);
+            Apply(pair);
         }
     }
 
-    private static void Apply(Text source, TextMeshProUGUI twin) {
+    private static void Apply(Pair pair) {
+        Text source = pair.Source;
+        TextMeshProUGUI twin = pair.Twin;
+
         // Follow the in-game overlay font live, so changing it (or the overlay
         // font it may follow) in the mod refreshes here.
         TMP_FontAsset want = FontManager.GameOverlayFontAsset;
@@ -422,11 +430,13 @@ public sealed class GameFontMirror : MonoBehaviour {
         }
         // TMP's text setter does NOT early-out on an equal string — it re-parses
         // and re-tessellates the whole mesh. Most mirrored labels never change
-        // their text, so guard the assignment to keep that per-frame re-mesh off
-        // the gameplay hot path. (The other TMP setters below already early-out
-        // internally on unchanged values, so they stay unconditional.)
-        if(twin.text != source.text) {
-            twin.text = source.text;
+        // their text, so guard on the RAW source string (pre-sanitize) so that
+        // per-frame re-mesh — and the regex sweep below — stay off the gameplay
+        // hot path. (The other TMP setters below already early-out internally on
+        // unchanged values, so they stay unconditional.)
+        if(pair.LastRaw != source.text) {
+            pair.LastRaw = source.text;
+            twin.text = SanitizeMarkup(source.text);
         }
         twin.color = source.color;
         twin.fontStyle = MapStyle(source.fontStyle);
@@ -449,9 +459,23 @@ public sealed class GameFontMirror : MonoBehaviour {
             // matches the game's rendered size without the fixed-label SizeScale
             // guess. (That guess halved the size and left short words like the
             // editor's "Strict" badge tiny, and a fixed point size clipped wide
-            // titles — auto-fit fixes both.) Cap at the game's OWN best-fit ceiling
-            // so the twin never overshoots it; min 1 lets it shrink to dodge clips.
-            float maxPx = source.resizeTextMaxSize > 0 ? source.resizeTextMaxSize : source.fontSize;
+            // titles — auto-fit fixes both.)
+            //
+            // Cap the twin's fill at the size the game ACTUALLY resolved its
+            // best-fit to (post-layout, against this same box), NOT at the raw
+            // resizeTextMaxSize ceiling. UI.Text best-fit is width-limited: a long
+            // single-line row like "Hide Cursor While Playing" can't grow taller
+            // without overflowing its line, so the game pins it well below the max.
+            // The twin is free to wrap, so capped at the raw max it grows to fill
+            // the box height and balloons (the "huge settings menu" bug). Mirroring
+            // the game's resolved size pins the twin to exactly what the game shows;
+            // min 1 still lets the wider mod font shrink under it to dodge clips.
+            // Fall back to the static ceiling only before the generator has run
+            // (resolved size 0 — first frame / empty string).
+            int gameFit = source.cachedTextGenerator.fontSizeUsedForBestFit;
+            float maxPx = gameFit > 0
+                ? gameFit
+                : (source.resizeTextMaxSize > 0 ? source.resizeTextMaxSize : source.fontSize);
             twin.enableAutoSizing = true;
             twin.fontSizeMin = 1f;
             twin.fontSizeMax = Mathf.Max(1f, maxPx);
@@ -478,6 +502,39 @@ public sealed class GameFontMirror : MonoBehaviour {
         }
         pairs.Clear();
         trackedSources.Clear();
+    }
+
+    // Game labels (notably the level title) can embed UnityEngine.UI.Text
+    // rich-text that the level author wrote. TMP's rich-text parser is NOT the
+    // same language: it honours <size> absolutely (fighting the twin's own
+    // best-fit so the title balloons and wraps) and rejects malformed hex
+    // colours like <color=#F4FA588> (7 digits) by printing the tag as literal
+    // text instead of swallowing it the way UI.Text does. Repair the markup
+    // before it reaches the twin: drop <size> (let the twin's sizing rule, which
+    // mirrors UI.Text best-fit ignoring embedded size) and coerce hex colours to
+    // a length TMP accepts, while leaving <color>/<b>/etc. intact.
+    private static readonly Regex SizeTag =
+        new(@"</?size(=[^>]*)?>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex ColorHex =
+        new(@"<color=#([0-9a-fA-F]+)>", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    internal static string SanitizeMarkup(string s) {
+        // No tags -> nothing to fix; skip the regex work (the common case).
+        if(string.IsNullOrEmpty(s) || s.IndexOf('<') < 0) {
+            return s;
+        }
+
+        s = SizeTag.Replace(s, "");
+        s = ColorHex.Replace(s, m => {
+            string hex = m.Groups[1].Value;
+            // TMP accepts #RRGGBB or #RRGGBBAA. Truncate longer (UI.Text took the
+            // first 6), pad shorter so a typo'd tag still parses instead of
+            // dumping the literal "<color=#...>" into the title.
+            int len = hex.Length >= 8 ? 8 : 6;
+            hex = hex.Length >= len ? hex.Substring(0, len) : hex.PadRight(len, '0');
+            return "<color=#" + hex + ">";
+        });
+        return s;
     }
 
     private static FontStyles MapStyle(FontStyle style) => style switch {

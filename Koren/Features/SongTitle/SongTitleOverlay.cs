@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using HarmonyLib;
 using Koren.Core;
 using Koren.Features.Panels;
@@ -193,12 +194,43 @@ public static class SongTitleOverlay {
                 artist = "Artist";
                 title = "Title";
             } else {
-                return GameStats.SongTitleRaw;
+                return NormalizeColorTags(GameStats.SongTitleRaw);
             }
         }
 
         string fmt = string.IsNullOrEmpty(Conf.Format) ? "{artist} - {title}" : Conf.Format;
-        return fmt.Replace("{artist}", artist).Replace("{title}", title);
+        return NormalizeColorTags(fmt.Replace("{artist}", artist).Replace("{title}", title));
+    }
+
+    // The game draws its in-game title with a legacy UnityEngine.UI.Text, whose
+    // rich-text parser is lenient: for a <color=#..> with an odd hex length it
+    // reads the valid RRGGBB(AA) prefix and ignores the trailing digit(s). TMP's
+    // parser is strict — a digit count outside {3,4,6,8} (e.g. a level author's
+    // 7-digit "#F4FA588") makes it bail and render the whole tag as literal text.
+    // So truncate malformed hex to its largest valid prefix: TMP then shows the
+    // same color the game does instead of leaking the raw "<color=#...>" tag.
+    // Valid tags and non-hex color names ("red", etc.) are left untouched.
+    private static readonly Regex HexColorTagRegex =
+        new(@"<color=#([0-9a-fA-F]+)>", RegexOptions.IgnoreCase);
+
+    private static string NormalizeColorTags(string s) {
+        if(string.IsNullOrEmpty(s) || s.IndexOf("<color=#", System.StringComparison.OrdinalIgnoreCase) < 0) {
+            return s;
+        }
+        return HexColorTagRegex.Replace(s, m => {
+            string hex = m.Groups[1].Value;
+            int valid = hex.Length switch {
+                >= 8 => 8,      // RRGGBBAA (+ ignore extra, as legacy does)
+                6 or 7 => 6,    // RRGGBB
+                4 or 5 => 4,    // RGBA short form
+                3 => 3,         // RGB short form
+                _ => 0,         // 1-2 digits: not a color, drop the tag
+            };
+            if(valid == 0) {
+                return string.Empty;
+            }
+            return valid == hex.Length ? m.Value : $"<color=#{hex.Substring(0, valid)}>";
+        });
     }
 
     private sealed class Updater : MonoBehaviour {
@@ -241,6 +273,11 @@ public static class SongTitleOverlay {
             if(body != lastBody) {
                 text.text = body;
                 lastBody = body;
+                // Re-sync the shadow to the new text: its layers copy the source
+                // string at apply-time, so without this they keep the previous
+                // title's silhouette — a now-empty title (empty artist/song) would
+                // otherwise leave a stale shadow floating on screen.
+                ApplyShadow();
             }
         }
     }

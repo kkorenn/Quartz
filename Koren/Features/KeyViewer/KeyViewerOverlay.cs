@@ -1584,14 +1584,16 @@ public static class KeyViewerOverlay {
         // A set width is used as-is — never multiplied per column — so a 2-wide
         // key keeps a one-key rain unless the width is deliberately set wider.
 
-        // Shift the rain within the box per its alignment (wide keys pull toward
-        // the grid center); the slack is the free space the narrower rain has.
-        float slack = Mathf.Max(0f, box.BoxW - width);
+        // Center the rain over the KEY-column nearest the aligned edge, not the
+        // box edge: the offset runs from the box center to a single column's
+        // center (half the box minus one key), so a wide key's rain sits squarely
+        // over that key whatever the rain's own width.
+        float keyOffset = Mathf.Max(0f, box.BoxW - KeyW) * 0.5f;
 
         RawRain raw = new() {
             Group = box.RainGroup,
             StartTime = now,
-            AnchorX = box.CenterX + box.RainAlign * (slack * 0.5f),
+            AnchorX = box.CenterX + box.RainAlign * keyOffset,
             Width = width,
             // Offset moves the base line; rain rises from the grid top.
             BaseY = -(frontRow ? Conf.RainOffsetY : Conf.Rain2OffsetY),
