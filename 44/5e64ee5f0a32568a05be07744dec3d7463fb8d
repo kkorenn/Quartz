@@ -1,0 +1,86 @@
+Koren/UI/UICore.cs
+  s_8ffe732817de5e::t_cbefcf61d9ff8f 33
+Koren/UI/Factory/MenuFactory.cs
+  s_8ffe732817de5e::t_3674c6f154be37 50
+  s_8ffe732817de5e::t_373fd7dbdea565 68-70
+Koren/Features/Panels/PanelsOverlay.cs
+  s_623ab683fe176c::t_28a492c1f631c2 514-539
+  s_623ab683fe176c::t_3b2b48b542e378 436-438
+  s_623ab683fe176c::t_8ce19a91d654bc 445
+Koren/Features/GameOverlayFont/GameOverlayFont.cs
+  s_623ab683fe176c::t_7419e62845e170 396-399,407-412,416-419
+  s_d9c9c1c9bc5239::t_b92becea05d538 250
+  s_623ab683fe176c::t_a685986b1b7130 4
+  s_623ab683fe176c::t_300227eddf713d 331-333,336-346,348-358
+  s_623ab683fe176c::t_c5caa5c2b29496 50-56
+  s_623ab683fe176c::t_e5db3c86f6ee0c 68-70
+  s_623ab683fe176c::t_6581207d2282f0 413-415,421
+  s_623ab683fe176c::t_db015f55da0a59 384-391
+Koren/UI/Factory/Page/PageSearch.cs
+  s_8ffe732817de5e::t_6cf4dc88b39a93 142
+Koren/Features/Editor/Editor.cs
+  s_8ffe732817de5e::t_e00ce71479c849 63
+  s_8ffe732817de5e::t_44e22e912da91a 1,4,8,13-14,16-28,55-58,60-61,64-65,67-71,75-84,86-89,91-95,98-99,103-121,123-124,126-127,129-132,135-140,142-144,146-152,154-164,166-169,173-180,182-186,188-189,191-195,197,199-209,212-215,219
+  s_8ffe732817de5e::t_36b09e7cac933a 2-3,5,7,9-12,15,29-51,59,62,216-217,220-221
+  s_8ffe732817de5e::t_62e5ea9a233dd4 190
+  s_8ffe732817de5e::t_ba5ed69c98988c 85,90,96
+  s_8ffe732817de5e::t_5c83728e7c2ea7 72-74,97,100-101,141
+  s_8ffe732817de5e::t_ee72f40f1e7af2 165
+  s_8ffe732817de5e::t_685e6128c8d4e1 6,52-54,66,102,122,125,128,133-134,145,153,170-172,181,187,196,198,210-211,218
+Koren/UI/Factory/PageFactory.cs
+  s_8ffe732817de5e::t_6c6d5957fb26f4 40
+Koren/Features/Combo/ComboOverlay.cs
+  s_623ab683fe176c::t_0632bd9c7482cd 309-310,317-327
+  s_623ab683fe176c::t_58cede085cc0e4 243-246
+Koren/Features/ChatterBlocker/ChatterBlocker.cs
+  s_623ab683fe176c::t_726213145c41e8 57-61
+  s_623ab683fe176c::t_3cebe1150f054b 78-80
+  s_623ab683fe176c::t_6d9a5fa5cfffb9 242-244
+Koren/Core/KorenRuntime.cs
+  s_8ffe732817de5e::t_ba46a812de4626 253
+  s_8ffe732817de5e::t_e0d2cc98858a20 155-158
+  s_8ffe732817de5e::t_d00280f560593e 8
+Koren/Features/Editor/EditorSettings.cs
+  s_8ffe732817de5e::t_050a27d01fcfab 1-9,13-15,17-23,25-26
+  s_8ffe732817de5e::t_69757d48afd183 10-12,16,24
+Koren/Update/UpdateService.cs
+  s_d9c9c1c9bc5239::t_49aa819c4530ca 128-134
+  s_d9c9c1c9bc5239::t_1eb7a9966c00bd 265
+  s_d9c9c1c9bc5239::t_b6501894faefd9 253
+  s_d9c9c1c9bc5239::t_320f243c805234 68-74
+Koren/UI/Factory/Page/PageEditor.cs
+  s_8ffe732817de5e::t_24d39e4041d831 1-67,69,72,74-76,79,83-85
+  s_8ffe732817de5e::t_3d08106e66447a 68,70-71,73,77-78,80-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "445e64ee5f0a32568a05be07744dec3d7463fb8d",
+  "prompts": {},
+  "sessions": {
+    "s_623ab683fe176c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c9dd4071-475f-454a-b719-e427c4f1652e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    },
+    "s_8ffe732817de5e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a1714c3c-5566-4843-9c12-7dea1344657e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    },
+    "s_d9c9c1c9bc5239": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "65f36f0e-2b95-437f-a7c0-a51beb95d7b4",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
