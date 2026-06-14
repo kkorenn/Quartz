@@ -28,11 +28,18 @@ public static class GameOverlayFont {
         public TMP_Text Tmp;
         public TMP_FontAsset Original;
         public float OriginalSize;
+        public bool OriginalAutoSize;
+        public bool OriginalWrap;
     }
 
     // Native-TMP game labels we re-fonted, kept so the font can be put back.
     private static readonly Dictionary<int, Capture> tmpCaptures = [];
     private static bool hooked;
+
+    // Point size relative to the game's for a wrapping TMP paragraph (e.g. the
+    // update log) — near the game's own size so it fills its board, trimmed a
+    // little because the mod font's lines are taller.
+    private const float ParagraphScale = 0.9f;
 
     public static void Initialize() {
         if(hooked) {
@@ -89,9 +96,9 @@ public static class GameOverlayFont {
             if(cap.Tmp.font != cap.Original) {
                 cap.Tmp.font = cap.Original;
             }
-            if(cap.OriginalSize > 0f && cap.Tmp.fontSize != cap.OriginalSize) {
-                cap.Tmp.fontSize = cap.OriginalSize;
-            }
+            cap.Tmp.enableAutoSizing = cap.OriginalAutoSize;
+            cap.Tmp.enableWordWrapping = cap.OriginalWrap;
+            cap.Tmp.fontSize = cap.OriginalSize;
         }
         tmpCaptures.Clear();
     }
@@ -106,30 +113,105 @@ public static class GameOverlayFont {
         }
 
         // Hit text is short-lived and spawned per-hit; don't capture it (would
-        // leak) — its font swap still happens below and its size is handled by
-        // HitTextSizePatch.
-        // Hit text is short-lived and spawned per-hit; don't capture it (would
-        // leak) — its font swap still happens below and its size is handled by
-        // HitTextSizePatch.
+        // leak) — just swap its font here; its size is HitTextSizePatch's job.
         bool isHitText = tmp.name.Contains("HitText");
         int id = tmp.GetInstanceID();
+
         if(!isHitText && !tmpCaptures.ContainsKey(id)) {
-            // Same scaling as the legacy twins so all game text is uniform —
-            // the mod font renders larger than the game's at a given size.
-            tmpCaptures[id] = new Capture { Tmp = tmp, Original = tmp.font, OriginalSize = tmp.fontSize };
-            if(!tmp.enableAutoSizing) {
-                tmp.fontSize *= GameFontMirror.SizeScale;
-            }
+            SizeAndCapture(tmp, want, id);
         }
+
         if(tmp.font != want) {
             tmp.font = want;
             tmp.fontSharedMaterial = want.material;
         }
-        // The wider mod font wraps single-line labels that fit in their box with
-        // the game font; let it overflow on one line instead.
-        if(!AllowsWrap(tmp.rectTransform, tmp.fontSize)) {
-            tmp.enableWordWrapping = false;
+    }
+
+    // Re-fonts a game TMP label and sizes it to match the game in the mod font:
+    //   * the game's own auto-sized labels are left to size themselves;
+    //   * multi-line paragraphs (e.g. the update log) get a fixed readable scale;
+    //   * single-line labels keep the game's size but shrink ONLY when the wider
+    //     mod font overflows the box horizontally (so wide rows like the editor
+    //     menu stay full size while narrow ones like the pause menu shrink to fit).
+    private static void SizeAndCapture(TMP_Text tmp, TMP_FontAsset want, int id) {
+        float gameSize = tmp.fontSize;
+
+        // The game auto-sizes some labels to fill their box (e.g. the update log
+        // filling its board). Leave that on — just the font changes — so they
+        // keep filling; only fixed-size labels need our help.
+        if(tmp.enableAutoSizing) {
+            tmpCaptures[id] = new Capture {
+                Tmp = tmp,
+                Original = tmp.font,
+                OriginalSize = gameSize,
+                OriginalAutoSize = true,
+                OriginalWrap = tmp.enableWordWrapping,
+            };
+            return;
         }
+
+        bool paragraph = AllowsWrap(tmp.rectTransform, gameSize);
+
+        // Single-line width-fit needs a laid-out box; defer to a later sweep if
+        // the rect isn't measured yet so the fit isn't computed against width 0.
+        if(!paragraph && tmp.rectTransform.rect.width <= 0f) {
+            return;
+        }
+
+        tmpCaptures[id] = new Capture {
+            Tmp = tmp,
+            Original = tmp.font,
+            OriginalSize = gameSize,
+            OriginalAutoSize = false,
+            OriginalWrap = tmp.enableWordWrapping,
+        };
+
+        tmp.font = want;
+        tmp.fontSharedMaterial = want.material;
+        ApplySize(tmp, gameSize);
+    }
+
+    // Sizes a fixed-size game TMP label (mod font already set): paragraphs get a
+    // readable scale, single-line labels keep the game's size but shrink when the
+    // wider mod font overflows the box horizontally. Re-runnable on font change.
+    private static void ApplySize(TMP_Text tmp, float gameSize) {
+        if(AllowsWrap(tmp.rectTransform, gameSize)) {
+            tmp.enableWordWrapping = true;
+            tmp.fontSize = gameSize * ParagraphScale;
+        } else {
+            tmp.enableWordWrapping = false;
+            tmp.fontSize = gameSize;
+            float boxW = tmp.rectTransform.rect.width;
+            float wantW = tmp.GetPreferredValues(tmp.text).x;
+            if(boxW > 0f && wantW > boxW) {
+                tmp.fontSize = gameSize * (boxW / wantW) * 0.98f;
+            }
+        }
+    }
+
+    // Re-applies the current font to every already-overridden game TMP and
+    // re-fits it, so changing the font in the mod refreshes the in-game overlay.
+    // (Legacy twins follow the font on their own each frame.)
+    public static void ApplyFontChange() {
+        if(!Active) {
+            Restore();
+            return;
+        }
+
+        TMP_FontAsset want = FontManager.Current;
+        foreach(Capture cap in tmpCaptures.Values) {
+            if(cap.Tmp == null) {
+                continue;
+            }
+            cap.Tmp.font = want;
+            cap.Tmp.fontSharedMaterial = want.material;
+            if(!cap.OriginalAutoSize) {
+                ApplySize(cap.Tmp, cap.OriginalSize);
+            }
+        }
+
+        // Pick up anything new too.
+        TrackScene();
     }
 
     // True only when the text's box is tall enough for more than one line, so
@@ -155,7 +237,7 @@ public static class GameOverlayFont {
     // mod font. Init sets its fontSize (after the font swap) and animates only
     // transform scale, so trimming fontSize here sticks without fighting the
     // punch animation.
-    private const float HitTextScale = 0.75f;
+    private const float HitTextScale = 0.6f;
 
     [HarmonyPatch(typeof(scrHitTextMesh), "Init")]
     private static class HitTextSizePatch {
@@ -264,6 +346,10 @@ public sealed class GameFontMirror : MonoBehaviour {
     }
 
     private static void Apply(Text source, TextMeshProUGUI twin) {
+        // Follow the current font live, so changing it in the mod refreshes here.
+        if(twin.font != FontManager.Current) {
+            twin.font = FontManager.Current;
+        }
         twin.text = source.text;
         twin.color = source.color;
         twin.fontStyle = MapStyle(source.fontStyle);

@@ -124,7 +124,7 @@ public sealed class KorenRuntime {
         FontManager.Initialize();
         // Re-apply the font to ADOFAI's own text whenever the selection changes
         // or a new scene loads.
-        FontManager.OnFontChanged += GameOverlayFont.Refresh;
+        FontManager.OnFontChanged += GameOverlayFont.ApplyFontChange;
         GameOverlayFont.Initialize();
         Logger.Msg($"[Startup] FontManager took {sw.ElapsedMilliseconds} ms");
 
