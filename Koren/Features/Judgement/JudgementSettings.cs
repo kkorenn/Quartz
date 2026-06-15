@@ -13,15 +13,15 @@ public sealed class JudgementSettings : ISettingsFile {
     public bool Enabled = true;
 
     public float OffsetX = 0f;
-    public float OffsetY = 0f;
-    public float Size = 1f;
-    public float Spacing = 0f;
+    public float OffsetY = -5f;
+    public float Size = 0.9f;
+    public float Spacing = 5f;
 
     public bool TextShadowEnabled = true;
-    public float TextShadowX = 2f;
-    public float TextShadowY = -2f;
+    public float TextShadowX = 1.5f;
+    public float TextShadowY = -1.5f;
     public float TextShadowSoftness = 0f;
-    public float TextShadowR = 0f, TextShadowG = 0f, TextShadowB = 0f, TextShadowA = 0.75f;
+    public float TextShadowR = 0f, TextShadowG = 0f, TextShadowB = 0f, TextShadowA = 0.5019608f;
 
     public Color GetTextShadowColor() => new(
         Mathf.Clamp01(TextShadowR),

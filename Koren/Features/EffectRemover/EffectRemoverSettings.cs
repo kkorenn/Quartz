@@ -18,9 +18,9 @@ public sealed class EffectRemoverSettings : ISettingsFile {
     // === Non-DLC events ===
     public bool Filters = true;
     public bool AdvancedFilters = true;
-    public bool Particles = true;
-    public bool Decorations = true;
-    public bool Backgrounds = true;
+    public bool Particles = false;
+    public bool Decorations = false;
+    public bool Backgrounds = false;
     public bool Cameras = false;
     public bool RepeatEvents = false;
     public bool FrameRate = true;
@@ -34,12 +34,12 @@ public sealed class EffectRemoverSettings : ISettingsFile {
     // === Track events ===
     public bool TrackAnimations = false;
     public bool TrackPositions = false;
-    public bool TrackMoves = true;
-    public bool TrackColors = true;
+    public bool TrackMoves = false;
+    public bool TrackColors = false;
 
     // === DLC events ===
-    public bool HoldSounds = false;
-    public bool HideIcons = false;
+    public bool HoldSounds = true;
+    public bool HideIcons = true;
 
     // === Misc ===
     public bool RemoveAllDecorations = true;
@@ -47,10 +47,10 @@ public sealed class EffectRemoverSettings : ISettingsFile {
     // default/tutorial background's tiled pattern. Its pulsing shapes are
     // always disabled whenever Backgrounds is on.
     public bool RemoveTutorialPatterns = true;
-    public bool LimitTrackOpacity = false;
+    public bool LimitTrackOpacity = true;
     public bool SetCameraZoom = false;
     public float CameraZoomScale = 250f;
-    public bool ResetTrackAnimation = false;
+    public bool ResetTrackAnimation = true;
     public bool ResetTrackColor = true;
 
     public JToken Serialize() {

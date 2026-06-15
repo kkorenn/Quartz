@@ -16,11 +16,11 @@ public sealed class RestrictionSettings : ISettingsFile {
     // was "XPure Perfect", tied to the XPerfect mod — not ported.)
     public bool JRestrictEnabled = false;
     public int JRestrictMode = 1;
-    public float JRestrictAccuracy = 100f;
+    public float JRestrictAccuracy = 96.6741943f;
     public int JRestrictAllowedMask = 0;
     // {judgement} is replaced at fail time with the judgement that broke the
     // restriction (see Restriction.FormatJrMessage).
-    public string JRestrictMessage = "Broke the restriction with {judgement}!!";
+    public string JRestrictMessage = "Broke the judgement restriction!!";
 
     // === Death Limit ===
     public bool DeathLimitEnabled = false;

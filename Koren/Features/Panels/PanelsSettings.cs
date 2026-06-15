@@ -108,7 +108,9 @@ public sealed class PanelConfig {
     public string Prefix = "";
     public int Decimals = 2;
     public float FontSize = 22f;
-    public string LabelSeparator = "  ";
+    // Drawn between label and value; a single character is auto-padded with a
+    // space each side at render (see PanelsOverlay.EffectiveSeparator). "|" → " | ".
+    public string LabelSeparator = "|";
     public float LineSpacing = 0f;
     public bool BackgroundEnabled = true;
 
@@ -243,10 +245,44 @@ public sealed class PanelsSettings : ISettingsFile {
     // the old Status master.
     public bool Enabled = true;
 
+    // Default layout matches the shipped Default profile: three corner panels
+    // (top-left run stats, top-right tempo, bottom-right attempts), all sharing
+    // the " | " separator, no background, and a soft drop shadow.
     public List<PanelConfig> Panels = [
         new PanelConfig {
-            Name = "Main",
-            Stats = [new("progress"), new("accuracy"), new("fps")],
+            Name = "left",
+            Anchor = (int)PanelAnchor.TopLeft,
+            PosX = 22.7f,
+            PosY = -19.5f,
+            Stats = [new("progress"), new("best"), new("xaccuracy"), new("maxaccuracy"), new("fps")],
+            LabelSeparator = "|",
+            BackgroundEnabled = false,
+            TextShadowX = 1.5f,
+            TextShadowY = -1.5f,
+            TextShadowA = 0.5f,
+        },
+        new PanelConfig {
+            Name = "right",
+            Anchor = (int)PanelAnchor.TopRight,
+            PosX = -19.2f,
+            PosY = -28.5f,
+            Stats = [new("tbpm"), new("cbpm"), new("kps")],
+            LabelSeparator = "|",
+            BackgroundEnabled = false,
+            TextShadowX = 1.5f,
+            TextShadowY = -1.5f,
+            TextShadowA = 0.5f,
+        },
+        new PanelConfig {
+            Name = "attempts",
+            Anchor = (int)PanelAnchor.BottomRight,
+            PosX = 1.5f,
+            PosY = 63.8f,
+            Stats = [new("attempt"), new("totalattempts")],
+            LabelSeparator = "|",
+            BackgroundEnabled = false,
+            TextShadowX = 1.5f,
+            TextShadowY = -1.5f,
         },
     ];
 

@@ -34,28 +34,28 @@ public sealed class ComboSettings : ISettingsFile {
 
     // === Position ===
     public float OffsetX = 0f;
-    public float OffsetY = 0f;
+    public float OffsetY = 58.8050537f;
 
     // === Caption / Label ===
     public bool ShowCaption = true;
     public string CaptionText = "Combo";
-    public float CaptionOffsetY = 0f;
+    public float CaptionOffsetY = -40f;
     // Drop shadow (TMP underlay). Offsets are in "pixel-ish" units.
     public bool CaptionShadowEnabled = true;
-    public float CaptionShadowX = 2f;
-    public float CaptionShadowY = -2f;
+    public float CaptionShadowX = 1.5f;
+    public float CaptionShadowY = -1.5f;
     public float CaptionShadowSoftness = 0f;
-    public float CaptionShadowR = 0f, CaptionShadowG = 0f, CaptionShadowB = 0f, CaptionShadowA = 1f;
+    public float CaptionShadowR = 0f, CaptionShadowG = 0f, CaptionShadowB = 0f, CaptionShadowA = 0.5019608f;
 
     // === Count ===
     // TMP face dilate — thickens the value strokes. Range roughly -0.5 (thin)
     // to 0.5 (thick); 0 = native weight.
     public float CountThickness = 0f;
     public bool CountShadowEnabled = true;
-    public float CountShadowX = 2f;
-    public float CountShadowY = -2f;
+    public float CountShadowX = 1.5f;
+    public float CountShadowY = -1.5f;
     public float CountShadowSoftness = 0f;
-    public float CountShadowR = 0f, CountShadowG = 0f, CountShadowB = 0f, CountShadowA = 1f;
+    public float CountShadowR = 0f, CountShadowG = 0f, CountShadowB = 0f, CountShadowA = 0.5019608f;
 
     // === Color ===
     public int ColorMax = 2000;
@@ -75,9 +75,9 @@ public sealed class ComboSettings : ISettingsFile {
     // 0.075 out + 0.18 settle). LabelPulseOffsetY kicks the caption up on each
     // pop (0 = no kick, the original behavior).
     public bool NoPopAnim = false;
-    public float CountPulseScale = 0.24f;
-    public float PulseDuration = 0.255f;
-    public float LabelPulseOffsetY = 0f;
+    public float CountPulseScale = 0.149999991f;
+    public float PulseDuration = 0.099999994f;
+    public float LabelPulseOffsetY = 7f;
 
     public Color GetColorLow() => new(
         Mathf.Clamp01(ColorLowR), Mathf.Clamp01(ColorLowG),

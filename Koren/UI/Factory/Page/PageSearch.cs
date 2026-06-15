@@ -265,7 +265,12 @@ internal static class PageSearch {
 
             if((name == "Text" || name == "Label") && child.TryGetComponent(out TMP_Text tmp)) {
                 string text = tmp.text;
-                if(!string.IsNullOrWhiteSpace(text)) {
+                // Index only stable, translated labels — setting names, button
+                // captions, headings (all carry a TextLocalization). Dynamic value
+                // displays (slider numbers, dropdown selections, input contents)
+                // carry none, so they're skipped: search matches what a setting IS,
+                // not its current value.
+                if(!string.IsNullOrWhiteSpace(text) && child.GetComponent<TextLocalization>() != null) {
                     RectTransform target = RowTarget(child, state);
                     if(target != null) {
                         list.Add(new Entry {

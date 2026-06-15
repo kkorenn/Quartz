@@ -11,21 +11,21 @@ namespace Koren.Features.ProgressBar;
 public sealed class ProgressBarSettings : ISettingsFile {
     public bool Enabled = true;
 
-    public float Width = 720f;
-    public float Height = 9f;
+    public float Width = 800f;
+    public float Height = 8f;
     public float OffsetX = 0f;
     public float TopOffset = 10f;
 
-    public float Rounding = 4f;
-    public float OutlineThickness = 0f;
+    public float Rounding = 1f;
+    public float OutlineThickness = 1.75f;
 
     // When a run starts mid-chart (checkpoint / editor play-from-tile), start
     // the bar already filled up to that point instead of empty.
     public bool PrefillStart = false;
 
-    public float FillR = 0.97f, FillG = 0.99f, FillB = 1.00f, FillA = 0.96f;
+    public float FillR = 1f, FillG = 0f, FillB = 0f, FillA = 0.96f;
     public float BackR = 0.05f, BackG = 0.05f, BackB = 0.06f, BackA = 0.80f;
-    public float OutlineColR = 0.98f, OutlineColG = 0.99f, OutlineColB = 1.00f, OutlineColA = 0.68f;
+    public float OutlineColR = 1f, OutlineColG = 1f, OutlineColB = 1f, OutlineColA = 1f;
 
     public Color GetFillColor() => new(
         Mathf.Clamp01(FillR),

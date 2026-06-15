@@ -13,7 +13,7 @@ public sealed class KeyLimiterSettings : ISettingsFile {
 
     public int[] AllowedKeys = [
         113, 51, 52, 116, 111, 45, 61, 92,
-        32, 98, 104, 44, 97, 304, 303, 13,
+        32, 98, 104, 46, 97, 304, 273, 13,
     ];
 
     public JToken Serialize() {

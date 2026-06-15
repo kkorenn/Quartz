@@ -31,9 +31,9 @@ public sealed class KeyViewerSettings : ISettingsFile {
     public bool IsSimpleMode => string.Equals(Mode, ModeSimple, StringComparison.OrdinalIgnoreCase);
     public bool IsDmNoteMode => string.Equals(Mode, ModeDmNote, StringComparison.OrdinalIgnoreCase);
 
-    public float Size = 1f;
-    public float OffsetX = 0f;
-    public float OffsetY = 80f;
+    public float Size = 0.8f;
+    public float OffsetX = -713.51886f;
+    public float OffsetY = 24.76001f;
 
     // Keep the Key Limiter's allowed list matched to the keys on the viewer
     // (v1 KeyViewerSimpleSyncToKeyLimiter, default on).
@@ -42,8 +42,8 @@ public sealed class KeyViewerSettings : ISettingsFile {
     // Rain effect (v1 KeyViewerSimpleUseRain + SKvRain* defaults). Width 0
     // means "use the key's width"; rain 2 covers the second/third row groups.
     public bool RainEnabled = true;
-    public float RainSpeed = 400f;
-    public float RainHeight = 200f;
+    public float RainSpeed = 450f;
+    public float RainHeight = 300f;
     public float RainFade = 60f;
     // Rain streak width per row group; 0 = match the key's width. A positive
     // value is per key-column, so a 2-wide key (e.g. the 10-key's bottom row)
@@ -55,11 +55,11 @@ public sealed class KeyViewerSettings : ISettingsFile {
 
     // KPS/Total placement on the back row: false = far apart (one on each
     // side, the v1 default), true = side by side in the centre.
-    public bool StatsTogether = false;
+    public bool StatsTogether = true;
 
     public float RainR = 1f, RainG = 0f, RainB = 0f, RainA = 1f;
     public float Rain2R = 1f, Rain2G = 1f, Rain2B = 1f, Rain2A = 1f;
-    public float Rain3R = 1f, Rain3G = 0f, Rain3B = 0f, Rain3A = 1f;
+    public float Rain3R = 1f, Rain3G = 0f, Rain3B = 1f, Rain3A = 1f;
 
     // DM Note renderer settings from KorenResourcePack's KeyViewerMode =
     // "dmnote". PresetJson is the exported preset payload; SelectedTab picks
@@ -90,8 +90,8 @@ public sealed class KeyViewerSettings : ISettingsFile {
 
     // Key codes per style, stored as KeyCode ints like v1.
     public int[] Key10 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 104];
-    public int[] Key12 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 98, 104, 44];
-    public int[] Key16 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 98, 104, 44, 97, 304, 303, 13];
+    public int[] Key12 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 98, 104, 46];
+    public int[] Key16 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 98, 104, 46, 97, 304, 273, 13];
     public int[] Key20 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 98, 104, 44, 97, 304, 303, 13, 110, 103, 109, 107];
 
     // Per-slot label overrides (v1 KeyViewerSimpleKey*Text); empty = derive

@@ -27,7 +27,7 @@ public sealed class PlanetColorsSettings : ISettingsFile {
     public float[] TailR = [1f, 1f, 1f];
     public float[] TailG = [0f, 0f, 0f];
     public float[] TailB = [0f, 0f, 0f];
-    public float[] TailOpacity = [0.2f, 0.2f, 0.2f];
+    public float[] TailOpacity = [0f, 0f, 0f];
 
     public Color GetBallColor(int slot) {
         slot = Mathf.Clamp(slot, 0, Slots - 1);

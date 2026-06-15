@@ -97,6 +97,18 @@ public static class PanelsOverlay {
     public static string LocalizedStatLabel(StatDef stat)
         => stat == null ? "" : MainCore.Tr.Get(LocaleKey("PANEL_STAT_", stat.Id), stat.Label);
 
+    // The text drawn between a stat's label and its value. Stored raw, padded
+    // here so a tidy single-character separator doesn't need manual spaces:
+    //   ""          -> a single space
+    //   "|"  (1 ch) -> " | "  (a space added each side)
+    //   "::" (2+ ch) -> used verbatim (the user supplied their own spacing)
+    internal static string EffectiveSeparator(string raw) {
+        if(string.IsNullOrEmpty(raw)) {
+            return " ";
+        }
+        return raw.Length == 1 ? " " + raw + " " : raw;
+    }
+
     public static string LocalizedCategory(string category)
         => MainCore.Tr.Get(LocaleKey("PANEL_CATEGORY_", category), category);
 
@@ -439,7 +451,7 @@ public static class PanelsOverlay {
                         string label = c.LocalizeStatLabels
                             ? LocalizedStatLabel(stat)
                             : stat.Label;
-                        sb.Append(label).Append(c.LabelSeparator);
+                        sb.Append(label).Append(EffectiveSeparator(c.LabelSeparator));
                     }
 
                     // Per-stat value coloring (v1 ColorRange): tint the value

@@ -15,21 +15,21 @@ public sealed class OptimizerSettings : ISettingsFile {
     // the end. Stops the stop-the-world GC pauses that otherwise land mid-run
     // and nudge rhythm timing. The heap grows for the duration of the run (a
     // safety valve forces a collect if it grows too far), so it's opt-in.
-    public bool SmoothGC = false;
+    public bool SmoothGC = true;
 
     // Force a collection on every scene load, so a run starts from a clean heap.
     // Pairs with SmoothGC — it's the pre-run clean that SmoothGC deliberately
     // skips (collecting at gameplay start would itself hitch the first frame).
-    public bool CollectOnLevelLoad = false;
+    public bool CollectOnLevelLoad = true;
 
     // Raise the process priority (AboveNormal) so the OS scheduler hands the game
     // more consistent CPU time. Real effect on Windows; a no-op where the
     // platform doesn't permit it unprivileged (typically macOS/Linux).
-    public bool BoostProcessPriority = false;
+    public bool BoostProcessPriority = true;
 
     // Keep the game running at full speed when its window loses focus, so a run
     // or practice session keeps going while alt-tabbed.
-    public bool RunInBackground = false;
+    public bool RunInBackground = true;
 
     public JToken Serialize() {
         return new JObject {

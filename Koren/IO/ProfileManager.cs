@@ -44,7 +44,7 @@ public static class ProfileManager {
             }
 
             // First run, or the pointer aimed at a deleted directory: capture
-            // the live settings as the initial profile.
+            // the live (code-default) settings as the initial profile.
             if(!Directory.Exists(DirOf(Active))) {
                 Active = DEFAULT_NAME;
                 CaptureTo(Active);

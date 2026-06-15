@@ -9,7 +9,7 @@ namespace Koren.Features.SongTitle;
 // When enabled it hides the game's own level-title HUD and draws a customizable
 // replacement built from the {artist} and {title} tags in Format.
 public sealed class SongTitleSettings : ISettingsFile {
-    public bool Enabled = false;
+    public bool Enabled = true;
 
     // Layout template. {artist} and {title} are replaced with the level's author
     // and song. Default reproduces the game's "artist - title".
@@ -27,7 +27,7 @@ public sealed class SongTitleSettings : ISettingsFile {
 
     public bool ShadowEnabled = true;
     public float ShadowX = 2f, ShadowY = -2f, ShadowSoftness = 0f;
-    public float ShadowR = 0f, ShadowG = 0f, ShadowB = 0f, ShadowA = 1f;
+    public float ShadowR = 0f, ShadowG = 0f, ShadowB = 0f, ShadowA = 0.3959352f;
 
     public Color GetColor() => new(
         Mathf.Clamp01(ColorR), Mathf.Clamp01(ColorG), Mathf.Clamp01(ColorB), Mathf.Clamp01(ColorA));

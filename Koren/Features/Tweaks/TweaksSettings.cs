@@ -16,8 +16,8 @@ public sealed class TweaksSettings : ISettingsFile {
 
     // === Behavior tweaks (Tweaks tab) ===
     public bool DisableAutoPause = true;
-    public bool BlockMouseWheelScrollWhilePlaying = false;
-    public bool DisableMenuMusic = false;
+    public bool BlockMouseWheelScrollWhilePlaying = true;
+    public bool DisableMenuMusic = true;
 
     // Custom main-menu BPM: the menu's rabbit floor toggles the planet speed
     // between slow and fast. When enabled, those two states run at these BPMs

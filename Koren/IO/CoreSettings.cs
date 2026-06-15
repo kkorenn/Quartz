@@ -12,14 +12,14 @@ public sealed class CoreSettings : ISettingsFile {
     public bool ShowOnStartup = false;
     public bool Tooltip = true;
     public bool MiddleClickToDefault = true;
-    public float UIScale = 1.0f;
+    public float UIScale = 0.85f;
     public string FontName = "";
 
     // Apply FontName to A Dance of Fire and Ice's own in-game overlay (the
     // scrHUDText title/artist HUD shown during play), not just the mod's UI.
     // "Default (SUIT)" has no standalone font file, so it leaves the game's
     // own localized font in place.
-    public bool ApplyFontToGameOverlay = false;
+    public bool ApplyFontToGameOverlay = true;
 
     // Font for the in-game overlay when ApplyFontToGameOverlay is on. Empty means
     // "follow the mod's overlay font (FontName)"; otherwise a font display name
@@ -62,8 +62,8 @@ public sealed class CoreSettings : ISettingsFile {
     // UI accent color (drives the whole theme via UIColors.ApplyAccent).
     // Default ff9999 (soft red).
     public float AccentR = 1.0f;
-    public float AccentG = 0.6f;
-    public float AccentB = 0.6f;
+    public float AccentG = 0.5995077f;
+    public float AccentB = 0.5995077f;
 
     public Color GetAccentColor() => new(
         Mathf.Clamp01(AccentR),
