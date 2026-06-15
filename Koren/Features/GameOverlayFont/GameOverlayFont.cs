@@ -296,6 +296,10 @@ public sealed class GameFontMirror : MonoBehaviour {
         // Last raw source string we sanitized into the twin. Cached so the regex
         // sweep + TMP re-tessellate only run when the title text actually changes.
         public string LastRaw;
+        // True for the settings-menu rows (PauseSettingButton label/value). Their
+        // best-fit boxes are tall, so the normal auto-fill twin balloons them; they
+        // get a fixed small size instead. Resolved once at Track (parent walk).
+        public bool IsSettingRow;
     }
 
     private const string TwinName = "KorenFontTwin";
@@ -303,8 +307,39 @@ public sealed class GameFontMirror : MonoBehaviour {
     // the TMP path scales game text to match.
     internal const float SizeScale = 0.5f;
 
+    // Drop shadow for the re-fonted game text. Uses TMP's built-in material
+    // underlay (a GPU effect in the same draw) rather than the layered
+    // TMPTextShadow the mod HUD uses: the underlay needs no extra GameObjects and
+    // no per-frame re-mesh, and it fades with the glyph alpha for free — so it
+    // stays off the gameplay hot path even across dozens of mirrored labels. The
+    // offsets are in TMP underlay units (~fraction of an em), so they scale with
+    // each label's own size automatically. Applied to a per-twin material
+    // INSTANCE (twin.fontMaterial) so it never leaks onto the shared font
+    // material / the mod's own UI.
+    private static readonly Color ShadowColor = new(0f, 0f, 0f, 0.75f);
+    private const float ShadowOffsetX = 0.5f;
+    private const float ShadowOffsetY = -0.5f;
+    private const float ShadowSoftness = 0.15f;
+    private const float ShadowDilate = 0.1f;
+
+    private static void ApplyShadow(TMP_Text twin) {
+        Material mat = twin.fontMaterial; // instances the material on first access
+        if(mat == null) {
+            return;
+        }
+        mat.EnableKeyword("UNDERLAY_ON");
+        mat.SetColor("_UnderlayColor", ShadowColor);
+        mat.SetFloat("_UnderlayOffsetX", ShadowOffsetX);
+        mat.SetFloat("_UnderlayOffsetY", ShadowOffsetY);
+        mat.SetFloat("_UnderlaySoftness", ShadowSoftness);
+        mat.SetFloat("_UnderlayDilate", ShadowDilate);
+    }
+
     private static GameFontMirror instance;
     private static readonly HashSet<int> twinIds = [];
+    // One-shot diagnostic: settings-row source ids already logged, so the size
+    // dump prints once per label, not every frame. Temporary while tuning.
+    private static readonly HashSet<int> diagLogged = [];
 
     private readonly List<Pair> pairs = [];
     private readonly HashSet<int> trackedSources = [];
@@ -345,9 +380,14 @@ public sealed class GameFontMirror : MonoBehaviour {
         var twin = twinGo.AddComponent<TextMeshProUGUI>();
         twin.font = FontManager.GameOverlayFontAsset;
         twin.raycastTarget = false;
+        ApplyShadow(twin);
         twinIds.Add(twin.GetInstanceID());
 
-        var pair = new Pair { Source = source, Twin = twin };
+        var pair = new Pair {
+            Source = source,
+            Twin = twin,
+            IsSettingRow = source.GetComponentInParent<PauseSettingButton>() != null,
+        };
         pairs.Add(pair);
         Apply(pair);
     }
@@ -427,6 +467,9 @@ public sealed class GameFontMirror : MonoBehaviour {
         TMP_FontAsset want = FontManager.GameOverlayFontAsset;
         if(twin.font != want) {
             twin.font = want;
+            // Re-fonting resets the twin to the new font's SHARED material, dropping
+            // our underlay instance — re-instance and re-arm the shadow.
+            ApplyShadow(twin);
         }
         // TMP's text setter does NOT early-out on an equal string — it re-parses
         // and re-tessellates the whole mesh. Most mirrored labels never change
@@ -448,34 +491,53 @@ public sealed class GameFontMirror : MonoBehaviour {
         // wrap setting, not from whether it best-fits.
         twin.enableWordWrapping = source.horizontalOverflow == HorizontalWrapMode.Wrap
             && GameOverlayFont.AllowsWrap(source.rectTransform, source.fontSize);
-        twin.overflowMode = source.verticalOverflow == VerticalWrapMode.Truncate
-            ? TextOverflowModes.Truncate
-            : TextOverflowModes.Overflow;
+        // Always Overflow, never Truncate. Truncate CULLS any glyph geometry that
+        // extends past the rect — and the drop-shadow underlay is part of that same
+        // mesh, so a down-right shadow gets sliced off at the rect edge, leaving the
+        // text sitting in a hard shadow box. The twin's size already matches the
+        // game's, so the text itself never needs clipping; Overflow just lets the
+        // shadow bleed out as it should.
+        twin.overflowMode = TextOverflowModes.Overflow;
 
-        if(source.resizeTextForBestFit) {
+        if(pair.IsSettingRow) {
+            // Settings rows (PauseSettingButton label + value) are best-fit UI.Text
+            // in a tall row box. Letting the twin auto-FILL that box balloons it (the
+            // mod font fills the height at a far bigger point size than the game's
+            // width-limited best-fit → huge menu). But these labels' nominal fontSize
+            // is ~0 and the resolved fontSizeUsedForBestFit reads 0 on the hidden
+            // source, so anchoring on either gave a 0pt, invisible twin.
+            //
+            // Anchor on resizeTextMaxSize instead — the serialized best-fit ceiling,
+            // always non-zero — and auto-size within [1, max*SizeScale], single line.
+            // The cap keeps it small (can't balloon); auto-size + min 1 keeps it
+            // visible and shrinks a long row to fit width instead of clipping.
+            float anchor = source.resizeTextMaxSize > 0 ? source.resizeTextMaxSize
+                : source.fontSize > 0 ? source.fontSize
+                : 24f;
+            twin.enableAutoSizing = true;
+            twin.enableWordWrapping = false;
+            twin.fontSizeMin = 1f;
+            twin.fontSizeMax = Mathf.Max(1f, anchor * SizeScale);
+
+            int sid = source.GetInstanceID();
+            if(diagLogged.Add(sid)) {
+                RectTransform sr = source.rectTransform;
+                MainCore.Log.Msg(
+                    $"[GameOverlayFont] setting '{source.name}' nominal={source.fontSize} " +
+                    $"min={source.resizeTextMinSize} max={source.resizeTextMaxSize} " +
+                    $"fit={source.cachedTextGenerator.fontSizeUsedForBestFit} " +
+                    $"rect={sr.rect.width:F0}x{sr.rect.height:F0} cap={twin.fontSizeMax:F1}");
+            }
+        } else if(source.resizeTextForBestFit) {
             // The game best-fits this label between its min/max to FILL its box
             // (one line or wrapped). Auto-sizing the twin to the SAME box makes it
             // fill identically — and "fill the box" is metric-independent, so it
             // matches the game's rendered size without the fixed-label SizeScale
             // guess. (That guess halved the size and left short words like the
             // editor's "Strict" badge tiny, and a fixed point size clipped wide
-            // titles — auto-fit fixes both.)
-            //
-            // Cap the twin's fill at the size the game ACTUALLY resolved its
-            // best-fit to (post-layout, against this same box), NOT at the raw
-            // resizeTextMaxSize ceiling. UI.Text best-fit is width-limited: a long
-            // single-line row like "Hide Cursor While Playing" can't grow taller
-            // without overflowing its line, so the game pins it well below the max.
-            // The twin is free to wrap, so capped at the raw max it grows to fill
-            // the box height and balloons (the "huge settings menu" bug). Mirroring
-            // the game's resolved size pins the twin to exactly what the game shows;
-            // min 1 still lets the wider mod font shrink under it to dodge clips.
-            // Fall back to the static ceiling only before the generator has run
-            // (resolved size 0 — first frame / empty string).
-            int gameFit = source.cachedTextGenerator.fontSizeUsedForBestFit;
-            float maxPx = gameFit > 0
-                ? gameFit
-                : (source.resizeTextMaxSize > 0 ? source.resizeTextMaxSize : source.fontSize);
+            // titles — auto-fit fixes both.) Cap at the game's OWN best-fit ceiling
+            // so the twin never overshoots it; min 1 lets it shrink to dodge clips.
+            float maxPx = source.resizeTextMaxSize > 0 ? source.resizeTextMaxSize : source.fontSize;
             twin.enableAutoSizing = true;
             twin.fontSizeMin = 1f;
             twin.fontSizeMax = Mathf.Max(1f, maxPx);

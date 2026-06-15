@@ -857,7 +857,7 @@ internal static class PageOverlay {
         );
         RectTransform labelRect = label.rectTransform;
         labelRect.offsetMin = new Vector2(48f, 0f);
-        labelRect.offsetMax = new Vector2(-270f, 0f);
+        labelRect.offsetMax = new Vector2(-300f, 0f);
 
         // Enable/disable dot: accent = shown, dim = hidden (kept in the list).
         GameObject toggleObj = new("EnableDot");
@@ -886,6 +886,43 @@ internal static class PageOverlay {
             }
             entry.Enabled = !entry.Enabled;
             ApplyToggleColor();
+            save();
+        });
+
+        // Show-label dot ("T"): accent = label shown, dim = value only. Sits just
+        // left of the enable dot.
+        GameObject labelDot = new("LabelDot");
+        labelDot.transform.SetParent(bg, false);
+
+        RectTransform labelDotRect = labelDot.AddComponent<RectTransform>();
+        labelDotRect.anchorMin = new Vector2(1f, 0.5f);
+        labelDotRect.anchorMax = new Vector2(1f, 0.5f);
+        labelDotRect.pivot = new Vector2(1f, 0.5f);
+        labelDotRect.anchoredPosition = new Vector2(-270f, 0f);
+        labelDotRect.sizeDelta = new Vector2(26f, 26f);
+
+        Image labelDotImg = labelDot.AddComponent<Image>();
+        labelDotImg.sprite = MainCore.Spr.Get(UISprite.Circle256);
+
+        var labelDotText = GenerateUI.AddText(labelDot.transform, true);
+        labelDotText.text = "T";
+        labelDotText.fontSize = 15f;
+        labelDotText.alignment = TextAlignmentOptions.Center;
+        labelDotText.raycastTarget = false;
+
+        void ApplyLabelDotColor() {
+            labelDotImg.color = entry.ShowLabel
+                ? UIColors.ObjectActive
+                : new Color(1f, 1f, 1f, 0.18f);
+        }
+        ApplyLabelDotColor();
+
+        GenerateUI.AddButton(labelDot, btn => {
+            if(btn != InputButton.Left) {
+                return;
+            }
+            entry.ShowLabel = !entry.ShowLabel;
+            ApplyLabelDotColor();
             save();
         });
 

@@ -18,6 +18,11 @@ public sealed class ComboSettings : ISettingsFile {
     public bool Enabled = true;
     public bool CountAuto = true;
 
+    // When XPerfect is installed + active, count ONLY its X (dead-center)
+    // perfects toward the combo, and prefix the caption with "X". A non-X
+    // perfect (early/late perfect) breaks the combo. Off = every Perfect counts.
+    public bool XPerfectComboEnabled = false;
+
     // === Sizing ===
     // FontSize is the count's base pixel size (original field). MasterSize
     // scales the whole overlay; CaptionScale is the caption size as a
@@ -138,6 +143,7 @@ public sealed class ComboSettings : ISettingsFile {
         return new JObject {
             [nameof(Enabled)] = Enabled,
             [nameof(CountAuto)] = CountAuto,
+            [nameof(XPerfectComboEnabled)] = XPerfectComboEnabled,
             [nameof(FontSize)] = FontSize,
             [nameof(MasterSize)] = MasterSize,
             [nameof(CaptionScale)] = CaptionScale,
@@ -188,6 +194,7 @@ public sealed class ComboSettings : ISettingsFile {
     public void Deserialize(JToken token) {
         Enabled = IOUtils.Read(token, nameof(Enabled), Enabled);
         CountAuto = IOUtils.Read(token, nameof(CountAuto), CountAuto);
+        XPerfectComboEnabled = IOUtils.Read(token, nameof(XPerfectComboEnabled), XPerfectComboEnabled);
         FontSize = IOUtils.Read(token, nameof(FontSize), FontSize);
         MasterSize = IOUtils.Read(token, nameof(MasterSize), MasterSize);
         CaptionScale = IOUtils.Read(token, nameof(CaptionScale), CaptionScale);

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Koren.Core;
+using Koren.Features.Interop;
 using Koren.Features.ProgressBar;
 using Koren.Features.Status;
 using Koren.IO;
@@ -139,7 +140,13 @@ public static class ComboOverlay {
             return;
         }
 
-        captionText.text = Conf.CaptionText ?? "Combo";
+        // XPerfect combo mode prefixes the caption with "X" (e.g. "XCombo") to
+        // signal only dead-center perfects are being counted.
+        string caption = Conf.CaptionText ?? "Combo";
+        if(Conf.XPerfectComboEnabled && XPerfectBridge.Active) {
+            caption = "X" + caption;
+        }
+        captionText.text = caption;
         captionText.gameObject.SetActive(Conf.ShowCaption);
     }
 

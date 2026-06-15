@@ -115,6 +115,26 @@ public static class GameStats {
 
     public static float MarginScale => TimingScale.CurrentMarginScale;
 
+    // Song playback pitch (1.0 = 100%). This is the same audio pitch the BPM math
+    // multiplies in, i.e. the speed the song is actually playing at (speed trials,
+    // pitch-change events). Defaults to 1 off the floor / before the song loads.
+    public static float Pitch {
+        get {
+            try {
+                scrConductor c = scrConductor.instance;
+                return c != null && c.song != null ? c.song.pitch : 1f;
+            } catch {
+                return 1f;
+            }
+        }
+    }
+
+    // XPerfect (UMM mod) per-run perfect breakdown — dead-center X, late +, and
+    // early - counts. All 0 when XPerfect isn't installed.
+    public static int XPerfectX => Interop.XPerfectBridge.XCount();
+    public static int XPerfectPlus => Interop.XPerfectBridge.PlusCount();
+    public static int XPerfectMinus => Interop.XPerfectBridge.MinusCount();
+
     public static int Combo => Koren.Features.Combo.Combo.Count;
 
     // Current level's song artist and title from the custom-level metadata.

@@ -1,5 +1,6 @@
 using Koren.Core;
 using Koren.Features.Combo;
+using Koren.Features.Interop;
 using Koren.Resource;
 using Koren.UI.Generator;
 using Koren.UI.Objects.Impl;
@@ -36,6 +37,19 @@ internal static class PageCombo {
             "Combo Counts Auto Hits",
             "combo_auto"
         );
+
+        // Only meaningful when the XPerfect mod is installed: count only its
+        // dead-center X perfects toward the combo (caption becomes "XCombo").
+        if(XPerfectBridge.Installed) {
+            GenerateUI.Toggle(
+                GenerateUI.Row(sec.Body),
+                def.XPerfectComboEnabled,
+                conf.XPerfectComboEnabled,
+                v => { conf.XPerfectComboEnabled = v; Apply(); Save(); },
+                "XPerfect Combo (X Only)",
+                "combo_xperfect"
+            );
+        }
 
         AddSlider(sec.Body, "Font Size", "combo_fontsize",
             def.FontSize, 24f, 120f, conf.FontSize, "0 px", 1f,

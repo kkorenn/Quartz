@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Koren.Core;
+using Koren.Features.Interop;
 using Koren.IO;
 using UnityEngine;
 
@@ -16,6 +17,13 @@ public static class JudgementPopupHider {
 
     // Mask bits follow HitMargin order; 12 covers every vanilla judgement.
     public const int JudgementCount = 12;
+
+    // Extra mask bits past the vanilla judgements, for XPerfect's split of the
+    // Perfect popup into X (dead-center) / + (late) / - (early). Active only when
+    // the XPerfect mod is present; same bit assignment as v1.
+    public const int XPerfectPerfectBit = JudgementCount;      // 12
+    public const int PlusPerfectBit = JudgementCount + 1;      // 13
+    public const int MinusPerfectBit = JudgementCount + 2;     // 14
 
     private static readonly Vector3 HiddenPosition = new(123456f, 123456f, 123456f);
 
@@ -42,6 +50,21 @@ public static class JudgementPopupHider {
     private static bool ShouldHide(scrHitTextMesh hitText) {
         if(!Enabled || hitText == null) {
             return false;
+        }
+
+        // Under XPerfect, a Perfect popup is hidden by its X/+/- sub-judgement
+        // rather than the single vanilla Perfect bit. A None judgement (not yet
+        // graded) falls through to the vanilla Perfect bit.
+        if(hitText.hitMargin == HitMargin.Perfect && XPerfectBridge.Active) {
+            int xbit = XPerfectBridge.LastJudgeForText() switch {
+                XPerfectBridge.Judge.X => XPerfectPerfectBit,
+                XPerfectBridge.Judge.Plus => PlusPerfectBit,
+                XPerfectBridge.Judge.Minus => MinusPerfectBit,
+                _ => -1,
+            };
+            if(xbit >= 0) {
+                return (Conf.HiddenMask & (1 << xbit)) != 0;
+            }
         }
 
         int bit = (int)hitText.hitMargin;

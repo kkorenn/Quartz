@@ -1,5 +1,6 @@
 using Koren.Core;
 using Koren.Features.EffectRemover;
+using Koren.Features.Interop;
 using Koren.Features.Judgement;
 using Koren.Features.OttoIcon;
 using Koren.Features.PlanetColors;
@@ -684,7 +685,7 @@ internal static class PageVisuals {
             (HitMargin.OverPress, "Overload (Fail)", "jpop_overload_fail"),
         ];
 
-        RectTransform[] maskRows = new RectTransform[entries.Length];
+        List<RectTransform> maskRows = [];
 
         void RefreshMaskRows() {
             foreach(RectTransform row in maskRows) {
@@ -702,24 +703,38 @@ internal static class PageVisuals {
             conf.Enabled
         );
 
-        for(int i = 0; i < entries.Length; i++) {
-            int bit = 1 << (int)entries[i].Margin;
-            maskRows[i] = GenerateUI.Row(sec.Body);
+        void AddMaskToggle(int maskBit, string label, string id) {
+            RectTransform row = GenerateUI.Row(sec.Body);
+            maskRows.Add(row);
             GenerateUI.Toggle(
-                maskRows[i],
-                (def.HiddenMask & bit) != 0,
-                (conf.HiddenMask & bit) != 0,
+                row,
+                (def.HiddenMask & maskBit) != 0,
+                (conf.HiddenMask & maskBit) != 0,
                 v => {
                     if(v) {
-                        conf.HiddenMask |= bit;
+                        conf.HiddenMask |= maskBit;
                     } else {
-                        conf.HiddenMask &= ~bit;
+                        conf.HiddenMask &= ~maskBit;
                     }
                     JudgementPopupHider.Save();
                 },
-                entries[i].Label,
-                entries[i].Id
+                label,
+                id
             );
+        }
+
+        bool xperfect = XPerfectBridge.Installed;
+        foreach(var entry in entries) {
+            // With XPerfect installed the single Perfect popup is split into
+            // X / + / -, so drop the vanilla Perfect row and put the three sub-
+            // judgement rows in its place (between Early Perfect and Late Perfect).
+            if(entry.Margin == HitMargin.Perfect && xperfect) {
+                AddMaskToggle(1 << JudgementPopupHider.XPerfectPerfectBit, "X Perfect", "jpop_xperfect");
+                AddMaskToggle(1 << JudgementPopupHider.PlusPerfectBit, "+ Perfect", "jpop_plusperfect");
+                AddMaskToggle(1 << JudgementPopupHider.MinusPerfectBit, "- Perfect", "jpop_minusperfect");
+            } else {
+                AddMaskToggle(1 << (int)entry.Margin, entry.Label, entry.Id);
+            }
         }
 
         RefreshMaskRows();

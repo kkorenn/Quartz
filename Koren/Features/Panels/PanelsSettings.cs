@@ -11,6 +11,10 @@ public sealed class StatEntry {
     public string Id = "";
     public bool Enabled = true;
 
+    // Show this stat's label before its value. Off = render only the number
+    // (the panel's LabelSeparator is skipped too).
+    public bool ShowLabel = true;
+
     // Optional per-stat value coloring (v1's ColorRange). null until the user
     // opens the stat's color settings.
     public StatColor Color;
@@ -25,6 +29,7 @@ public sealed class StatEntry {
         JObject obj = new() {
             [nameof(Id)] = Id,
             [nameof(Enabled)] = Enabled,
+            [nameof(ShowLabel)] = ShowLabel,
         };
 
         if(Color != null) {
@@ -43,6 +48,7 @@ public sealed class StatEntry {
         StatEntry e = new();
         e.Id = IOUtils.Read(token, nameof(Id), e.Id);
         e.Enabled = IOUtils.Read(token, nameof(Enabled), e.Enabled);
+        e.ShowLabel = IOUtils.Read(token, nameof(ShowLabel), e.ShowLabel);
         if(token[nameof(Color)] is JObject color) {
             e.Color = StatColor.Deserialize(color);
         }

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using Koren.Core;
+using Koren.Features.Interop;
 using Koren.Features.Status;
 using Koren.IO;
 using Koren.Resource;
@@ -68,6 +69,8 @@ public static class PanelsOverlay {
         } },
         new() { Id = "timingscale", Category = "Other", Label = "Timing Scale", Value = _ =>
             (GameStats.MarginScale * 100f).ToString("0.##", CultureInfo.InvariantCulture) + "%" },
+        new() { Id = "pitch", Category = "Other", Label = "Pitch", Value = _ =>
+            (GameStats.Pitch * 100f).ToString("0.##", CultureInfo.InvariantCulture) + "%" },
         new() { Id = "attempt", Category = "Map Stats", Label = "Attempt", Value = _ =>
             GameStats.SessionAttempts.ToString(CultureInfo.InvariantCulture) },
         new() { Id = "totalattempts", Category = "Map Stats", Label = "Total Attempts", Value = _ =>
@@ -81,6 +84,14 @@ public static class PanelsOverlay {
         } },
         new() { Id = "fps", Category = "Other", Label = "FPS", Value = _ =>
             GameStats.Fps.ToString(CultureInfo.InvariantCulture) },
+        // XPerfect perfect breakdown. Value returns null (line hidden) unless the
+        // XPerfect mod is active, so the panel only shows them when meaningful.
+        new() { Id = "xperfect", Category = "Accuracy", Label = "X Perfect", Value = _ =>
+            XPerfectBridge.Active ? GameStats.XPerfectX.ToString(CultureInfo.InvariantCulture) : null },
+        new() { Id = "plusperfect", Category = "Accuracy", Label = "+ Perfect", Value = _ =>
+            XPerfectBridge.Active ? GameStats.XPerfectPlus.ToString(CultureInfo.InvariantCulture) : null },
+        new() { Id = "minusperfect", Category = "Accuracy", Label = "- Perfect", Value = _ =>
+            XPerfectBridge.Active ? GameStats.XPerfectMinus.ToString(CultureInfo.InvariantCulture) : null },
     ];
 
     public static string LocalizedStatLabel(StatDef stat)
@@ -423,10 +434,13 @@ public static class PanelsOverlay {
 
                     // English by default; localized only when this panel opts
                     // in (the settings UI always shows localized labels though).
-                    string label = c.LocalizeStatLabels
-                        ? LocalizedStatLabel(stat)
-                        : stat.Label;
-                    sb.Append(label).Append(c.LabelSeparator);
+                    // Skipped entirely when the entry hides its label (number only).
+                    if(entry.ShowLabel) {
+                        string label = c.LocalizeStatLabels
+                            ? LocalizedStatLabel(stat)
+                            : stat.Label;
+                        sb.Append(label).Append(c.LabelSeparator);
+                    }
 
                     // Per-stat value coloring (v1 ColorRange): tint the value
                     // by the stat's own ratio through the entry's gradient.

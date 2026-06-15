@@ -159,6 +159,12 @@ public sealed class KorenRuntime {
 
         services.Initialize(Logger);
 
+        // Install the XPerfect reentry guard if XPerfect is already loaded, and
+        // retry on each scene load in case it loads after us (load-order safe).
+        Koren.Features.Interop.XPerfectRecursionGuard.TryApply(harmonyService.Harmony);
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded +=
+            (_, _) => Koren.Features.Interop.XPerfectRecursionGuard.TryApply(harmonyService.Harmony);
+
         sw.Restart();
         SetModEnabled(Config.Data.Active, false);
         Logger.Msg($"[Startup] SetModEnabled took {sw.ElapsedMilliseconds} ms");
@@ -167,6 +173,15 @@ public sealed class KorenRuntime {
         UpdateService.Check();
 
         Logger.Msg($"[Startup] total {total.ElapsedMilliseconds} ms");
+
+        // Detect Unity Mod Manager + its loaded mods (e.g. xperfect). Logs the
+        // exact mod ids so interop can target them by id.
+        if(Koren.Features.Interop.UmmInterop.IsPresent) {
+            Logger.Msg($"[Umm] active mods: [{string.Join(", ", Koren.Features.Interop.UmmInterop.ActiveModIds())}]");
+        } else {
+            Logger.Msg("[Umm] not present");
+        }
+
         Logger.Msg("Hello");
     }
 

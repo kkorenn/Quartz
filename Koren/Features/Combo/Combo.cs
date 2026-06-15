@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Koren.Core;
+using Koren.Features.Interop;
 using UnityEngine;
 
 namespace Koren.Features.Combo;
@@ -85,7 +86,12 @@ internal static class Combo {
                 return;
             }
 
-            bool incPerfect = hit == HitMargin.Perfect;
+            // XPerfect combo: only a dead-center X perfect keeps the combo; a
+            // +/- perfect breaks it. Otherwise every Perfect counts as before.
+            bool xpComboMode = conf.XPerfectComboEnabled && XPerfectBridge.Active;
+            bool incPerfect = xpComboMode && hit == HitMargin.Perfect
+                ? XPerfectBridge.LastJudge() == XPerfectBridge.Judge.X
+                : hit == HitMargin.Perfect;
             bool incAuto = conf.CountAuto && hit == HitMargin.Auto;
 
             if(incPerfect || incAuto) {

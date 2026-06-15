@@ -1,5 +1,6 @@
 using System.Globalization;
 using Koren.Core;
+using Koren.Features.Interop;
 using Koren.Features.Status;
 using Koren.IO;
 using Koren.Resource;
@@ -34,6 +35,17 @@ public static class JudgementOverlay {
     private static readonly TextMeshProUGUI[] labels = new TextMeshProUGUI[Judgement.Slots];
     private static GameObject dragObj;
     private static Updater updater;
+
+    // XPerfect judgement line: when the XPerfect mod is active, the Perfect slot
+    // (index 4) shows the X (dead-center) count in cyan, flanked by a +Perfect
+    // count on its left and a -Perfect count on its right, both green — exactly
+    // v1's layout. The HorizontalLayoutGroup positions them by sibling order, so
+    // these two extra labels are inserted around slot 4 and simply toggled on/off.
+    private const int PerfectSlot = 4;
+    private static TextMeshProUGUI xPlusLabel;
+    private static TextMeshProUGUI xMinusLabel;
+    private static readonly Color XPerfectColor = new(0.30f, 0.80f, 1f, 1f);
+    private static readonly Color PlusMinusPerfectColor = new(0.38f, 1f, 0.31f, 1f);
 
     public static void EnsureConf() {
         if(ConfMgr != null) {
@@ -100,6 +112,16 @@ public static class JudgementOverlay {
             labels[i] = text;
         }
 
+        // XPerfect +/- labels. Sibling order sets layout position: insert +Perfect
+        // just before the Perfect slot and -Perfect just after it, giving the row
+        // [... EarlyPerfect, +Perfect, X, -Perfect, LatePerfect ...] when active.
+        xPlusLabel = CreateJudgementLabel("Judgement_XPlus", PlusMinusPerfectColor);
+        xMinusLabel = CreateJudgementLabel("Judgement_XMinus", PlusMinusPerfectColor);
+        xPlusLabel.transform.SetSiblingIndex(PerfectSlot);       // before slot 4
+        xMinusLabel.transform.SetSiblingIndex(PerfectSlot + 2);  // after slot 4
+        xPlusLabel.gameObject.SetActive(false);
+        xMinusLabel.gameObject.SetActive(false);
+
         GameObject drag = new("Drag");
         dragObj = drag;
         drag.transform.SetParent(root, false);
@@ -135,6 +157,8 @@ public static class JudgementOverlay {
         foreach(TextMeshProUGUI label in labels) {
             ApplyTextStyle(label, fontSize);
         }
+        ApplyTextStyle(xPlusLabel, fontSize);
+        ApplyTextStyle(xMinusLabel, fontSize);
     }
 
     private static float FontSize() => BaseFontSize * Mathf.Clamp(Conf.Size, 0.3f, 3f);
@@ -156,6 +180,20 @@ public static class JudgementOverlay {
             Conf.TextShadowSoftness,
             Conf.GetTextShadowColor()
         );
+    }
+
+    private static TextMeshProUGUI CreateJudgementLabel(string name, Color color) {
+        GameObject obj = new(name);
+        obj.transform.SetParent(root, false);
+        obj.AddComponent<RectTransform>();
+
+        TextMeshProUGUI text = obj.AddComponent<TextMeshProUGUI>();
+        text.font = FontManager.Current;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = color;
+        text.raycastTarget = false;
+        text.text = "0";
+        return text;
     }
 
     public static void Save() => ConfMgr?.Save();
@@ -180,12 +218,17 @@ public static class JudgementOverlay {
         root = null;
         rowLayout = null;
         System.Array.Clear(labels, 0, labels.Length);
+        xPlusLabel = null;
+        xMinusLabel = null;
         dragObj = null;
         updater = null;
     }
 
     private sealed class Updater : MonoBehaviour {
         private readonly int[] cached = new int[Judgement.Slots];
+        private int cachedPlus = -1;
+        private int cachedMinus = -1;
+        private bool lastXpMode;
         private bool cacheValid;
         private float lastFontSize = float.NaN;
         private TMP_FontAsset lastFont;
@@ -220,11 +263,16 @@ public static class JudgementOverlay {
             float fontSize = FontSize();
             rowLayout.spacing = RowSpacing();
 
+            // XPerfect splits the Perfect slot into X / +Perfect / -Perfect. A
+            // mode change re-texts and recolors slot 4 and toggles the +/- labels.
+            bool xpMode = XPerfectBridge.Active;
+            bool xpModeChanged = xpMode != lastXpMode;
+
             // First pass: set everything that feeds the layout (font, size,
             // text). Shadows are synced separately, after the layout settles.
-            // `changed` also folds in font/size changes so the second pass and
-            // layout rebuild still fire on a real font or size edit.
-            bool changed = !cacheValid || fontSize != lastFontSize || font != lastFont;
+            // `changed` also folds in font/size/mode changes so the second pass
+            // and layout rebuild still fire on a real font, size or mode edit.
+            bool changed = !cacheValid || fontSize != lastFontSize || font != lastFont || xpModeChanged;
             for(int i = 0; i < labels.Length; i++) {
                 TextMeshProUGUI label = labels[i];
                 if(label.font != font) {
@@ -234,16 +282,26 @@ public static class JudgementOverlay {
                     label.fontSize = fontSize;
                 }
 
-                int count = Judgement.SlotCount(i);
-                if(!cacheValid || count != cached[i]) {
+                // Slot 4 shows the X (dead-center) count under XPerfect, the
+                // combined Perfect+Auto count otherwise.
+                int count = i == PerfectSlot && xpMode ? XPerfectBridge.XCount() : Judgement.SlotCount(i);
+                if(!cacheValid || count != cached[i] || xpModeChanged) {
                     cached[i] = count;
                     label.text = count.ToString(CultureInfo.InvariantCulture);
                     changed = true;
                 }
             }
+
+            UpdateXPerfectLabels(xpMode, xpModeChanged, font, fontSize, ref changed);
+
+            if(xpModeChanged) {
+                labels[PerfectSlot].color = xpMode ? XPerfectColor : Judgement.SlotColors[PerfectSlot];
+            }
+
             cacheValid = true;
             lastFontSize = fontSize;
             lastFont = font;
+            lastXpMode = xpMode;
 
             // The HorizontalLayoutGroup repositions the labels when a digit
             // count (or size) changes, but that rebuild only lands after
@@ -261,6 +319,58 @@ public static class JudgementOverlay {
                 for(int i = 0; i < labels.Length; i++) {
                     ApplyTextStyle(labels[i], fontSize);
                 }
+                if(xpMode) {
+                    ApplyTextStyle(xPlusLabel, fontSize);
+                    ApplyTextStyle(xMinusLabel, fontSize);
+                }
+            }
+        }
+
+        // Drives the +Perfect / -Perfect labels: toggled with XPerfect mode,
+        // showing the running +/- counts beside the Perfect slot. Their green
+        // color is set once at creation, so only text + active state move here.
+        private void UpdateXPerfectLabels(
+            bool xpMode, bool xpModeChanged, TMP_FontAsset font, float fontSize, ref bool changed
+        ) {
+            if(xPlusLabel == null || xMinusLabel == null) {
+                return;
+            }
+
+            if(xPlusLabel.gameObject.activeSelf != xpMode) {
+                xPlusLabel.gameObject.SetActive(xpMode);
+                xMinusLabel.gameObject.SetActive(xpMode);
+                changed = true;
+            }
+
+            if(!xpMode) {
+                return;
+            }
+
+            if(xPlusLabel.font != font) {
+                xPlusLabel.font = font;
+            }
+            if(xMinusLabel.font != font) {
+                xMinusLabel.font = font;
+            }
+            if(xPlusLabel.fontSize != fontSize) {
+                xPlusLabel.fontSize = fontSize;
+            }
+            if(xMinusLabel.fontSize != fontSize) {
+                xMinusLabel.fontSize = fontSize;
+            }
+
+            int plus = XPerfectBridge.PlusCount();
+            if(!cacheValid || plus != cachedPlus || xpModeChanged) {
+                cachedPlus = plus;
+                xPlusLabel.text = plus.ToString(CultureInfo.InvariantCulture);
+                changed = true;
+            }
+
+            int minus = XPerfectBridge.MinusCount();
+            if(!cacheValid || minus != cachedMinus || xpModeChanged) {
+                cachedMinus = minus;
+                xMinusLabel.text = minus.ToString(CultureInfo.InvariantCulture);
+                changed = true;
             }
         }
     }
