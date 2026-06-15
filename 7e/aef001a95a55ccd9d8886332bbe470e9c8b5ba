@@ -1,0 +1,64 @@
+Koren/Features/Judgement/JudgementOverlay.cs
+  s_fedd6065ab3c09::t_cd1cb6ab3400c8 258-260
+  s_fedd6065ab3c09::t_b6deab2dc23be1 153
+Koren/Resource/Export/Lang/en-US.json
+  s_fedd6065ab3c09::t_78defed53415ed 420-421
+  s_fedd6065ab3c09::t_25cc7aef9f6da4 427-428
+  s_fedd6065ab3c09::t_bbffa89b93049e 405-407
+  s_fedd6065ab3c09::t_e43918eadc53ac 102
+Koren/Features/SongTitle/SongTitleOverlay.cs
+  s_fedd6065ab3c09::t_b5fa9269e04547 260-262
+  s_fedd6065ab3c09::t_6c8cc68a3a38d0 134
+Koren/Core/OverlayCalibration.cs
+  s_fedd6065ab3c09::t_dc0bbbce48634a 1-55
+Koren/Features/Combo/ComboOverlay.cs
+  s_fedd6065ab3c09::t_260c315e39b2b4 180-182
+  s_fedd6065ab3c09::t_6743c790293e5b 157
+  s_fedd6065ab3c09::t_b05f04e7360055 284-286
+Koren/Resource/Export/Lang/ko-KR.json
+  s_fedd6065ab3c09::t_490258018dc541 102
+  s_fedd6065ab3c09::t_0c5b74cdd64f85 427-428
+  s_fedd6065ab3c09::t_9dade11ccf608d 405-407
+  s_fedd6065ab3c09::t_1987af8ed75853 420-421
+Koren/Resource/Export/Presets/Refreshin.krprofile
+  s_fedd6065ab3c09::t_d14cc18b477ee7 1-870
+Koren/Features/KeyViewer/KeyViewerOverlay.cs
+  s_fedd6065ab3c09::t_cfbca5be6033b5 2092-2094
+  s_fedd6065ab3c09::t_1fc27ed7c8ac9f 2103-2105
+  s_fedd6065ab3c09::t_46ef00a54ce7a3 348
+  s_fedd6065ab3c09::t_8be59bac5521aa 371
+Koren/Features/Panels/PanelsOverlay.cs
+  s_fedd6065ab3c09::t_7d2f40c7c74dce 319-321
+  s_fedd6065ab3c09::t_67d7c0aef79aca 309
+  s_fedd6065ab3c09::t_2710fa8d535446 527-529
+  s_fedd6065ab3c09::t_6f85cd48dd2354 336
+Koren/Features/ProgressBar/ProgressBar.cs
+  s_fedd6065ab3c09::t_094ccc2abd0205 147
+Koren/UI/Factory/Page/PageProfiles.cs
+  s_fedd6065ab3c09::t_92281de0ee16ff 210-277
+  s_fedd6065ab3c09::t_12f337a9a9a5f0 162-174
+  s_fedd6065ab3c09::t_0c7adad42c7193 175-176
+  s_fedd6065ab3c09::t_f89c470dea6f55 278-323
+Koren/IO/ProfileManager.cs
+  s_fedd6065ab3c09::t_acf9e035dcb0f5 287-356
+Koren/IO/CoreSettings.cs
+  s_fedd6065ab3c09::t_0a20186285325e 144-145
+  s_fedd6065ab3c09::t_0fcce275b579db 40-47
+  s_fedd6065ab3c09::t_10fad781be1ba4 116-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "7eaef001a95a55ccd9d8886332bbe470e9c8b5ba",
+  "prompts": {},
+  "sessions": {
+    "s_fedd6065ab3c09": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "85a76d1c-6e76-4308-a3e3-08bd24466fdd",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
