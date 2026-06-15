@@ -284,6 +284,76 @@ public static class ProfileManager {
         }
     }
 
+    // Built-in presets live under Presets/ (shipped via Resource/Export/Presets,
+    // installed to UserData/Koren/Presets).
+    public static string PresetsPath => Path.Combine(MainCore.Paths.RootPath, "Presets");
+
+    public readonly struct PresetInfo {
+        public readonly string Path;
+        public readonly string Name;
+        public PresetInfo(string path, string name) {
+            Path = path;
+            Name = name;
+        }
+    }
+
+    // The shipped presets, each a .krprofile under Presets/ (name read from the
+    // bundle, falling back to the file name).
+    public static List<PresetInfo> ListPresets() {
+        List<PresetInfo> list = [];
+        try {
+            if(!Directory.Exists(PresetsPath)) {
+                return list;
+            }
+            foreach(string file in Directory.GetFiles(PresetsPath, "*." + EXPORT_EXTENSION)) {
+                string name = null;
+                try {
+                    JToken b = JToken.Parse(File.ReadAllText(file));
+                    if(b["Type"]?.Value<string>() == BUNDLE_TYPE) {
+                        name = b["Name"]?.Value<string>();
+                    }
+                } catch {
+                }
+                name = Sanitize(name) ?? Sanitize(Path.GetFileNameWithoutExtension(file));
+                if(name != null) {
+                    list.Add(new PresetInfo(file, name));
+                }
+            }
+        } catch(Exception e) {
+            MainCore.Log.Err($"[{nameof(ProfileManager)}] ListPresets failed: {e}");
+        }
+        return list;
+    }
+
+    // Applies a built-in preset: the first time, imports it as a profile named
+    // after the preset; afterwards reuses that profile. Then switches to it.
+    // Returns the profile name, or null on failure.
+    public static string ApplyPreset(string presetPath) {
+        try {
+            JToken bundle = JToken.Parse(File.ReadAllText(presetPath));
+            string name = Sanitize(bundle["Name"]?.Value<string>())
+                ?? Sanitize(Path.GetFileNameWithoutExtension(presetPath));
+            if(name == null) {
+                return null;
+            }
+
+            if(!Exists(name)) {
+                name = Import(presetPath);
+                if(name == null) {
+                    return null;
+                }
+            }
+
+            if(name != Active) {
+                Apply(name);
+            }
+            return name;
+        } catch(Exception e) {
+            MainCore.Log.Err($"[{nameof(ProfileManager)}] ApplyPreset '{presetPath}' failed: {e}");
+            return null;
+        }
+    }
+
     private static void CaptureTo(string name) {
         string dir = DirOf(name);
         Directory.CreateDirectory(dir);

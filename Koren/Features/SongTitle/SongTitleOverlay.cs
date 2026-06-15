@@ -131,7 +131,7 @@ public static class SongTitleOverlay {
             return;
         }
 
-        root.anchoredPosition = new Vector2(Conf.OffsetX, Conf.OffsetY);
+        root.anchoredPosition = OverlayCalibration.Scale(new Vector2(Conf.OffsetX, Conf.OffsetY));
         root.localScale = Vector3.one * Mathf.Max(0.01f, Conf.MasterSize);
 
         if(text != null) {
@@ -257,8 +257,9 @@ public static class SongTitleOverlay {
 
             // Position only changes while dragging in Reorganize mode.
             if(isReorganizing) {
-                Conf.OffsetX = root.anchoredPosition.x;
-                Conf.OffsetY = root.anchoredPosition.y;
+                Vector2 stored = OverlayCalibration.Unscale(root.anchoredPosition);
+                Conf.OffsetX = stored.x;
+                Conf.OffsetY = stored.y;
             }
 
             TMP_FontAsset font = FontManager.Current;

@@ -37,6 +37,14 @@ public sealed class CoreSettings : ISettingsFile {
     public float PanelWidth = 0f;
     public float PanelHeight = 0f;
 
+    // Overlay position calibration: the screen resolution the overlay offsets
+    // were authored at. Every overlay X/Y offset is scaled by current-screen /
+    // this, so a layout lands in the same relative spot on a different monitor.
+    // 0 = unset → captured from the current display on first use; the user can
+    // re-capture from the Profiles tab ("Recalibrate display").
+    public float CalibWidth = 0f;
+    public float CalibHeight = 0f;
+
     public Dictionary<string, bool> CollapsibleStates = [];
 
     // Menu toggle keybind, stored as ints (Keybind.KeyModifier and KeyCode).
@@ -105,6 +113,8 @@ public sealed class CoreSettings : ISettingsFile {
             [nameof(PanelOpacity)] = PanelOpacity,
             [nameof(PanelWidth)] = PanelWidth,
             [nameof(PanelHeight)] = PanelHeight,
+            [nameof(CalibWidth)] = CalibWidth,
+            [nameof(CalibHeight)] = CalibHeight,
             [nameof(ToggleModifier)] = ToggleModifier,
             [nameof(ToggleKey)] = ToggleKey,
             [nameof(UpdateChannel)] = UpdateChannel,
@@ -131,6 +141,8 @@ public sealed class CoreSettings : ISettingsFile {
         PanelOpacity = IOUtils.Read(token, nameof(PanelOpacity), PanelOpacity);
         PanelWidth = IOUtils.Read(token, nameof(PanelWidth), PanelWidth);
         PanelHeight = IOUtils.Read(token, nameof(PanelHeight), PanelHeight);
+        CalibWidth = IOUtils.Read(token, nameof(CalibWidth), CalibWidth);
+        CalibHeight = IOUtils.Read(token, nameof(CalibHeight), CalibHeight);
         ToggleModifier = IOUtils.Read(token, nameof(ToggleModifier), ToggleModifier);
         ToggleKey = IOUtils.Read(token, nameof(ToggleKey), ToggleKey);
         UpdateChannel = IOUtils.Read(token, nameof(UpdateChannel), UpdateChannel);

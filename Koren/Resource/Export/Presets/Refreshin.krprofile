@@ -1,0 +1,870 @@
+{
+  "Type": "KorenProfile",
+  "Version": "2.0.0",
+  "Name": "Refreshin",
+  "Files": {
+    "AutoDeafen.json": {
+      "Enabled": false,
+      "DeafenAtPercent": 52.0,
+      "OnlyFromStart": true,
+      "DiscordClientId": "",
+      "DiscordAccessToken": ""
+    },
+    "ChatterBlocker.json": {
+      "Enabled": true,
+      "ThresholdMs": 85.0
+    },
+    "Combo.json": {
+      "Enabled": true,
+      "CountAuto": true,
+      "XPerfectComboEnabled": false,
+      "FontSize": 51.0,
+      "MasterSize": 0.74,
+      "CaptionScale": 0.5,
+      "OffsetX": 0.0,
+      "OffsetY": 32.7180176,
+      "ShowCaption": true,
+      "CaptionText": "\ucf64\ubcf4",
+      "CaptionOffsetY": -30.0,
+      "CaptionShadowEnabled": true,
+      "CaptionShadowX": 2.2,
+      "CaptionShadowY": 0.0,
+      "CaptionShadowSoftness": 0.0,
+      "CaptionShadowR": 0.0,
+      "CaptionShadowG": 0.0,
+      "CaptionShadowB": 0.0,
+      "CaptionShadowA": 1.0,
+      "CountThickness": 0.0,
+      "CountShadowEnabled": true,
+      "CountShadowX": 3.0,
+      "CountShadowY": 0.0,
+      "CountShadowSoftness": 0.0,
+      "CountShadowR": 0.0,
+      "CountShadowG": 0.0,
+      "CountShadowB": 0.0,
+      "CountShadowA": 1.0,
+      "ColorMax": 500,
+      "ColorLowR": 0.75686276,
+      "ColorLowG": 0.8392157,
+      "ColorLowB": 0.733333349,
+      "ColorLowA": 1.0,
+      "ColorHighR": 0.2,
+      "ColorHighG": 0.670588255,
+      "ColorHighB": 0.0509803928,
+      "ColorHighA": 1.0,
+      "SolidColor": false,
+      "PerfectColorEnabled": false,
+      "PerfectR": 0.8980109,
+      "PerfectG": 0.7837778,
+      "PerfectB": 0.0156579968,
+      "PerfectA": 1.0,
+      "NoPopAnim": false,
+      "CountPulseScale": 0.099999994,
+      "PulseDuration": 0.099999994,
+      "LabelPulseOffsetY": 0.0
+    },
+    "Editor.json": {
+      "HorizontalProperties": false
+    },
+    "EffectRemover.json": {
+      "On": false,
+      "EnableSave": false,
+      "Filters": true,
+      "AdvancedFilters": true,
+      "Particles": true,
+      "Decorations": true,
+      "Backgrounds": true,
+      "Cameras": false,
+      "RepeatEvents": false,
+      "FrameRate": true,
+      "HitSounds": true,
+      "PlanetOrbit": false,
+      "PlanetScale": false,
+      "PlanetRadius": false,
+      "TrackAnimations": false,
+      "TrackPositions": false,
+      "TrackMoves": true,
+      "TrackColors": true,
+      "HoldSounds": false,
+      "HideIcons": false,
+      "RemoveAllDecorations": true,
+      "RemoveTutorialPatterns": true,
+      "LimitTrackOpacity": false,
+      "SetCameraZoom": false,
+      "CameraZoomScale": 250.0,
+      "ResetTrackAnimation": false,
+      "ResetTrackColor": true
+    },
+    "Judgement.json": {
+      "Enabled": true,
+      "OffsetX": 0.0,
+      "OffsetY": 6.32000732,
+      "Size": 0.51,
+      "Spacing": 5.0,
+      "TextShadowEnabled": true,
+      "TextShadowX": 2.0,
+      "TextShadowY": -2.0,
+      "TextShadowSoftness": 0.0,
+      "TextShadowR": 0.0,
+      "TextShadowG": 0.0,
+      "TextShadowB": 0.0,
+      "TextShadowA": 0.75
+    },
+    "JudgementPopupHider.json": {
+      "Enabled": true,
+      "HiddenMask": 8
+    },
+    "KeyLimiter.json": {
+      "Enabled": true,
+      "AllowedKeys": [
+        9,
+        50,
+        51,
+        114,
+        281,
+        55,
+        268,
+        270,
+        32,
+        118,
+        274,
+        273,
+        306,
+        304,
+        127,
+        13
+      ]
+    },
+    "KeyViewer.json": {
+      "Enabled": false,
+      "ShowOutsideGame": true,
+      "Mode": "simple",
+      "Style": 2,
+      "Size": 0.599999964,
+      "OffsetX": -817.09,
+      "OffsetY": 22.5,
+      "SyncToKeyLimiter": true,
+      "RainEnabled": true,
+      "RainSpeed": 400.0,
+      "RainHeight": 200.0,
+      "RainFade": 60.0,
+      "RainWidth": 0.0,
+      "Rain2Width": 40.0,
+      "RainOffsetY": 0.0,
+      "Rain2OffsetY": 0.0,
+      "StatsTogether": true,
+      "RainR": 0.6253321,
+      "RainG": 1.0,
+      "RainB": 0.9940212,
+      "RainA": 1.0,
+      "Rain2R": 1.0,
+      "Rain2G": 1.0,
+      "Rain2B": 1.0,
+      "Rain2A": 1.0,
+      "Rain3R": 1.0,
+      "Rain3G": 0.0,
+      "Rain3B": 0.0,
+      "Rain3A": 1.0,
+      "Key10": [
+        113,
+        51,
+        52,
+        116,
+        111,
+        45,
+        61,
+        92,
+        32,
+        104
+      ],
+      "Key12": [
+        113,
+        51,
+        52,
+        116,
+        111,
+        45,
+        61,
+        92,
+        32,
+        98,
+        104,
+        44
+      ],
+      "Key16": [
+        9,
+        50,
+        51,
+        114,
+        281,
+        55,
+        268,
+        270,
+        32,
+        118,
+        274,
+        273,
+        306,
+        304,
+        127,
+        13
+      ],
+      "Key20": [
+        113,
+        51,
+        52,
+        116,
+        111,
+        45,
+        61,
+        92,
+        32,
+        98,
+        104,
+        44,
+        97,
+        304,
+        303,
+        13,
+        110,
+        103,
+        109,
+        107
+      ],
+      "Key10Text": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "Key12Text": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "Key16Text": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "*",
+        "+",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "Key20Text": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+      ],
+      "BgR": 0.0,
+      "BgG": 0.0,
+      "BgB": 0.0,
+      "BgA": 0.49859944,
+      "BgPressedR": 1.0,
+      "BgPressedG": 1.0,
+      "BgPressedB": 1.0,
+      "BgPressedA": 1.0,
+      "OutlineR": 1.0,
+      "OutlineG": 1.0,
+      "OutlineB": 1.0,
+      "OutlineA": 1.0,
+      "OutlinePressedR": 0.0,
+      "OutlinePressedG": 0.0,
+      "OutlinePressedB": 0.0,
+      "OutlinePressedA": 1.0,
+      "TextR": 1.0,
+      "TextG": 1.0,
+      "TextB": 1.0,
+      "TextA": 1.0,
+      "TextPressedR": 0.0,
+      "TextPressedG": 0.0,
+      "TextPressedB": 0.0,
+      "TextPressedA": 1.0
+    },
+    "Optimizer.json": {
+      "SmoothGC": true,
+      "CollectOnLevelLoad": true,
+      "BoostProcessPriority": true,
+      "RunInBackground": false
+    },
+    "OttoIcon.json": {
+      "Enabled": false,
+      "R": 1.0,
+      "G": 0.0,
+      "B": 0.0,
+      "A": 1.0,
+      "UseHighBpmColor": true,
+      "HighBpmR": 1.0,
+      "HighBpmG": 0.0,
+      "HighBpmB": 0.0,
+      "HighBpmA": 1.0,
+      "OffsetX": -10.0,
+      "OffsetY": 5.0
+    },
+    "OverlayPanels.json": {
+      "Enabled": true,
+      "Panels": [
+        {
+          "Name": "LEFT",
+          "Anchor": 0,
+          "PosX": 10.7850342,
+          "PosY": -10.1248779,
+          "Stats": [
+            {
+              "Id": "progress",
+              "Enabled": true,
+              "ShowLabel": true,
+              "Color": {
+                "Enabled": true,
+                "Points": [
+                  {
+                    "Pos": 0.0,
+                    "R": 1.0,
+                    "G": 1.0,
+                    "B": 1.0,
+                    "A": 1.0
+                  }
+                ],
+                "UsePerfect": true,
+                "Perfect": {
+                  "Pos": 1.0,
+                  "R": 1.0,
+                  "G": 0.854901969,
+                  "B": 0.0,
+                  "A": 1.0
+                },
+                "MaxBpm": 8000.0
+              }
+            },
+            {
+              "Id": "xaccuracy",
+              "Enabled": true,
+              "ShowLabel": true,
+              "Color": {
+                "Enabled": true,
+                "Points": [
+                  {
+                    "Pos": 0.98999995,
+                    "R": 1.0,
+                    "G": 1.0,
+                    "B": 1.0,
+                    "A": 1.0
+                  },
+                  {
+                    "Pos": 1.0,
+                    "R": 0.2,
+                    "G": 0.670588255,
+                    "B": 0.0509803928,
+                    "A": 1.0
+                  }
+                ],
+                "UsePerfect": true,
+                "Perfect": {
+                  "Pos": 1.0,
+                  "R": 1.0,
+                  "G": 0.854902,
+                  "B": 0.0,
+                  "A": 1.0
+                },
+                "MaxBpm": 8000.0
+              }
+            },
+            {
+              "Id": "maxaccuracy",
+              "Enabled": true,
+              "ShowLabel": true,
+              "Color": {
+                "Enabled": true,
+                "Points": [
+                  {
+                    "Pos": 0.98999995,
+                    "R": 1.0,
+                    "G": 1.0,
+                    "B": 1.0,
+                    "A": 1.0
+                  },
+                  {
+                    "Pos": 1.0,
+                    "R": 0.2,
+                    "G": 0.670588255,
+                    "B": 0.0509803928,
+                    "A": 1.0
+                  }
+                ],
+                "UsePerfect": true,
+                "Perfect": {
+                  "Pos": 1.0,
+                  "R": 1.0,
+                  "G": 0.854902,
+                  "B": 0.0,
+                  "A": 1.0
+                },
+                "MaxBpm": 8000.0
+              }
+            }
+          ],
+          "Prefix": "",
+          "Decimals": 2,
+          "FontSize": 17.0,
+          "LabelSeparator": "",
+          "LineSpacing": 7.0,
+          "BackgroundEnabled": false,
+          "LocalizeStatLabels": true,
+          "TextR": 1.0,
+          "TextG": 1.0,
+          "TextB": 1.0,
+          "TextA": 1.0,
+          "TextShadowEnabled": true,
+          "TextShadowX": 3.0,
+          "TextShadowY": -1.5,
+          "TextShadowSoftness": 0.0,
+          "TextShadowR": 0.0,
+          "TextShadowG": 0.0,
+          "TextShadowB": 0.0,
+          "TextShadowA": 0.5008563
+        },
+        {
+          "Name": "RIGHT",
+          "Anchor": 2,
+          "PosX": -9.44989,
+          "PosY": -10.1248169,
+          "Stats": [
+            {
+              "Id": "tbpm",
+              "Enabled": true,
+              "ShowLabel": true,
+              "Color": {
+                "Enabled": false,
+                "Points": [
+                  {
+                    "Pos": 0.0,
+                    "R": 1.0,
+                    "G": 1.0,
+                    "B": 1.0,
+                    "A": 1.0
+                  },
+                  {
+                    "Pos": 1.0,
+                    "R": 1.0,
+                    "G": 0.0,
+                    "B": 0.0,
+                    "A": 1.0
+                  }
+                ],
+                "UsePerfect": false,
+                "Perfect": {
+                  "Pos": 1.0,
+                  "R": 1.0,
+                  "G": 0.854902,
+                  "B": 0.0,
+                  "A": 1.0
+                },
+                "MaxBpm": 8000.0
+              }
+            },
+            {
+              "Id": "cbpm",
+              "Enabled": true,
+              "ShowLabel": true
+            },
+            {
+              "Id": "kps",
+              "Enabled": true,
+              "ShowLabel": true
+            }
+          ],
+          "Prefix": "",
+          "Decimals": 2,
+          "FontSize": 17.0,
+          "LabelSeparator": "",
+          "LineSpacing": 7.0,
+          "BackgroundEnabled": false,
+          "LocalizeStatLabels": true,
+          "TextR": 1.0,
+          "TextG": 1.0,
+          "TextB": 1.0,
+          "TextA": 1.0,
+          "TextShadowEnabled": true,
+          "TextShadowX": 3.0,
+          "TextShadowY": -1.5,
+          "TextShadowSoftness": 0.0,
+          "TextShadowR": 0.0,
+          "TextShadowG": 0.0,
+          "TextShadowB": 0.0,
+          "TextShadowA": 0.5008563
+        },
+        {
+          "Name": "Attempts",
+          "Anchor": 6,
+          "PosX": 1046.27,
+          "PosY": 26.0,
+          "Stats": [
+            {
+              "Id": "attempt",
+              "Enabled": true,
+              "ShowLabel": true
+            },
+            {
+              "Id": "totalattempts",
+              "Enabled": true,
+              "ShowLabel": true
+            }
+          ],
+          "Prefix": "",
+          "Decimals": 2,
+          "FontSize": 14.0,
+          "LabelSeparator": "  ",
+          "LineSpacing": 0.0,
+          "BackgroundEnabled": false,
+          "LocalizeStatLabels": false,
+          "TextR": 1.0,
+          "TextG": 1.0,
+          "TextB": 1.0,
+          "TextA": 1.0,
+          "TextShadowEnabled": true,
+          "TextShadowX": 1.5,
+          "TextShadowY": 0.0,
+          "TextShadowSoftness": 0.0,
+          "TextShadowR": 0.0,
+          "TextShadowG": 0.0,
+          "TextShadowB": 0.0,
+          "TextShadowA": 0.5008563
+        },
+        {
+          "Name": "Timing Scale",
+          "Anchor": 4,
+          "PosX": 0.0,
+          "PosY": -452.860016,
+          "Stats": [
+            {
+              "Id": "timingscale",
+              "Enabled": true,
+              "ShowLabel": true
+            }
+          ],
+          "Prefix": "",
+          "Decimals": 2,
+          "FontSize": 12.0,
+          "LabelSeparator": "  ",
+          "LineSpacing": 0.0,
+          "BackgroundEnabled": false,
+          "LocalizeStatLabels": false,
+          "TextR": 1.0,
+          "TextG": 1.0,
+          "TextB": 1.0,
+          "TextA": 1.0,
+          "TextShadowEnabled": true,
+          "TextShadowX": 1.2,
+          "TextShadowY": -1.0,
+          "TextShadowSoftness": 0.0,
+          "TextShadowR": 0.0,
+          "TextShadowG": 0.0,
+          "TextShadowB": 0.0,
+          "TextShadowA": 0.75
+        },
+        {
+          "Name": "Music Time",
+          "Anchor": 1,
+          "PosX": -60.0,
+          "PosY": -9.795044,
+          "Stats": [
+            {
+              "Id": "musictime",
+              "Enabled": true,
+              "ShowLabel": false,
+              "Color": {
+                "Enabled": false,
+                "Points": [
+                  {
+                    "Pos": 1.0,
+                    "R": 1.0,
+                    "G": 1.0,
+                    "B": 1.0,
+                    "A": 1.0
+                  }
+                ],
+                "UsePerfect": false,
+                "Perfect": {
+                  "Pos": 1.0,
+                  "R": 1.0,
+                  "G": 0.854902,
+                  "B": 0.0,
+                  "A": 1.0
+                },
+                "MaxBpm": 8000.0
+              }
+            }
+          ],
+          "Prefix": "",
+          "Decimals": 0,
+          "FontSize": 15.0,
+          "LabelSeparator": "  ",
+          "LineSpacing": 0.0,
+          "BackgroundEnabled": false,
+          "LocalizeStatLabels": false,
+          "TextR": 1.0,
+          "TextG": 1.0,
+          "TextB": 1.0,
+          "TextA": 0.4023974,
+          "TextShadowEnabled": true,
+          "TextShadowX": 2.0,
+          "TextShadowY": -1.0,
+          "TextShadowSoftness": 0.0,
+          "TextShadowR": 0.0,
+          "TextShadowG": 0.0,
+          "TextShadowB": 0.0,
+          "TextShadowA": 0.4023974
+        },
+        {
+          "Name": "Map Time",
+          "Anchor": 0,
+          "PosX": 967.3401,
+          "PosY": -9.795044,
+          "Stats": [
+            {
+              "Id": "maptime",
+              "Enabled": true,
+              "ShowLabel": false
+            }
+          ],
+          "Prefix": "",
+          "Decimals": 2,
+          "FontSize": 15.0,
+          "LabelSeparator": "  ",
+          "LineSpacing": 0.0,
+          "BackgroundEnabled": false,
+          "LocalizeStatLabels": false,
+          "TextR": 1.0,
+          "TextG": 1.0,
+          "TextB": 1.0,
+          "TextA": 0.3981166,
+          "TextShadowEnabled": true,
+          "TextShadowX": 2.0,
+          "TextShadowY": -1.0,
+          "TextShadowSoftness": 0.0,
+          "TextShadowR": 0.0,
+          "TextShadowG": 0.0,
+          "TextShadowB": 0.0,
+          "TextShadowA": 0.4023974
+        }
+      ]
+    },
+    "PlanetColors.json": {
+      "Enabled": true,
+      "SeparateTailColor": false,
+      "BallR": [
+        1.0,
+        0.203168809,
+        1.0
+      ],
+      "BallG": [
+        0.197916716,
+        0.199229732,
+        0.0
+      ],
+      "BallB": [
+        0.196603686,
+        1.0,
+        0.0
+      ],
+      "BallOpacity": [
+        0.8992735,
+        0.895814061,
+        0.5
+      ],
+      "TailR": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "TailG": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "TailB": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "TailOpacity": [
+        0.7975669,
+        0.8036209,
+        0.2
+      ]
+    },
+    "ProgressBar.json": {
+      "Enabled": false,
+      "Width": 720.0,
+      "Height": 9.0,
+      "OffsetX": 0.0,
+      "TopOffset": 10.0,
+      "Rounding": 4.0,
+      "OutlineThickness": 0.0,
+      "PrefillStart": false,
+      "FillR": 0.97,
+      "FillG": 0.99,
+      "FillB": 1.0,
+      "FillA": 0.96,
+      "BackR": 0.05,
+      "BackG": 0.05,
+      "BackB": 0.06,
+      "BackA": 0.8,
+      "OutlineColR": 0.98,
+      "OutlineColG": 0.99,
+      "OutlineColB": 1.0,
+      "OutlineColA": 0.68
+    },
+    "Restriction.json": {
+      "JRestrictEnabled": false,
+      "JRestrictMode": 1,
+      "JRestrictAccuracy": 100.0,
+      "JRestrictAllowedMask": 0,
+      "JRestrictMessage": "{judgement}\uac00 \ub0ac\uc5b4\uc694!!!!",
+      "DeathLimitEnabled": false,
+      "MaxDeathsOn": true,
+      "MaxDeaths": 10,
+      "MaxMissesOn": false,
+      "MaxMisses": 3,
+      "MaxOverloadsOn": false,
+      "MaxOverloads": 3,
+      "DeathLimitMessage": ""
+    },
+    "Settings.json": {
+      "Active": true,
+      "Language": "ko-KR",
+      "IsFirstRun": true,
+      "ShowOnStartup": false,
+      "Tooltip": true,
+      "MiddleClickToDefault": true,
+      "UIScale": 0.8,
+      "FontName": "",
+      "ApplyFontToGameOverlay": false,
+      "GameOverlayFontName": "",
+      "ScrollSpeed": 60.0,
+      "PanelOpacity": 1.0,
+      "PanelWidth": 1125.0,
+      "PanelHeight": 874.375,
+      "ToggleModifier": 0,
+      "ToggleKey": 290,
+      "UpdateChannel": 0,
+      "SkippedVersion": "",
+      "CollapsibleStates": {},
+      "AccentR": 0.769614339,
+      "AccentG": 0.769614339,
+      "AccentB": 0.769614339,
+      "CalibWidth": 2560.0,
+      "CalibHeight": 1440.0
+    },
+    "SongTitle.json": {
+      "Enabled": true,
+      "Format": "{artist} - {title}",
+      "FontSize": 60.0,
+      "MasterSize": 0.399999976,
+      "OffsetX": 0.0,
+      "OffsetY": -45.0,
+      "ColorR": 1.0,
+      "ColorG": 1.0,
+      "ColorB": 1.0,
+      "ColorA": 1.0,
+      "ShadowEnabled": true,
+      "ShadowX": 4.0,
+      "ShadowY": -2.0,
+      "ShadowSoftness": 0.0,
+      "ShadowR": 0.0,
+      "ShadowG": 0.0,
+      "ShadowB": 0.0,
+      "ShadowA": 1.0
+    },
+    "Tweaks.json": {
+      "RemoveAllCheckpoints": false,
+      "RemoveBallCoreParticles": false,
+      "DisableTileHitGlow": false,
+      "RemovePlanetGlow": false,
+      "DisableAutoPause": true,
+      "BlockMouseWheelScrollWhilePlaying": true,
+      "DisableMenuMusic": false,
+      "MenuBpmEnabled": true,
+      "MenuSlowBpm": 300.0,
+      "MenuHighBpm": 150.0,
+      "HideResultXAccuracy": false,
+      "HideResultAccuracy": false,
+      "HideResultCheckpoints": true,
+      "HideResultMaximumUsedKeys": true
+    },
+    "UiHider.json": {
+      "Enabled": false,
+      "RecordingMode": false,
+      "UseShortcut": true,
+      "ShortcutModifier": 0,
+      "ShortcutKey": 289,
+      "Playing": {
+        "HideEverything": false,
+        "HideJudgment": false,
+        "HideMissIndicators": false,
+        "HideTitle": false,
+        "HideOtto": false,
+        "HideTimingTarget": false,
+        "HideNoFailIcon": false,
+        "HideBeta": false,
+        "HideResult": false,
+        "HideHitErrorMeter": false,
+        "HideLastFloorFlash": false
+      },
+      "Recording": {
+        "HideEverything": false,
+        "HideJudgment": false,
+        "HideMissIndicators": false,
+        "HideTitle": false,
+        "HideOtto": false,
+        "HideTimingTarget": false,
+        "HideNoFailIcon": false,
+        "HideBeta": false,
+        "HideResult": false,
+        "HideHitErrorMeter": false,
+        "HideLastFloorFlash": false
+      }
+    }
+  }
+}

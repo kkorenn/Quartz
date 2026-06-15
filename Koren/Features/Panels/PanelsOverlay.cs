@@ -306,7 +306,7 @@ public static class PanelsOverlay {
 
         foreach(LivePanel p in panels) {
             if(p.Config == config && p.Rect != null) {
-                p.Rect.anchoredPosition = new Vector2(config.PosX, config.PosY);
+                p.Rect.anchoredPosition = OverlayCalibration.Scale(new Vector2(config.PosX, config.PosY));
             }
         }
 
@@ -316,8 +316,9 @@ public static class PanelsOverlay {
     private static void SyncPositionsToConfig(PanelConfig skip = null) {
         foreach(LivePanel p in panels) {
             if(p.Rect != null && p.Config != null && p.Config != skip) {
-                p.Config.PosX = p.Rect.anchoredPosition.x;
-                p.Config.PosY = p.Rect.anchoredPosition.y;
+                Vector2 stored = OverlayCalibration.Unscale(p.Rect.anchoredPosition);
+                p.Config.PosX = stored.x;
+                p.Config.PosY = stored.y;
             }
         }
     }
@@ -332,7 +333,7 @@ public static class PanelsOverlay {
         rect.anchorMin = anchor;
         rect.anchorMax = anchor;
         rect.pivot = anchor;
-        rect.anchoredPosition = new Vector2(config.PosX, config.PosY);
+        rect.anchoredPosition = OverlayCalibration.Scale(new Vector2(config.PosX, config.PosY));
 
         Image bg = panelObj.AddComponent<Image>();
         bg.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P1024);
@@ -523,8 +524,9 @@ public static class PanelsOverlay {
             // Position only changes in Reorganize mode (drag); writing it back
             // every frame otherwise is a no-op round-trip against Apply()'s value.
             if(isReorganizing) {
-                p.Config.PosX = p.Rect.anchoredPosition.x;
-                p.Config.PosY = p.Rect.anchoredPosition.y;
+                Vector2 stored = OverlayCalibration.Unscale(p.Rect.anchoredPosition);
+                p.Config.PosX = stored.x;
+                p.Config.PosY = stored.y;
             }
         }
 

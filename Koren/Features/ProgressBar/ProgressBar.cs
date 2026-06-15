@@ -144,7 +144,7 @@ public static class ProgressBarOverlay {
         }
 
         bar.sizeDelta = new Vector2(Conf.Width, Conf.Height);
-        bar.anchoredPosition = new Vector2(Conf.OffsetX, -Conf.TopOffset);
+        bar.anchoredPosition = OverlayCalibration.Scale(new Vector2(Conf.OffsetX, -Conf.TopOffset));
 
         ApplyRounding(back, Conf.Rounding);
         ApplyRounding(fill, Conf.Rounding);

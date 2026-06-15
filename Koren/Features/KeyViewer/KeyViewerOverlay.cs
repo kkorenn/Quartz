@@ -345,7 +345,7 @@ public static class KeyViewerOverlay {
             }
 
             ApplyDmRuntimeSettings();
-            root.anchoredPosition = new Vector2(Conf.DmOffsetX, Conf.DmOffsetY);
+            root.anchoredPosition = OverlayCalibration.Scale(new Vector2(Conf.DmOffsetX, Conf.DmOffsetY));
             float dmScale = Mathf.Clamp(Conf.DmScale, 0.2f, 4f);
             root.localScale = new Vector3(dmScale, dmScale, 1f);
 
@@ -368,7 +368,7 @@ public static class KeyViewerOverlay {
             return;
         }
 
-        root.anchoredPosition = new Vector2(Conf.OffsetX, Conf.OffsetY);
+        root.anchoredPosition = OverlayCalibration.Scale(new Vector2(Conf.OffsetX, Conf.OffsetY));
         float size = Mathf.Clamp(Conf.Size, 0.2f, 4f);
         root.localScale = new Vector3(size, size, 1f);
 
@@ -2089,8 +2089,9 @@ public static class KeyViewerOverlay {
                 // Position only moves while dragging in Reorganize mode; gate the
                 // writeback so it isn't a per-frame no-op round-trip otherwise.
                 if(isReorganizing) {
-                    Conf.DmOffsetX = root.anchoredPosition.x;
-                    Conf.DmOffsetY = root.anchoredPosition.y;
+                    Vector2 stored = OverlayCalibration.Unscale(root.anchoredPosition);
+                    Conf.DmOffsetX = stored.x;
+                    Conf.DmOffsetY = stored.y;
                 }
                 UpdateDmNote(now);
                 return;
@@ -2099,8 +2100,9 @@ public static class KeyViewerOverlay {
             // Drag writes the position; mirror it back into the settings so it
             // persists. Only the drag (Reorganize mode) can move root.
             if(isReorganizing) {
-                Conf.OffsetX = root.anchoredPosition.x;
-                Conf.OffsetY = root.anchoredPosition.y;
+                Vector2 stored = OverlayCalibration.Unscale(root.anchoredPosition);
+                Conf.OffsetX = stored.x;
+                Conf.OffsetY = stored.y;
             }
 
             // KPS window: drop presses older than one second.

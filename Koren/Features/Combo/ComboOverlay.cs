@@ -154,7 +154,7 @@ public static class ComboOverlay {
         ProgressBarOverlay.EnsureConf();
         ProgressBarSettings bar = ProgressBarOverlay.Conf;
         float y = -(bar.TopOffset + bar.Height + VerticalGap + Conf.OffsetY);
-        return new Vector2(Conf.OffsetX, y);
+        return OverlayCalibration.Scale(new Vector2(Conf.OffsetX, y));
     }
 
     public static void Save() => ConfMgr?.Save();
@@ -177,8 +177,9 @@ public static class ComboOverlay {
         }
 
         if(root != null) {
-            Conf.OffsetX = root.anchoredPosition.x;
-            Conf.OffsetY = GetOffsetYFromPosition(root.anchoredPosition.y);
+            Vector2 stored = OverlayCalibration.Unscale(root.anchoredPosition);
+            Conf.OffsetX = stored.x;
+            Conf.OffsetY = GetOffsetYFromPosition(stored.y);
         }
 
         ConfMgr?.Save();
@@ -280,8 +281,9 @@ public static class ComboOverlay {
             // Position only changes while dragging in Reorganize mode; mirroring
             // it into Conf every frame otherwise is a no-op round-trip.
             if(isReorganizing) {
-                Conf.OffsetX = root.anchoredPosition.x;
-                Conf.OffsetY = GetOffsetYFromPosition(root.anchoredPosition.y);
+                Vector2 stored = OverlayCalibration.Unscale(root.anchoredPosition);
+                Conf.OffsetX = stored.x;
+                Conf.OffsetY = GetOffsetYFromPosition(stored.y);
             }
 
             // Only reassign the font when it actually changes — setting .font

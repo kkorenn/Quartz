@@ -159,6 +159,21 @@ internal static class PageProfiles {
         ).SetSecondary();
         FixWidth(folderBtn, 160f);
 
+        UIButton recalibBtn = GenerateUI.Button(
+            ioRow,
+            RecalibrateDisplay,
+            "Recalibrate Display",
+            "profile_recalibrate"
+        ).SetSecondary();
+        FixWidth(recalibBtn, 220f);
+        recalibBtn.Rect.AddToolTip(
+            "DESC_PROFILE_RECALIBRATE",
+            "Re-baseline overlay positions to this monitor, keeping them exactly where they are now. " +
+            "Positions then scale proportionally if the profile is used on a different-sized display."
+        );
+
+        BuildPresetsSection(content.transform);
+
         var statusRow = GenerateUI.Row(content.transform, 32f);
         statusText = GenerateUI.AddText(statusRow, noPad: true);
         statusText.fontSize = 18f;
@@ -190,6 +205,120 @@ internal static class PageProfiles {
         le.preferredWidth = width;
         le.minWidth = width;
         le.flexibleWidth = 0f;
+    }
+
+    // Re-baselines every overlay's stored offsets to the current display: each
+    // offset is multiplied by current-screen / old-calibration (so nothing moves
+    // on screen), then the calibration becomes this resolution. Future runs on a
+    // different-sized monitor scale from here. See OverlayCalibration.
+    private static void RecalibrateDisplay() {
+        CoreSettings conf = MainCore.Conf;
+        OverlayCalibration.EnsureCaptured();
+
+        float fx = conf.CalibWidth > 0f ? Screen.width / conf.CalibWidth : 1f;
+        float fy = conf.CalibHeight > 0f ? Screen.height / conf.CalibHeight : 1f;
+
+        Features.Panels.PanelsOverlay.EnsureConf();
+        foreach(Features.Panels.PanelConfig pc in Features.Panels.PanelsOverlay.Conf.Panels) {
+            pc.PosX *= fx;
+            pc.PosY *= fy;
+        }
+
+        Features.Combo.ComboOverlay.EnsureConf();
+        Features.Combo.ComboSettings combo = Features.Combo.ComboOverlay.Conf;
+        combo.OffsetX *= fx;
+        combo.OffsetY *= fy;
+
+        Features.Judgement.JudgementOverlay.EnsureConf();
+        Features.Judgement.JudgementSettings jud = Features.Judgement.JudgementOverlay.Conf;
+        jud.OffsetX *= fx;
+        jud.OffsetY *= fy;
+
+        Features.ProgressBar.ProgressBarOverlay.EnsureConf();
+        Features.ProgressBar.ProgressBarSettings pbar = Features.ProgressBar.ProgressBarOverlay.Conf;
+        pbar.OffsetX *= fx;
+        pbar.TopOffset *= fy;
+
+        Features.SongTitle.SongTitleOverlay.EnsureConf();
+        Features.SongTitle.SongTitleSettings song = Features.SongTitle.SongTitleOverlay.Conf;
+        song.OffsetX *= fx;
+        song.OffsetY *= fy;
+
+        Features.KeyViewer.KeyViewerOverlay.EnsureConf();
+        Features.KeyViewer.KeyViewerSettings kv = Features.KeyViewer.KeyViewerOverlay.Conf;
+        kv.OffsetX *= fx;
+        kv.OffsetY *= fy;
+        kv.DmOffsetX *= fx;
+        kv.DmOffsetY *= fy;
+
+        // New baseline = this display, then persist + re-apply so the live
+        // overlays read it immediately.
+        conf.CalibWidth = Screen.width;
+        conf.CalibHeight = Screen.height;
+        MainCore.ConfMgr?.RequestSave();
+
+        Features.Panels.PanelsOverlay.Apply();
+        Features.Panels.PanelsOverlay.Save();
+        Features.Combo.ComboOverlay.Apply();
+        Features.Combo.ComboOverlay.Save();
+        Features.Judgement.JudgementOverlay.Apply();
+        Features.Judgement.JudgementOverlay.Save();
+        Features.ProgressBar.ProgressBarOverlay.Apply();
+        Features.ProgressBar.ProgressBarOverlay.Save();
+        Features.SongTitle.SongTitleOverlay.Apply();
+        Features.SongTitle.SongTitleOverlay.Save();
+        Features.KeyViewer.KeyViewerOverlay.Apply();
+        Features.KeyViewer.KeyViewerOverlay.Save();
+
+        if(statusText != null) {
+            statusText.text = MainCore.Tr.Get("PROFILE_RECALIBRATED", "Recalibrated overlays to this display.");
+        }
+    }
+
+    // Built-in presets: a header plus one Apply row per shipped .krprofile.
+    // Hidden entirely when none ship. Each name is localized via PRESET_<NAME>.
+    private static void BuildPresetsSection(Transform content) {
+        List<ProfileManager.PresetInfo> presets = ProfileManager.ListPresets();
+        if(presets.Count == 0) {
+            return;
+        }
+
+        TextMeshProUGUI header = GenerateUI.AddTextH1(GenerateUI.Row(content));
+        GenerateUI.Localize(header, "PRESETS", "Presets");
+
+        foreach(ProfileManager.PresetInfo preset in presets) {
+            RectTransform row = GenerateUI.Row(content, 50f);
+            HorizontalLayoutGroup rl = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            rl.spacing = 12f;
+            rl.padding = new RectOffset(16, 12, 0, 0);
+            rl.childControlWidth = true;
+            rl.childControlHeight = true;
+            rl.childForceExpandWidth = false;
+            rl.childForceExpandHeight = true;
+            rl.childAlignment = TextAnchor.MiddleLeft;
+
+            TextMeshProUGUI label = GenerateUI.AddText(row, noPad: true);
+            label.overflowMode = TextOverflowModes.Ellipsis;
+            label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+            GenerateUI.Localize(label, "PRESET_" + preset.Name.ToUpperInvariant(), preset.Name);
+
+            string presetPath = preset.Path;
+            UIButton applyBtn = GenerateUI.Button(
+                row,
+                () => {
+                    string applied = ProfileManager.ApplyPreset(presetPath);
+                    if(statusText != null) {
+                        statusText.text = applied != null
+                            ? string.Format(Tr("PROFILE_STATUS_PRESET_APPLIED", "Applied preset '{0}'."), applied)
+                            : Tr("PROFILE_STATUS_PRESET_FAILED", "Couldn't apply preset.");
+                    }
+                    RebuildList();
+                },
+                "Apply",
+                "preset_apply"
+            );
+            FixWidth(applyBtn, 140f);
+        }
     }
 
     private static void AddProfile() {

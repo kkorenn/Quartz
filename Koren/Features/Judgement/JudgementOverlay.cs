@@ -150,7 +150,7 @@ public static class JudgementOverlay {
             return;
         }
 
-        root.anchoredPosition = new Vector2(Conf.OffsetX, BottomMargin + Conf.OffsetY);
+        root.anchoredPosition = OverlayCalibration.Scale(new Vector2(Conf.OffsetX, BottomMargin + Conf.OffsetY));
         rowLayout.spacing = RowSpacing();
 
         float fontSize = FontSize();
@@ -255,8 +255,9 @@ public static class JudgementOverlay {
             // Position only changes while dragging in Reorganize mode; mirroring
             // it back into Conf every frame otherwise is a no-op round-trip.
             if(isReorganizing) {
-                Conf.OffsetX = root.anchoredPosition.x;
-                Conf.OffsetY = root.anchoredPosition.y - BottomMargin;
+                Vector2 stored = OverlayCalibration.Unscale(root.anchoredPosition);
+                Conf.OffsetX = stored.x;
+                Conf.OffsetY = stored.y - BottomMargin;
             }
 
             TMP_FontAsset font = FontManager.Current;
