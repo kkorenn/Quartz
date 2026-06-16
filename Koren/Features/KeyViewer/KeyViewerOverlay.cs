@@ -1261,7 +1261,7 @@ public static class KeyViewerOverlay {
         }
 
         if(name.Length > 1 && int.TryParse(name, out int numeric)) {
-            return Features.KeyLimiter.KeyLimiter.NormalizeKey((KeyCode)numeric);
+            return Features.KeyLimiter.KeyLimiter.NormalizeNumericKey(numeric);
         }
 
         string normalized = name.Replace(" ", "").Replace("_", "").Replace("-", "");

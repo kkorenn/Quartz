@@ -15,7 +15,8 @@ public static class TMPTextShadow {
         float offsetX,
         float offsetY,
         float softness,
-        Color color
+        Color color,
+        bool isolateCanvas = false
     ) {
         if(text == null) {
             return;
@@ -29,6 +30,23 @@ public static class TMPTextShadow {
         DisableUnderlay(text, root);
 
         RectTransform shadowRoot = root.Rect;
+
+        // Multi-atlas dynamic fonts (FontManager builds them with
+        // isMultiAtlasTexturesEnabled) spread a long / multi-script title's
+        // glyphs across several atlas pages, each its own material. The shadow
+        // layers and the main text then SHARE those per-atlas submesh materials,
+        // and the canvas batcher will reorder same-material submeshes across the
+        // shadow→text sibling boundary when it judges them non-overlapping —
+        // floating a shadow submesh ABOVE the text for those glyphs (persistent
+        // for a given title, varying with atlas fill order across runs). A nested
+        // Canvas batches the shadow's geometry as its own group the parent batcher
+        // can't reorder into, so the shadow always draws behind the text. Opt-in
+        // (only the SongTitle's long rich text hits this; short HUD labels stay on
+        // a single atlas). overrideSorting=false: a batch/hierarchy boundary only,
+        // no global sorting order to collide with the sibling overlay canvases.
+        if(isolateCanvas && shadowRoot.GetComponent<Canvas>() == null) {
+            shadowRoot.gameObject.AddComponent<Canvas>().overrideSorting = false;
+        }
 
         bool on = enabled && text.gameObject.activeSelf && color.a > 0.001f;
         shadowRoot.gameObject.SetActive(on);

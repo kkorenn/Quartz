@@ -206,36 +206,69 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
     }
 
     // Map identity. Tries (in order):
-    //   1. ADOBase.currentLevel (official-level path / name)
-    //   2. MD5 of scrLevelMaker's level-data string (old format) or
-    //      a stable fingerprint of floor angles (new format)
+    //   1. Official campaign levels  -> ADOBase.currentLevel (the unique
+    //      internal id like "1-1" / "12-X").
+    //   2. Everything else (custom)  -> SHA-256 of the .adofai file's bytes.
+    //   3. File unreadable           -> SHA-256 of resident level data.
     // Falls back to "unknown" so multiple unknown maps share one bucket
     // rather than crashing.
+    //
+    // Why the discriminator is isOfficialLevel and NOT isCLSLevel: custom levels
+    // are played in two ways — CLS level-select (isCLSLevel true) AND the in-game
+    // editor / editor-driven mods like TUFHelper (isLevelEditor true, isCLSLevel
+    // FALSE). In BOTH, scrController.levelName collapses to the constant scene
+    // name ("scnGame"), so keying on it merges every custom level's attempts into
+    // one bucket — the bug. isOfficialLevel is the only flag that cleanly splits
+    // "real campaign level" (scene-name is a valid id) from "custom level in any
+    // context" (must hash the file). levelPath is populated + unique in all the
+    // custom cases, including the editor.
     private static string ComputeMapKey() {
+        bool isOfficial;
         try {
-            string official = ADOBase.currentLevel;
-            if(!string.IsNullOrEmpty(official)) {
-                return "official:" + official;
-            }
+            isOfficial = ADOBase.isOfficialLevel;
         } catch {
+            isOfficial = false;
         }
 
+        // Official campaign levels: scene name is a genuine unique per-level id.
+        if(isOfficial) {
+            try {
+                string official = ADOBase.currentLevel;
+                if(!string.IsNullOrEmpty(official)) {
+                    return "official:" + official;
+                }
+            } catch {
+            }
+        }
+
+        // Custom levels (CLS select, editor, TUFHelper, …): hash the actual file
+        // content. Unique per level, stable across replays, edit-sensitive.
+        // Hashed at most once per file version (cached by path+mtime), so a retry
+        // costs a stat, not a re-read.
+        string fileHash = TryHashLevelFile();
+        if(!string.IsNullOrEmpty(fileHash)) {
+            return "custom:" + fileHash;
+        }
+
+        // File couldn't be read — hash whatever level data is resident in memory.
         try {
             scrLevelMaker lm = scrLevelMaker.instance;
             if(lm != null) {
                 if(lm.isOldLevel && !string.IsNullOrEmpty(lm.leveldata)) {
-                    return "old:" + Md5(lm.leveldata);
+                    return "old:" + Sha256(lm.leveldata);
                 }
 
                 if(lm.floorAngles != null) {
-                    var arr = System.Linq.Enumerable.ToArray(lm.floorAngles);
+                    // Hash the FULL angle list. The previous code sampled only
+                    // ~32 angles on a stride, which collided distinct levels that
+                    // happened to share those samples — a second merge source.
+                    float[] arr = System.Linq.Enumerable.ToArray(lm.floorAngles);
                     StringBuilder sb = new();
                     sb.Append("angles:").Append(arr.Length);
-                    int step = Mathf.Max(1, arr.Length / 32);
-                    for(int i = 0; i < arr.Length; i += step) {
+                    for(int i = 0; i < arr.Length; i++) {
                         sb.Append(':').Append(arr[i].ToString("0.###", CultureInfo.InvariantCulture));
                     }
-                    return "new:" + Md5(sb.ToString());
+                    return "new:" + Sha256(sb.ToString());
                 }
             }
         } catch {
@@ -244,12 +277,41 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
         return "unknown";
     }
 
-    private static string Md5(string s) {
-        using MD5 md5 = MD5.Create();
-        byte[] bytes = md5.ComputeHash(Encoding.UTF8.GetBytes(s));
-        StringBuilder sb = new(32);
-        for(int i = 0; i < bytes.Length; i++) {
-            sb.Append(bytes[i].ToString("x2", CultureInfo.InvariantCulture));
+    private static string cachedHashKey = "";
+    private static string cachedHash = "";
+
+    // SHA-256 of the loaded .adofai file. Cached by "path|mtime" so repeated
+    // retries of the same level read the disk once; a content edit (new mtime)
+    // invalidates the cache and re-hashes.
+    private static string TryHashLevelFile() {
+        try {
+            string path = ADOBase.levelPath;
+            if(string.IsNullOrEmpty(path) || !File.Exists(path)) {
+                return null;
+            }
+
+            string cacheKey = path + "|" + File.GetLastWriteTimeUtc(path).Ticks.ToString(CultureInfo.InvariantCulture);
+            if(cacheKey == cachedHashKey && !string.IsNullOrEmpty(cachedHash)) {
+                return cachedHash;
+            }
+
+            string h = Sha256(File.ReadAllBytes(path));
+            cachedHashKey = cacheKey;
+            cachedHash = h;
+            return h;
+        } catch {
+            return null;
+        }
+    }
+
+    private static string Sha256(string s) => Sha256(Encoding.UTF8.GetBytes(s));
+
+    private static string Sha256(byte[] bytes) {
+        using SHA256 sha = SHA256.Create();
+        byte[] hash = sha.ComputeHash(bytes);
+        StringBuilder sb = new(hash.Length * 2);
+        for(int i = 0; i < hash.Length; i++) {
+            sb.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
         }
         return sb.ToString();
     }

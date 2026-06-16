@@ -153,7 +153,11 @@ public static class SongTitleOverlay {
             Conf.ShadowX,
             Conf.ShadowY,
             Conf.ShadowSoftness,
-            Conf.GetShadowColor()
+            Conf.GetShadowColor(),
+            // Long, multi-script titles span multiple font atlas pages; isolate
+            // the shadow in its own sub-canvas so the batcher can't float a
+            // shadow submesh above the text. See TMPTextShadow.Apply.
+            isolateCanvas: true
         );
     }
 

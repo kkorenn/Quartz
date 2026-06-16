@@ -169,6 +169,22 @@ public static class KeyLimiter {
         return key;
     }
 
+    // DM Note presets store some keys as raw Windows virtual-key codes instead of
+    // names — notably the Korean Hangul / Right-Alt key, which Windows reports as
+    // VK 0x15 (=21). Interpret a numeric key token as a VK code first; only fall
+    // back to a raw KeyCode cast when it isn't a known virtual key, so a bare "21"
+    // resolves to KeyCode.RightAlt rather than the undefined (KeyCode)21 (which
+    // renders as "21" and never registers under Input.GetKey).
+    public static KeyCode NormalizeNumericKey(int numeric) {
+        if(numeric >= 0 && numeric <= 0xFF) {
+            KeyCode vk = WindowsVirtualKeyToUnityKey((ushort)numeric);
+            if(vk != KeyCode.None) {
+                return vk;
+            }
+        }
+        return NormalizeKey((KeyCode)numeric);
+    }
+
     private static KeyCode NormalizeLegacyAsyncKey(KeyCode key) {
         int raw = (int)key;
         if(raw < LegacyAsyncKeyOffset || raw > LegacyAsyncKeyMax) {
