@@ -503,8 +503,10 @@ internal static class PageOverlay {
                         continue;
                     }
                     // Skip stats already on the panel (including the one
-                    // being replaced — swapping to itself is a no-op).
-                    if(panel.Stats.Exists(e => e.Id == stat.Id)) {
+                    // being replaced — swapping to itself is a no-op). The
+                    // "text" stat is exempt: each carries its own custom string,
+                    // so any number can sit on one panel.
+                    if(stat.Id != "text" && panel.Stats.Exists(e => e.Id == stat.Id)) {
                         continue;
                     }
 
@@ -528,7 +530,13 @@ internal static class PageOverlay {
                             if(replaceTarget != null) {
                                 replaceTarget.Id = statId;
                             } else {
-                                panel.Stats.Add(new StatEntry(statId));
+                                StatEntry added = new(statId);
+                                // A custom-text line has no meaningful "Text"
+                                // label prefix, so default it to value-only.
+                                if(statId == "text") {
+                                    added.ShowLabel = false;
+                                }
+                                panel.Stats.Add(added);
                             }
                             Save();
                             ClosePicker();
@@ -849,15 +857,21 @@ internal static class PageOverlay {
             }
         }
 
-        var label = GenerateUI.AddText(bg, true);
-        GenerateUI.Localize(
-            label,
-            GenerateUI.LocaleKeyFromText("PANEL_STAT", entry.Id),
-            StatDefaultLabel(entry.Id)
-        );
-        RectTransform labelRect = label.rectTransform;
-        labelRect.offsetMin = new Vector2(48f, 0f);
-        labelRect.offsetMax = new Vector2(-300f, 0f);
+        // The "text" stat edits its custom string right here in the row; every
+        // other stat shows its (localized) name as a static label.
+        if(entry.Id == "text") {
+            BuildTextEntryInput(bg, entry, save);
+        } else {
+            var label = GenerateUI.AddText(bg, true);
+            GenerateUI.Localize(
+                label,
+                GenerateUI.LocaleKeyFromText("PANEL_STAT", entry.Id),
+                StatDefaultLabel(entry.Id)
+            );
+            RectTransform labelRect = label.rectTransform;
+            labelRect.offsetMin = new Vector2(48f, 0f);
+            labelRect.offsetMax = new Vector2(-300f, 0f);
+        }
 
         // Enable/disable dot: accent = shown, dim = hidden (kept in the list).
         GameObject toggleObj = new("EnableDot");
@@ -1150,6 +1164,57 @@ internal static class PageOverlay {
                 onClick();
             }
         });
+    }
+
+    // Inline editor for a "text" stat row: a single-line input sitting where the
+    // static stat label would be, bound to the entry's custom string. Edits flow
+    // straight to entry.Text and the live panel picks them up next frame.
+    private static void BuildTextEntryInput(Transform bg, StatEntry entry, Action save) {
+        GameObject inputObj = new("TextInput");
+        inputObj.transform.SetParent(bg, false);
+
+        RectTransform inputRect = inputObj.AddComponent<RectTransform>();
+        inputRect.anchorMin = new Vector2(0f, 0f);
+        inputRect.anchorMax = new Vector2(1f, 1f);
+        inputRect.pivot = new Vector2(0.5f, 0.5f);
+        inputRect.offsetMin = new Vector2(48f, 6f);
+        inputRect.offsetMax = new Vector2(-300f, -6f);
+
+        Image fieldBg = inputObj.AddComponent<Image>();
+        fieldBg.color = UIColors.ObjectBG;
+        fieldBg.raycastTarget = true;
+
+        inputObj.AddComponent<RectMask2D>();
+
+        TMP_InputField field = inputObj.AddComponent<TMP_InputField>();
+
+        var text = GenerateUI.AddText(inputObj.transform, true);
+        text.alignment = TextAlignmentOptions.Left;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        SetFullRect(text.rectTransform, 10f);
+
+        var placeholder = GenerateUI.AddText(inputObj.transform, true);
+        placeholder.alignment = TextAlignmentOptions.Left;
+        placeholder.textWrappingMode = TextWrappingModes.NoWrap;
+        placeholder.color = new Color(1f, 1f, 1f, 0.3f);
+        GenerateUI.Localize(placeholder, "PANEL_TEXT_PLACEHOLDER", "Custom text…");
+        SetFullRect(placeholder.rectTransform, 10f);
+
+        field.textViewport = inputRect;
+        field.textComponent = text;
+        field.placeholder = placeholder;
+        field.lineType = TMP_InputField.LineType.SingleLine;
+        field.richText = false;
+        field.characterLimit = 64;
+        field.SetTextWithoutNotify(entry.Text ?? "");
+        field.onValueChanged.AddListener(v => { entry.Text = v; save(); });
+    }
+
+    private static void SetFullRect(RectTransform rect, float xPad) {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = new Vector2(xPad, 0f);
+        rect.offsetMax = new Vector2(-xPad, 0f);
     }
 
     // Ties a list row back to its config entry so a reorder commit can read

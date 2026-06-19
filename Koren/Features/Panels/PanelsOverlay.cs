@@ -84,6 +84,10 @@ public static class PanelsOverlay {
         } },
         new() { Id = "fps", Category = "Other", Label = "FPS", Value = _ =>
             GameStats.Fps.ToString(CultureInfo.InvariantCulture) },
+        // Free-form custom text. The value comes from the per-entry StatEntry.Text
+        // (handled directly in UpdatePanel), not this delegate — multiple "text"
+        // entries can coexist on one panel, each with its own string.
+        new() { Id = "text", Category = "Other", Label = "Text", Value = _ => null },
         // XPerfect perfect breakdown. Value returns null (line hidden) unless the
         // XPerfect mod is active, so the panel only shows them when meaningful.
         new() { Id = "xperfect", Category = "Accuracy", Label = "X Perfect", Value = _ =>
@@ -439,10 +443,19 @@ public static class PanelsOverlay {
                     }
 
                     string value;
-                    try { value = stat.Value(c); }
-                    catch { continue; }
-                    if(value == null) {
-                        continue;
+                    if(entry.Id == "text") {
+                        // The "text" stat renders the entry's own custom string;
+                        // an empty one is skipped so it leaves no blank line.
+                        if(string.IsNullOrEmpty(entry.Text)) {
+                            continue;
+                        }
+                        value = entry.Text;
+                    } else {
+                        try { value = stat.Value(c); }
+                        catch { continue; }
+                        if(value == null) {
+                            continue;
+                        }
                     }
 
                     // English by default; localized only when this panel opts

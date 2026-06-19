@@ -15,6 +15,10 @@ public sealed class StatEntry {
     // (the panel's LabelSeparator is skipped too).
     public bool ShowLabel = true;
 
+    // Custom text for the "text" stat — the literal string rendered as the
+    // line's value. Unused (empty) for every other stat id.
+    public string Text = "";
+
     // Optional per-stat value coloring (v1's ColorRange). null until the user
     // opens the stat's color settings.
     public StatColor Color;
@@ -31,6 +35,10 @@ public sealed class StatEntry {
             [nameof(Enabled)] = Enabled,
             [nameof(ShowLabel)] = ShowLabel,
         };
+
+        if(!string.IsNullOrEmpty(Text)) {
+            obj[nameof(Text)] = Text;
+        }
 
         if(Color != null) {
             obj[nameof(Color)] = Color.Serialize();
@@ -49,6 +57,7 @@ public sealed class StatEntry {
         e.Id = IOUtils.Read(token, nameof(Id), e.Id);
         e.Enabled = IOUtils.Read(token, nameof(Enabled), e.Enabled);
         e.ShowLabel = IOUtils.Read(token, nameof(ShowLabel), e.ShowLabel);
+        e.Text = IOUtils.Read(token, nameof(Text), e.Text);
         if(token[nameof(Color)] is JObject color) {
             e.Color = StatColor.Deserialize(color);
         }

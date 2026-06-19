@@ -23,6 +23,18 @@ internal static class PageJudgement {
             conf.Enabled
         );
 
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.ShowXPerfect,
+            conf.ShowXPerfect,
+            v => { conf.ShowXPerfect = v; Apply(); Save(); },
+            "Show XPerfect",
+            "judgement_xperfect"
+        ).Rect.AddToolTip(
+            "DESC_JUDGEMENT_XPERFECT",
+            "Split the Perfect count into +Perfect / X / -Perfect when the XPerfect mod is active."
+        );
+
         // === Layout ===
         GenerateUI.Localize(GenerateUI.AddTextH1(GenerateUI.Row(sec.Body)), "HEADING_LAYOUT", "Layout");
 

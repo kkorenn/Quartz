@@ -12,6 +12,11 @@ namespace Koren.Features.Judgement;
 public sealed class JudgementSettings : ISettingsFile {
     public bool Enabled = true;
 
+    // When the XPerfect mod is active, split the Perfect slot into
+    // +Perfect / X / -Perfect. Off collapses it back to a single combined
+    // Perfect count even while XPerfect is installed.
+    public bool ShowXPerfect = true;
+
     public float OffsetX = 0f;
     public float OffsetY = -5f;
     public float Size = 0.9f;
@@ -40,6 +45,7 @@ public sealed class JudgementSettings : ISettingsFile {
     public JToken Serialize() {
         return new JObject {
             [nameof(Enabled)] = Enabled,
+            [nameof(ShowXPerfect)] = ShowXPerfect,
             [nameof(OffsetX)] = OffsetX,
             [nameof(OffsetY)] = OffsetY,
             [nameof(Size)] = Size,
@@ -57,6 +63,7 @@ public sealed class JudgementSettings : ISettingsFile {
 
     public void Deserialize(JToken token) {
         Enabled = IOUtils.Read(token, nameof(Enabled), Enabled);
+        ShowXPerfect = IOUtils.Read(token, nameof(ShowXPerfect), ShowXPerfect);
         OffsetX = IOUtils.Read(token, nameof(OffsetX), OffsetX);
         OffsetY = IOUtils.Read(token, nameof(OffsetY), OffsetY);
         Size = IOUtils.Read(token, nameof(Size), Size);

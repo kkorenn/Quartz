@@ -822,6 +822,7 @@ public static class UICore {
             Panel.sizeDelta = LastPanelSize;
 
             canvasObj.SetActive(true);
+            RefreshAllText();
             return;
         }
 
@@ -831,6 +832,7 @@ public static class UICore {
         Panel.sizeDelta = LastPanelSize;
 
         canvasObj.SetActive(true);
+        RefreshAllText();
 
         panelTweener = Panel.GTAnchorPos(LastPanelPosition, 0.25f)
             .SetEasing(Easing.OutExpo);
@@ -839,6 +841,39 @@ public static class UICore {
         if(firstRunHelperActivated) {
             firstRunHelperActivated = false;
             EndFirstRunHelper();
+        }
+    }
+
+    // Repaints every visible menu label and rebuilds the menu layout whenever the
+    // panel opens. The mod UI and the in-game overlay can share one dynamic TMP
+    // font atlas: when "apply font to overlay" is on and no separate overlay font
+    // is set, GameOverlayFont points the game's own text at FontManager.Current —
+    // the same asset the menu uses. Gameplay text (level titles, song names, the
+    // update-log board, …) keeps populating that shared atlas during play; when
+    // TMP grows it, menu labels generated earlier are left with stale glyph
+    // geometry and the whole menu renders overlapped, clearing only on a restart.
+    // Forcing a mesh update (so glyphs re-resolve against the current atlas) and a
+    // layout rebuild (so rows re-flow off the corrected preferred sizes) on open
+    // makes that corruption self-heal instead of persisting for the session.
+    private static void RefreshAllText() {
+        if(canvasObj == null) {
+            return;
+        }
+
+        TMP_Text[] texts = canvasObj.GetComponentsInChildren<TMP_Text>(true);
+        for(int i = 0; i < texts.Length; i++) {
+            // Every tab is always active (PageSwicher slides pages off-screen and
+            // fades them rather than SetActive-toggling), so ignoreActiveState:false
+            // still repaints all of them — the whole menu, not just the visible tab.
+            // Off-screen pages keep laid-out rects, so geometry regenerates at the
+            // right width.
+            if(texts[i] != null) {
+                texts[i].ForceMeshUpdate(false, true);
+            }
+        }
+
+        if(Panel != null) {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(Panel);
         }
     }
 

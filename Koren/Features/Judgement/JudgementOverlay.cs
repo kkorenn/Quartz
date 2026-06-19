@@ -266,7 +266,9 @@ public static class JudgementOverlay {
 
             // XPerfect splits the Perfect slot into X / +Perfect / -Perfect. A
             // mode change re-texts and recolors slot 4 and toggles the +/- labels.
-            bool xpMode = XPerfectBridge.Active;
+            // Gated on the user setting so it can be collapsed back to a single
+            // Perfect count even while the XPerfect mod is installed.
+            bool xpMode = Conf.ShowXPerfect && XPerfectBridge.Active;
             bool xpModeChanged = xpMode != lastXpMode;
 
             // First pass: set everything that feeds the layout (font, size,
