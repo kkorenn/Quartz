@@ -301,9 +301,16 @@ public static class GameStats {
     // Expected to be polled once per frame from the HUD updater.
     public static int Fps {
         get {
+            int frame = Time.frameCount;
+            if(fpsFrame == frame) {
+                return fpsFrameValue;
+            }
+            fpsFrame = frame;
+
             float dt = Time.unscaledDeltaTime;
             if(dt <= 0f) {
-                return Mathf.RoundToInt(smoothedFps);
+                fpsFrameValue = Mathf.RoundToInt(smoothedFps);
+                return fpsFrameValue;
             }
 
             float fps = 1f / dt;
@@ -317,11 +324,14 @@ public static class GameStats {
                 smoothedFps += (fps - smoothedFps) * factor;
             }
 
-            return Mathf.RoundToInt(smoothedFps);
+            fpsFrameValue = Mathf.RoundToInt(smoothedFps);
+            return fpsFrameValue;
         }
     }
 
     private static float smoothedFps;
+    private static int fpsFrame = -1;
+    private static int fpsFrameValue;
     private const float fpsMinSmooth = 2f;
     private const float fpsMaxSmooth = 12f;
     private const float fpsSensitivity = 0.08f;

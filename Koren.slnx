@@ -6,4 +6,5 @@
     <BuildType Name="Release_IL2CPP" />
   </Configurations>
   <Project Path="Koren/Koren.csproj" />
+  <Project Path="Koren.Tests/Koren.Tests.csproj" />
 </Solution>

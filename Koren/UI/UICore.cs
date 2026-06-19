@@ -844,8 +844,8 @@ public static class UICore {
         }
     }
 
-    // Repaints every visible menu label and rebuilds the menu layout whenever the
-    // panel opens. The mod UI and the in-game overlay can share one dynamic TMP
+    // Repaints menu labels after the shared dynamic font atlas changes. The mod UI
+    // and the in-game overlay can share one dynamic TMP
     // font atlas: when "apply font to overlay" is on and no separate overlay font
     // is set, GameOverlayFont points the game's own text at FontManager.Current —
     // the same asset the menu uses. Gameplay text (level titles, song names, the
@@ -855,11 +855,24 @@ public static class UICore {
     // Forcing a mesh update (so glyphs re-resolve against the current atlas) and a
     // layout rebuild (so rows re-flow off the corrected preferred sizes) on open
     // makes that corruption self-heal instead of persisting for the session.
+    private static int refreshedFontId = -1;
+    private static int refreshedCharacterCount = -1;
+    private static int refreshedAtlasCount = -1;
+
     private static void RefreshAllText() {
         if(canvasObj == null) {
             return;
         }
 
+        TMP_FontAsset font = FontManager.Current;
+        int fontId = font != null ? font.GetInstanceID() : 0;
+        int characterCount = font?.characterTable?.Count ?? 0;
+        int atlasCount = font?.atlasTextures?.Length ?? 0;
+        if(fontId == refreshedFontId
+            && characterCount == refreshedCharacterCount
+            && atlasCount == refreshedAtlasCount) {
+            return;
+        }
         TMP_Text[] texts = canvasObj.GetComponentsInChildren<TMP_Text>(true);
         for(int i = 0; i < texts.Length; i++) {
             // Every tab is always active (PageSwicher slides pages off-screen and
@@ -875,6 +888,12 @@ public static class UICore {
         if(Panel != null) {
             LayoutRebuilder.ForceRebuildLayoutImmediate(Panel);
         }
+
+        // ForceMeshUpdate can itself add missing menu glyphs to a dynamic atlas;
+        // record the post-refresh signature to avoid one redundant refresh later.
+        refreshedFontId = fontId;
+        refreshedCharacterCount = font?.characterTable?.Count ?? 0;
+        refreshedAtlasCount = font?.atlasTextures?.Length ?? 0;
     }
 
     public static void Close(bool noAnimate = false) {

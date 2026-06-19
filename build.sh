@@ -62,8 +62,8 @@ if [[ ! -f "$GP_CHECK/MelonLoader/net35/MelonLoader.dll" ]]; then
 fi
 
 # --- Build (PostBuild targets auto-install into the game) ---
-echo ">> building Koren.slnx ($CONFIG)..."
-dotnet build Koren.slnx -c "$CONFIG"
+echo ">> building Koren/Koren.csproj ($CONFIG)..."
+dotnet build Koren/Koren.csproj -c "$CONFIG" -p:AutoInstall=true
 
 echo ">> done. Installed: Mods/Koren.dll, UserData/Koren/*"
 echo ">> packaged: dist/Koren.zip"

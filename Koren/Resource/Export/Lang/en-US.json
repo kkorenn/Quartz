@@ -171,6 +171,7 @@
     "FXRM_REPEAT": "Repeat Event",
     "FXRM_RESET_ANIM": "Set Track Animation to Default",
     "FXRM_RESET_COLOR": "Set Track Color to Default",
+    "FXRM_RESET_OPACITY": "Reset All Track Opacity Values to 100%",
     "FXRM_SAVE": "Allow Saving in Editor",
     "FXRM_SET_ZOOM": "Set Camera Zoom",
     "FXRM_TRACK_ALL": "Toggle All",

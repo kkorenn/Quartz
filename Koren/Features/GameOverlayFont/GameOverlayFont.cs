@@ -85,12 +85,12 @@ public static class GameOverlayFont {
         }
 
         GameObject root = MainCore.Root;
-        foreach(Text text in UnityEngine.Object.FindObjectsOfType<Text>()) {
+        foreach(Text text in UnityEngine.Object.FindObjectsByType<Text>(FindObjectsSortMode.None)) {
             if(!IsModUi(text, root)) {
                 mirror.Track(text);
             }
         }
-        foreach(TMP_Text tmp in UnityEngine.Object.FindObjectsOfType<TMP_Text>()) {
+        foreach(TMP_Text tmp in UnityEngine.Object.FindObjectsByType<TMP_Text>(FindObjectsSortMode.None)) {
             if(!IsModUi(tmp, root) && !GameFontMirror.IsTwin(tmp)) {
                 OverrideTmp(tmp);
             }
@@ -396,10 +396,12 @@ public sealed class GameFontMirror : MonoBehaviour {
     // armed so a freshly-created mirror catches the current scene immediately.
     private int burstFrames = BurstFrames;
     private int rescanCountdown;
+    private int lastSyncFrame = -1;
 
     // ~0.75s at 60fps: long enough to catch a HUD that animates in over the first
     // frames of a level, short enough to stay off the steady gameplay hot path.
     private const int BurstFrames = 45;
+    private const int BurstScanInterval = 5;
 
     // Re-arm the post-load burst on the live mirror (scene load / feature enable).
     public static void ArmBurst() {
@@ -417,7 +419,9 @@ public sealed class GameFontMirror : MonoBehaviour {
         // dancing (InGame), gently in menus/pause where popups appear.
         if(burstFrames > 0) {
             burstFrames--;
-            GameOverlayFont.TrackScene();
+            if(burstFrames % BurstScanInterval == 0) {
+                GameOverlayFont.TrackScene();
+            }
         } else if(--rescanCountdown <= 0) {
             rescanCountdown = GameStats.InGame ? 300 : 30;
             GameOverlayFont.TrackScene();
@@ -441,6 +445,14 @@ public sealed class GameFontMirror : MonoBehaviour {
     }
 
     private void SyncPairs() {
+        // Unity may raise willRenderCanvases multiple times in one frame. Mirrored
+        // values cannot change between those callbacks, so sync once per frame.
+        int frame = Time.frameCount;
+        if(lastSyncFrame == frame) {
+            return;
+        }
+        lastSyncFrame = frame;
+
         for(int i = pairs.Count - 1; i >= 0; i--) {
             Pair pair = pairs[i];
             if(pair.Source == null || pair.Twin == null) {
@@ -564,6 +576,7 @@ public sealed class GameFontMirror : MonoBehaviour {
         }
         pairs.Clear();
         trackedSources.Clear();
+        diagLogged.Clear();
     }
 
     // Game labels (notably the level title) can embed UnityEngine.UI.Text

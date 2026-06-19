@@ -2,6 +2,7 @@
 bin/
 obj/
 /dist/*.zip
+/dist/Koren/
 
 # IDE / editor
 .vs/

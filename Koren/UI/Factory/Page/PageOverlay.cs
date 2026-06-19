@@ -1207,7 +1207,8 @@ internal static class PageOverlay {
         field.richText = false;
         field.characterLimit = 64;
         field.SetTextWithoutNotify(entry.Text ?? "");
-        field.onValueChanged.AddListener(v => { entry.Text = v; save(); });
+        field.onValueChanged.AddListener(v => entry.Text = v);
+        field.onEndEdit.AddListener(_ => save());
     }
 
     private static void SetFullRect(RectTransform rect, float xPad) {

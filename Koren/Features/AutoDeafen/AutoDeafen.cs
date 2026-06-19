@@ -1,4 +1,5 @@
 using HarmonyLib;
+using Koren.Async;
 using Koren.Core;
 using Koren.Features.Status;
 using Koren.IO;
@@ -199,13 +200,16 @@ public static class AutoDeafen {
         if(string.IsNullOrEmpty(token) || Conf == null) {
             return;
         }
-        if(string.Equals(Conf.DiscordAccessToken, token, StringComparison.Ordinal)) {
-            return;
-        }
 
-        Conf.DiscordAccessToken = token;
-        // Token arrives on the OAuth server thread; SettingsFile.Save locks.
-        try { ConfMgr.Save(); } catch { }
+        // OAuth callback runs on its listener thread. Keep config mutation and
+        // serialization on Unity's main thread like every settings UI path.
+        MainThread.Enqueue(() => {
+            if(Conf == null || string.Equals(Conf.DiscordAccessToken, token, StringComparison.Ordinal)) {
+                return;
+            }
+            Conf.DiscordAccessToken = token;
+            try { ConfMgr.Save(); } catch { }
+        });
     }
 
     private static string Trim(string value) => (value ?? "").Trim();

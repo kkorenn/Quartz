@@ -98,8 +98,25 @@ public static class PanelsOverlay {
             XPerfectBridge.Active ? GameStats.XPerfectMinus.ToString(CultureInfo.InvariantCulture) : null },
     ];
 
-    public static string LocalizedStatLabel(StatDef stat)
-        => stat == null ? "" : MainCore.Tr.Get(LocaleKey("PANEL_STAT_", stat.Id), stat.Label);
+    private static readonly Dictionary<string, StatDef> CatalogById = Catalog.ToDictionary(
+        stat => stat.Id,
+        StringComparer.Ordinal
+    );
+    private static readonly Dictionary<string, string> CatalogLocaleKeys = Catalog.ToDictionary(
+        stat => stat.Id,
+        stat => LocaleKey("PANEL_STAT_", stat.Id),
+        StringComparer.Ordinal
+    );
+
+    public static string LocalizedStatLabel(StatDef stat) {
+        if(stat == null) {
+            return "";
+        }
+
+        return CatalogLocaleKeys.TryGetValue(stat.Id, out string key)
+            ? MainCore.Tr.Get(key, stat.Label)
+            : stat.Label;
+    }
 
     // The text drawn between a stat's label and its value. Stored raw, padded
     // here so a tidy single-character separator doesn't need manual spaces:
@@ -183,7 +200,7 @@ public static class PanelsOverlay {
         ConfMgr.Load();
     }
 
-    public static void Save() => ConfMgr?.Save();
+    public static void Save() => ConfMgr?.RequestSave();
 
     public static void Initialize(GameObject root) {
         if(canvasObj != null) {
@@ -407,19 +424,49 @@ public static class PanelsOverlay {
     }
 
     private sealed class Updater : MonoBehaviour {
+        private const float TextRefreshInterval = 0.05f;
         private readonly StringBuilder sb = new();
+        private float nextTextRefresh;
+        private bool lastShow;
+        private bool lastReorganizing;
 
         private void Update() {
             bool isReorganizing = UICore.IsReorganizing;
             bool show = (IsEnabled && GameStats.InGame) || isReorganizing;
+            float now = Time.unscaledTime;
+            bool stateChanged = show != lastShow || isReorganizing != lastReorganizing;
+            bool refreshText = stateChanged || now >= nextTextRefresh;
+            if(refreshText) {
+                nextTextRefresh = now + TextRefreshInterval;
+            }
+            lastShow = show;
+            lastReorganizing = isReorganizing;
 
             foreach(LivePanel p in panels) {
-                UpdatePanel(p, show, isReorganizing);
+                UpdatePanel(p, show, isReorganizing, refreshText || p.Dirty);
             }
         }
 
-        private void UpdatePanel(LivePanel p, bool show, bool isReorganizing) {
+        private void UpdatePanel(LivePanel p, bool show, bool isReorganizing, bool refreshText) {
             if(p?.Text == null || p.Rect == null) {
+                return;
+            }
+
+            if(p.DragObj != null && p.DragObj.activeSelf != isReorganizing) {
+                p.DragObj.SetActive(isReorganizing);
+            }
+
+            if(!show) {
+                if(p.Rect.gameObject.activeSelf) {
+                    p.Rect.gameObject.SetActive(false);
+                }
+                return;
+            }
+
+            if(!refreshText) {
+                if(isReorganizing) {
+                    SyncPosition(p);
+                }
                 return;
             }
 
@@ -482,7 +529,10 @@ public static class PanelsOverlay {
                 }
             }
 
-            string body = TrimmedBody(sb);
+            int bodyLength = TrimmedBodyLength(sb);
+            string body = BuilderEquals(sb, bodyLength, p.LastBody)
+                ? p.LastBody
+                : bodyLength == 0 ? "" : sb.ToString(0, bodyLength);
             // Reorganize mode forces an empty panel to render its name so the
             // user has a hit target to grab.
             if(isReorganizing && body.Length == 0) {
@@ -499,10 +549,6 @@ public static class PanelsOverlay {
                 }
             }
 
-            if(p.DragObj != null && p.DragObj.activeSelf != isReorganizing) {
-                p.DragObj.SetActive(isReorganizing);
-            }
-
             if(!active) {
                 return;
             }
@@ -513,11 +559,8 @@ public static class PanelsOverlay {
                 p.Text.font = font;
             }
 
-            // Only re-tessellate the TMP mesh, re-measure, and re-sync the drop
-            // shadow when something actually changed. For static-stat panels
-            // (FPS/BPM/checkpoints/attempts) the body is identical frame-to-frame,
-            // so this skips a full mesh rebuild + GetPreferredValues + shadow
-            // re-apply every frame — the per-frame TMP churn that caused stutter.
+            // Text values are sampled at 20 Hz; only re-tessellate, re-measure,
+            // and re-sync the shadow when the sampled body actually changed.
             if(fontChanged || p.Dirty || body != p.LastBody) {
                 p.Text.text = body;
                 Vector2 pref = p.Text.GetPreferredValues(body);
@@ -537,19 +580,18 @@ public static class PanelsOverlay {
             // Position only changes in Reorganize mode (drag); writing it back
             // every frame otherwise is a no-op round-trip against Apply()'s value.
             if(isReorganizing) {
-                Vector2 stored = OverlayCalibration.Unscale(p.Rect.anchoredPosition);
-                p.Config.PosX = stored.x;
-                p.Config.PosY = stored.y;
+                SyncPosition(p);
             }
         }
 
         private static StatDef FindStat(string id) {
-            for(int i = 0; i < Catalog.Length; i++) {
-                if(Catalog[i].Id == id) {
-                    return Catalog[i];
-                }
-            }
-            return null;
+            return id != null && CatalogById.TryGetValue(id, out StatDef stat) ? stat : null;
+        }
+
+        private static void SyncPosition(LivePanel p) {
+            Vector2 stored = OverlayCalibration.Unscale(p.Rect.anchoredPosition);
+            p.Config.PosX = stored.x;
+            p.Config.PosY = stored.y;
         }
 
         // Appends `tint` as 8 uppercase hex chars (RRGGBBAA) straight into the
@@ -570,12 +612,24 @@ public static class PanelsOverlay {
 
         // sb.ToString().TrimEnd() with one allocation instead of two: scan past
         // trailing whitespace, then copy once. Byte-identical to the old result.
-        private static string TrimmedBody(StringBuilder sb) {
+        private static int TrimmedBodyLength(StringBuilder sb) {
             int len = sb.Length;
             while(len > 0 && char.IsWhiteSpace(sb[len - 1])) {
                 len--;
             }
-            return len == 0 ? "" : sb.ToString(0, len);
+            return len;
+        }
+
+        private static bool BuilderEquals(StringBuilder sb, int length, string value) {
+            if(value == null || value.Length != length) {
+                return false;
+            }
+            for(int i = 0; i < length; i++) {
+                if(sb[i] != value[i]) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         // The 0..1 value that drives a stat's color gradient — mirrors which

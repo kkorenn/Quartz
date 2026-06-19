@@ -66,16 +66,19 @@ internal static class DiscordOAuthServer {
             return "";
         }
 
-        if(!EnsureStarted(AutoDeafen.SaveAccessToken)) {
-            return "";
-        }
-
         // CSRF state: a fresh random token the capture page echoes back and the
         // callback handler verifies (returnedState != expectedState -> reject).
         // Guid "N" is hex, so URL-safe without escaping.
         string state = Guid.NewGuid().ToString("N");
         lock(gate) {
             expectedState = state;
+        }
+
+        if(!EnsureStarted(AutoDeafen.SaveAccessToken)) {
+            lock(gate) {
+                expectedState = "";
+            }
+            return "";
         }
 
         // Fixed shape; client_id and the CSRF state token are substituted.
@@ -186,7 +189,9 @@ internal static class DiscordOAuthServer {
             lock(gate) {
                 stateToCheck = expectedState;
             }
-            if(!string.IsNullOrEmpty(stateToCheck) && returnedState != stateToCheck) {
+            // No authorization request means no token is ever accepted. This also
+            // closes the short post-success window before the listener shuts down.
+            if(string.IsNullOrEmpty(stateToCheck) || returnedState != stateToCheck) {
                 status = "oauth state mismatch";
                 WriteJson(client, "400 Bad Request", "{\"ok\":false,\"error\":\"state_mismatch\"}");
                 return;
@@ -364,7 +369,10 @@ internal static class DiscordOAuthServer {
     private static string Escape(string value) => Uri.EscapeDataString(value ?? "");
 
     internal static void OpenUrl(string url) {
-        try { Application.OpenURL(url); } catch { }
+        try {
+            Application.OpenURL(url);
+            return;
+        } catch { }
 
         try {
             if(Environment.OSVersion.Platform == PlatformID.MacOSX) {

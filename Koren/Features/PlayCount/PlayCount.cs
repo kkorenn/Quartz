@@ -2,8 +2,10 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using HarmonyLib;
+using Koren.Async;
 using Koren.Compat.Interface;
 using Koren.Core;
+using Koren.IO;
 using MonsterLove.StateMachine;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -243,11 +245,11 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
 
         // Custom levels (CLS select, editor, TUFHelper, …): hash the actual file
         // content. Unique per level, stable across replays, edit-sensitive.
-        // Hashed at most once per file version (cached by path+mtime), so a retry
-        // costs a stat, not a re-read.
-        string fileHash = TryHashLevelFile();
-        if(!string.IsNullOrEmpty(fileHash)) {
-            return "custom:" + fileHash;
+        // Hashed at most once per file version (cached by path+mtime+size) on a
+        // worker thread, so starting a large custom level cannot block a frame.
+        string fileMapKey = TryGetLevelFileMapKey();
+        if(!string.IsNullOrEmpty(fileMapKey)) {
+            return fileMapKey;
         }
 
         // File couldn't be read — hash whatever level data is resident in memory.
@@ -277,30 +279,91 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
         return "unknown";
     }
 
-    private static string cachedHashKey = "";
-    private static string cachedHash = "";
+    private static readonly object hashGate = new();
+    private static readonly Dictionary<string, string> fileHashCache = new(StringComparer.Ordinal);
+    private static readonly HashSet<string> hashesInFlight = new(StringComparer.Ordinal);
 
-    // SHA-256 of the loaded .adofai file. Cached by "path|mtime" so repeated
-    // retries of the same level read the disk once; a content edit (new mtime)
-    // invalidates the cache and re-hashes.
-    private static string TryHashLevelFile() {
+    // SHA-256 of the loaded .adofai file. Cached by path+mtime+size so repeated
+    // retries read the disk once; a content edit invalidates and re-hashes.
+    private static string TryGetLevelFileMapKey() {
         try {
             string path = ADOBase.levelPath;
             if(string.IsNullOrEmpty(path) || !File.Exists(path)) {
                 return null;
             }
 
-            string cacheKey = path + "|" + File.GetLastWriteTimeUtc(path).Ticks.ToString(CultureInfo.InvariantCulture);
-            if(cacheKey == cachedHashKey && !string.IsNullOrEmpty(cachedHash)) {
-                return cachedHash;
+            FileInfo info = new(path);
+            string cacheKey = path + "|"
+                + info.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture) + "|"
+                + info.Length.ToString(CultureInfo.InvariantCulture);
+            lock(hashGate) {
+                if(fileHashCache.TryGetValue(cacheKey, out string cachedHash)) {
+                    return "custom:" + cachedHash;
+                }
             }
 
-            string h = Sha256(File.ReadAllBytes(path));
-            cachedHashKey = cacheKey;
-            cachedHash = h;
-            return h;
+            // Use a stable temporary key immediately, then hash the file off-thread
+            // and migrate its counter entry on the main thread when ready.
+            string pendingKey = "pending:" + Sha256(cacheKey);
+            bool start;
+            lock(hashGate) {
+                start = hashesInFlight.Add(cacheKey);
+            }
+            if(start) {
+                _ = Task.Run(() => HashLevelFile(path, cacheKey, pendingKey));
+            }
+            return pendingKey;
         } catch {
             return null;
+        }
+    }
+
+    private static void HashLevelFile(string path, string cacheKey, string pendingKey) {
+        string hash = null;
+        Exception error = null;
+        try {
+            using FileStream stream = new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using SHA256 sha = SHA256.Create();
+            hash = Hex(sha.ComputeHash(stream));
+        } catch(Exception e) {
+            error = e;
+        }
+
+        MainThread.Enqueue(() => {
+            lock(hashGate) {
+                hashesInFlight.Remove(cacheKey);
+                if(hash != null) {
+                    fileHashCache[cacheKey] = hash;
+                }
+            }
+
+            if(hash == null) {
+                MainCore.Log.Wrn("PlayCount map hash failed: " + error?.Message);
+                return;
+            }
+
+            MigratePendingMapKey(pendingKey, "custom:" + hash);
+        });
+    }
+
+    private static void MigratePendingMapKey(string pendingKey, string finalKey) {
+        if(pendingKey == finalKey) {
+            return;
+        }
+
+        if(playDatas.TryGetValue(pendingKey, out PlayData pending)) {
+            PlayData final = For(finalKey);
+            final.TotalAttempts += pending.TotalAttempts;
+            if(pending.BestProgress > final.BestProgress) {
+                final.BestProgress = pending.BestProgress;
+                final.BestStartProgress = pending.BestStartProgress;
+            }
+            playDatas.Remove(pendingKey);
+            dirty = true;
+        }
+
+        if(currentMapKey == pendingKey) {
+            currentMapKey = finalKey;
         }
     }
 
@@ -308,7 +371,10 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
 
     private static string Sha256(byte[] bytes) {
         using SHA256 sha = SHA256.Create();
-        byte[] hash = sha.ComputeHash(bytes);
+        return Hex(sha.ComputeHash(bytes));
+    }
+
+    private static string Hex(byte[] hash) {
         StringBuilder sb = new(hash.Length * 2);
         for(int i = 0; i < hash.Length; i++) {
             sb.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
@@ -364,7 +430,7 @@ public sealed class PlayCount : IRuntimeService, IRuntimeTick {
                 ["maps"] = maps,
             };
 
-            File.WriteAllText(FilePath, root.ToString(Formatting.Indented));
+            AtomicFile.WriteAllText(FilePath, root.ToString(Formatting.Indented));
             dirty = false;
         } catch(Exception e) {
             MainCore.Log.Err("PlayCount save failed: " + e.Message);

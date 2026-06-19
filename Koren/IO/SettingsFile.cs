@@ -1,4 +1,5 @@
 using Newtonsoft.Json.Linq;
+using Koren.Async;
 using Koren.Core;
 using Koren.IO.Interface;
 
@@ -36,10 +37,12 @@ public static class SettingsRegistry {
         }
     }
 
-    public static void SaveAll() {
+    public static bool SaveAll() {
+        bool success = true;
         foreach(ISettingsHandle handle in Snapshot()) {
-            handle.Save();
+            success &= handle.Save();
         }
+        return success;
     }
 
     public static void CancelPendingSaves() {
@@ -66,6 +69,7 @@ public sealed class SettingsFile<T> : ISettingsHandle where T : class, ISettings
     string ISettingsHandle.Path => Path;
 
     private readonly object saveLock = new();
+    private readonly object requestLock = new();
 
     private CancellationTokenSource saveCts;
 
@@ -112,6 +116,11 @@ public sealed class SettingsFile<T> : ISettingsHandle where T : class, ISettings
     }
 
     public bool Save() {
+        CancelPendingSave();
+        return SaveCore();
+    }
+
+    private bool SaveCore() {
         lock(saveLock) {
             try {
                 string dir = System.IO.Path.GetDirectoryName(Path);
@@ -121,7 +130,7 @@ public sealed class SettingsFile<T> : ISettingsHandle where T : class, ISettings
                 }
 
                 string json = Data.Serialize().ToString();
-                File.WriteAllText(Path, json);
+                AtomicFile.WriteAllText(Path, json);
 
                 return true;
             } catch(Exception e) {
@@ -141,31 +150,69 @@ public sealed class SettingsFile<T> : ISettingsHandle where T : class, ISettings
     public void RequestSave(
         int delay = 500
     ) {
-        saveCts?.Cancel();
-
-        saveCts = new CancellationTokenSource();
-
-        CancellationToken token = saveCts.Token;
-
-        _ = Task.Run(async () => {
-            try {
-                await Task.Delay(delay, token);
-
-                if(token.IsCancellationRequested) {
-                    return;
-                }
-
-                Save();
-            } catch(OperationCanceledException) {
-            } catch(Exception e) {
-                MainCore.Log.Err(
-                    $"[{nameof(SettingsFile<>)}] Failed to request save '{Path}': {e}"
-                );
-            }
-        });
+        CancellationTokenSource request = new();
+        CancellationTokenSource previous;
+        lock(requestLock) {
+            previous = saveCts;
+            saveCts = request;
+        }
+        previous?.Cancel();
+        _ = SaveAfterDelay(delay, request);
     }
 
-    public void CancelPendingSave() => saveCts?.Cancel();
+    private async Task SaveAfterDelay(int delay, CancellationTokenSource request) {
+        CancellationToken token = request.Token;
+        try {
+            await Task.Delay(delay, token);
+
+            if(token.IsCancellationRequested) {
+                return;
+            }
+
+            // Data belongs to the Unity/main thread. Serialize and write there so
+            // a UI edit cannot race a background enumeration of config arrays.
+            MainThread.Enqueue(() => {
+                bool isCurrent;
+                lock(requestLock) {
+                    isCurrent = ReferenceEquals(saveCts, request);
+                    if(isCurrent) {
+                        saveCts = null;
+                    }
+                }
+
+                if(isCurrent && !token.IsCancellationRequested) {
+                    SaveCore();
+                }
+                request.Dispose();
+            });
+        } catch(OperationCanceledException) {
+            lock(requestLock) {
+                if(ReferenceEquals(saveCts, request)) {
+                    saveCts = null;
+                }
+            }
+            request.Dispose();
+        } catch(Exception e) {
+            lock(requestLock) {
+                if(ReferenceEquals(saveCts, request)) {
+                    saveCts = null;
+                }
+            }
+            request.Dispose();
+            MainCore.Log.Err(
+                $"[{nameof(SettingsFile<>)}] Failed to request save '{Path}': {e}"
+            );
+        }
+    }
+
+    public void CancelPendingSave() {
+        CancellationTokenSource pending;
+        lock(requestLock) {
+            pending = saveCts;
+            saveCts = null;
+        }
+        pending?.Cancel();
+    }
 
     public void Dispose() {
         if(Data is IDisposable disposable) {

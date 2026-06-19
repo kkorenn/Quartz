@@ -3,7 +3,7 @@
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<PlatformTarget>x64</PlatformTarget>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>disable</Nullable>
+		<Nullable>warnings</Nullable>
 		<RootNamespace>Koren</RootNamespace>
 		<AssemblyName>Koren</AssemblyName>
 		<LangVersion>latest</LangVersion>
@@ -14,7 +14,10 @@
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 		<GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<AnalysisLevel>latest</AnalysisLevel>
 		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+		<AutoInstall Condition="'$(AutoInstall)' == ''">false</AutoInstall>
 		<Configurations>Debug;Release;Release_IL2CPP;Debug_IL2CPP</Configurations>
 		<DistDir>$(MSBuildProjectDirectory)/../dist</DistDir>
 		<PackageStageRoot>$(BaseIntermediateOutputPath)dist-stage</PackageStageRoot>
@@ -22,6 +25,14 @@
 		<PackageStageDataDir>$(PackageStageRoot)/UserData/Koren</PackageStageDataDir>
 		<DistZipPath>$(DistDir)/Koren.zip</DistZipPath>
 	</PropertyGroup>
+
+	<!-- Game/runtime assemblies already exist beside the game executable. Keeping
+	     them compile-only avoids copying tens of megabytes into every bin folder. -->
+	<ItemDefinitionGroup>
+		<Reference>
+			<Private>false</Private>
+		</Reference>
+	</ItemDefinitionGroup>
 
 	<PropertyGroup Condition="$(Configuration.Contains('IL2CPP'))">
 		<DefineConstants>$(DefineConstants);IL2CPP</DefineConstants>
@@ -133,16 +144,16 @@
 	     Also removes the pre-merge two-DLL layout (Mods/Koren.Loader.ML.dll + UserLibs/Koren.dll)
 	     so MelonLoader doesn't load the mod twice. -->
 	<Target Name="PostBuild" AfterTargets="Build">
-		<MakeDir Directories="$(GamePath)/Mods" Condition="'$(TargetPath)' != ''" />
-		<Copy Condition="'$(TargetPath)' != ''" SourceFiles="$(TargetPath)" DestinationFolder="$(GamePath)/Mods" SkipUnchangedFiles="true" />
-		<Delete Files="$(GamePath)/Mods/Koren.Loader.ML.dll;$(GamePath)/UserLibs/Koren.dll" TreatErrorsAsWarnings="true" />
+		<MakeDir Directories="$(GamePath)/Mods" Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != ''" />
+		<Copy Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != ''" SourceFiles="$(TargetPath)" DestinationFolder="$(GamePath)/Mods" SkipUnchangedFiles="true" />
+		<Delete Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != ''" Files="$(GamePath)/Mods/Koren.Loader.ML.dll;$(GamePath)/UserLibs/Koren.dll" TreatErrorsAsWarnings="true" />
 
 		<ItemGroup>
 			<ExportFiles Include="Resource/Export/**/*.*" />
 		</ItemGroup>
 
-		<MakeDir Directories="$(GamePath)/UserData/Koren" />
-		<Copy SourceFiles="@(ExportFiles)" DestinationFiles="@(ExportFiles->'$(GamePath)/UserData/Koren/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+		<MakeDir Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != ''" Directories="$(GamePath)/UserData/Koren" />
+		<Copy Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != ''" SourceFiles="@(ExportFiles)" DestinationFiles="@(ExportFiles->'$(GamePath)/UserData/Koren/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
 
 		<RemoveDir Directories="$(PackageStageRoot)" Condition="'$(TargetPath)' != ''" />
 		<MakeDir Directories="$(DistDir);$(PackageStageModsDir);$(PackageStageDataDir)" Condition="'$(TargetPath)' != ''" />
