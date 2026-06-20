@@ -584,6 +584,48 @@ internal static class PageVisuals {
             tailOp.OnComplete = v => { conf.TailOpacity[slot] = v; Apply(); Save(); };
         }
 
+        // Ring recolor (v1 ResourceChanger ring color). Off = the ring is hidden
+        // while planet colours are active.
+        GenerateUI.Localize(
+            GenerateUI.AddTextH1(GenerateUI.Row(sec.Body)),
+            "HEADING_RING",
+            "Ring"
+        );
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(sec.Body),
+            def.EnableRingRecolor,
+            conf.EnableRingRecolor,
+            v => { conf.EnableRingRecolor = v; Apply(); Save(); },
+            "Recolor Ring",
+            "pcol_ringon"
+        ).Rect.AddToolTip(
+            "DESC_PCOL_RING",
+            "Paint the planet ring a custom colour. When off, the ring is hidden while planet colours are active."
+        );
+
+        GenerateUI.ColorPicker(
+            GenerateUI.Row(sec.Body),
+            new Color(def.RingR, def.RingG, def.RingB),
+            new Color(conf.RingR, conf.RingG, conf.RingB),
+            c => { conf.SetRingRgb(c); Apply(); },
+            c => { conf.SetRingRgb(c); Apply(); Save(); },
+            "Ring Color",
+            "pcol_ringcol",
+            showAlpha: false
+        );
+
+        UISlider ringOp = GenerateUI.Slider(
+            GenerateUI.Row(sec.Body),
+            def.RingA, 0f, 1f, conf.RingA,
+            null, null, null,
+            "Ring Opacity",
+            "pcol_ringop"
+        );
+        ringOp.Format = "0 %";
+        ringOp.OnChanged = v => { conf.RingA = v; Apply(); };
+        ringOp.OnComplete = v => { conf.RingA = v; Apply(); Save(); };
+
         RefreshTailRows();
     }
 

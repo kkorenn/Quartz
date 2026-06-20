@@ -417,10 +417,10 @@ public static partial class PlanetColors {
     }
 
     // The ring is drawn in the vanilla planet color and clashes with custom
-    // ball colors, so it's forced transparent while the feature is on — same
-    // behavior as v1 (skipped for onlyRing planets, where the ring IS the
-    // planet).
-    private static void ForcePlanetRingInvisible(PlanetRenderer renderer) {
+    // ball colors. With ring recolor off it's forced transparent (v1 default);
+    // with it on the ring is painted the configured color instead. Skipped for
+    // onlyRing planets, where the ring IS the planet.
+    private static void ApplyPlanetRing(PlanetRenderer renderer) {
         if(!ShouldChange || renderer == null) {
             return;
         }
@@ -437,15 +437,25 @@ public static partial class PlanetColors {
         }
 
         try {
-            Color s = ring.startColor;
-            if(s.a != 0f) {
-                s.a = 0f;
-                ring.startColor = s;
-            }
-            Color e = ring.endColor;
-            if(e.a != 0f) {
-                e.a = 0f;
-                ring.endColor = e;
+            if(Conf.EnableRingRecolor) {
+                Color rc = Conf.GetRingColor();
+                if(ring.startColor != rc) {
+                    ring.startColor = rc;
+                }
+                if(ring.endColor != rc) {
+                    ring.endColor = rc;
+                }
+            } else {
+                Color s = ring.startColor;
+                if(s.a != 0f) {
+                    s.a = 0f;
+                    ring.startColor = s;
+                }
+                Color e = ring.endColor;
+                if(e.a != 0f) {
+                    e.a = 0f;
+                    ring.endColor = e;
+                }
             }
         } catch {
         }

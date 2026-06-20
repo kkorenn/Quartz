@@ -33,7 +33,7 @@ public static partial class PlanetColors {
             InvalidatePlanetCache();
             if(ShouldChange) {
                 ApplyPlanetColor(__instance);
-                try { ForcePlanetRingInvisible(__instance.planetRenderer); } catch { }
+                try { ApplyPlanetRing(__instance.planetRenderer); } catch { }
             }
         }
     }
@@ -67,13 +67,13 @@ public static partial class PlanetColors {
         }
     }
 
-    // The ring color is reasserted by the game per frame in places, so the
-    // transparency override rides LateUpdate like v1 did.
+    // The ring color is reasserted by the game per frame in places, so our ring
+    // override (recolor or hide) rides LateUpdate like v1 did.
     [HarmonyPatch(typeof(PlanetRenderer), "LateUpdate")]
     private static class PlanetRendererLateUpdatePatch {
         private static void Postfix(PlanetRenderer __instance) {
             if(ShouldChange) {
-                ForcePlanetRingInvisible(__instance);
+                ApplyPlanetRing(__instance);
             }
         }
     }

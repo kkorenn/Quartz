@@ -29,6 +29,22 @@ public sealed class PlanetColorsSettings : ISettingsFile {
     public float[] TailB = [0f, 0f, 0f];
     public float[] TailOpacity = [0f, 0f, 0f];
 
+    // Ring recolor (v1 ResourceChanger ring color). Off: the ring is forced
+    // transparent while planet colors are active (the vanilla ring clashes with
+    // custom ball colors). On: the ring is painted this single colour instead.
+    public bool EnableRingRecolor = false;
+    public float RingR = 1f, RingG = 1f, RingB = 1f, RingA = 1f;
+
+    public Color GetRingColor() => new(
+        Mathf.Clamp01(RingR), Mathf.Clamp01(RingG), Mathf.Clamp01(RingB), Mathf.Clamp01(RingA)
+    );
+
+    public void SetRingRgb(Color c) {
+        RingR = Mathf.Clamp01(c.r);
+        RingG = Mathf.Clamp01(c.g);
+        RingB = Mathf.Clamp01(c.b);
+    }
+
     public Color GetBallColor(int slot) {
         slot = Mathf.Clamp(slot, 0, Slots - 1);
         return new Color(
@@ -82,6 +98,11 @@ public sealed class PlanetColorsSettings : ISettingsFile {
             [nameof(TailG)] = new JArray(TailG),
             [nameof(TailB)] = new JArray(TailB),
             [nameof(TailOpacity)] = new JArray(TailOpacity),
+            [nameof(EnableRingRecolor)] = EnableRingRecolor,
+            [nameof(RingR)] = RingR,
+            [nameof(RingG)] = RingG,
+            [nameof(RingB)] = RingB,
+            [nameof(RingA)] = RingA,
         };
     }
 
@@ -96,6 +117,11 @@ public sealed class PlanetColorsSettings : ISettingsFile {
         ReadFloats(token, nameof(TailG), TailG);
         ReadFloats(token, nameof(TailB), TailB);
         ReadFloats(token, nameof(TailOpacity), TailOpacity);
+        EnableRingRecolor = IOUtils.Read(token, nameof(EnableRingRecolor), EnableRingRecolor);
+        RingR = Mathf.Clamp01(IOUtils.Read(token, nameof(RingR), RingR));
+        RingG = Mathf.Clamp01(IOUtils.Read(token, nameof(RingG), RingG));
+        RingB = Mathf.Clamp01(IOUtils.Read(token, nameof(RingB), RingB));
+        RingA = Mathf.Clamp01(IOUtils.Read(token, nameof(RingA), RingA));
     }
 
     private static void ReadFloats(JToken token, string name, float[] target) {
