@@ -195,8 +195,8 @@ public static class SongTitleOverlay {
 
         if(string.IsNullOrEmpty(artist) && string.IsNullOrEmpty(title)) {
             if(isReorganizing) {
-                artist = "Artist";
-                title = "Title";
+                artist = MainCore.Tr.Get("SONGTITLE_PLACEHOLDER_ARTIST", "Artist");
+                title = MainCore.Tr.Get("SONGTITLE_PLACEHOLDER_TITLE", "Title");
             } else {
                 return NormalizeColorTags(GameStats.SongTitleRaw);
             }

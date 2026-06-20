@@ -303,9 +303,12 @@ public static class UICore {
                     .Build()
                     .SetMaxLoops();
 
-                string fullText = "Press " + Keybind.Format(
-                    (Keybind.KeyModifier)MainCore.Conf.ToggleModifier,
-                    (KeyCode)MainCore.Conf.ToggleKey
+                string fullText = string.Format(
+                    MainCore.Tr.Get("FIRST_RUN_PRESS", "Press {0}"),
+                    Keybind.Format(
+                        (Keybind.KeyModifier)MainCore.Conf.ToggleModifier,
+                        (KeyCode)MainCore.Conf.ToggleKey
+                    )
                 );
                 secondRunHelperTextSequence = GTweenSequenceBuilder.New()
                     .Append(GTweenExtensions.Tween(
@@ -330,7 +333,7 @@ public static class UICore {
         secondRunHelperTextSequence?.Kill();
 
         firstRunHelperText.text = "";
-        const string endText = "Great Job!";
+        string endText = MainCore.Tr.Get("FIRST_RUN_GREAT_JOB", "Great Job!");
 
         var sequence = GTweenSequenceBuilder.New()
             .Append(firstRunHelperImage.GTAlpha(1.0f, 0.2f).SetEasing(Easing.OutSine))
