@@ -22,7 +22,7 @@ namespace Koren.Features.KeyViewer;
 //
 // v1 features not ported yet: rain / ghost rain, foot keys, label overrides,
 // key rebinding UI, key-limiter sync.
-public static class KeyViewerOverlay {
+public static partial class KeyViewerOverlay {
     public static SettingsFile<KeyViewerSettings> ConfMgr { get; private set; }
     public static KeyViewerSettings Conf => ConfMgr?.Data;
 
@@ -91,6 +91,18 @@ public static class KeyViewerOverlay {
         public string Name;
         public Image Border;
         public Image Fill;
+        // Optional soft sprite behind the box for a CSS box-shadow halo.
+        public Image Glow;
+        // CSS extras: a masked gradient fill child, and the :before/:after layers.
+        public RawImage FillGrad;
+        public RawImage BeforeLayer;
+        public RawImage AfterLayer;
+        // Last text the per-glyph gradient coloured, so the mesh is only forced
+        // to rebuild when the string actually changes.
+        public string GradLabelText;
+        public string GradValueText;
+        // transition: timestamp the state flip started (<0 = settled).
+        public float TransStart = -1f;
         public TextMeshProUGUI Label;
         public TextMeshProUGUI Value;
         // Simple-mode KPS/Total stat boxes: when StatTogether, the caption and
@@ -167,6 +179,92 @@ public static class KeyViewerOverlay {
         public float NoteOffsetY;
         public float TrackX;
         public float TrackBottomY;
+
+        // Custom-CSS layer (KeyViewerStylesheet). ClassName is the preset key's
+        // assigned CSS class (".blue"); the rest are filled by ApplyCssToSpec
+        // when a stylesheet is active and override the preset values above.
+        public string ClassName = "";
+        public bool Bold;
+        public bool CounterBold;
+        public float ActiveOffsetX, ActiveOffsetY;
+        public float CounterStrokeWidth;
+        // Text glow (CSS text-shadow) per state, on the label and the counter.
+        public CssGlow LabelGlow, ActiveLabelGlow, CounterGlow, ActiveCounterGlow;
+        // Box-shadow halo per state (color + blur drive a soft sprite behind).
+        public CssGlow BoxGlow, ActiveBoxGlow;
+        // Animated gradients (CSS linear-gradient + animation) for the label /
+        // counter text and the box fill. Text/counter gradients paint per glyph
+        // via TMP vertex colours; the fill gradient drives a masked child image.
+        public CssAnimGradient LabelGradient, ActiveLabelGradient;
+        public CssAnimGradient CounterGradient, ActiveCounterGradient;
+        public CssAnimGradient FillGradient, ActiveFillGradient;
+
+        // transform: scale()/rotate() per state (translate folds into the offsets
+        // below). transition: tween duration. @font-face / font-family resolved.
+        public Vector2 IdleOffset, ActiveOffset;
+        public Vector2 IdleScale = Vector2.one, ActiveScale = Vector2.one;
+        public float IdleRot, ActiveRot;
+        public float TransitionSec;
+        public TMP_FontAsset CssFont;
+        // filter: brightness()/contrast() fold into a colour multiply; saturate()
+        // is applied to the resolved colours. 1 / white = identity.
+        public Color IdleFilter = Color.white, ActiveFilter = Color.white;
+        // backdrop-filter: blur() — approximated as a frosted fill (no true
+        // scene blur is possible from a ScreenSpaceOverlay canvas).
+        public float IdleBackdrop, ActiveBackdrop;
+        // :before / :after pseudo layers per state.
+        public CssLayerRt IdleBefore, ActiveBefore, IdleAfter, ActiveAfter;
+
+        public bool HasPseudo =>
+            IdleBefore != null || ActiveBefore != null || IdleAfter != null || ActiveAfter != null;
+
+        // Whether ApplyCssState has per-press work: glow, offset, transform,
+        // filter, backdrop or pseudo layers. Gradients tick separately.
+        public bool NeedsCssState =>
+            BoxGlow.On || ActiveBoxGlow.On || LabelGlow.On || ActiveLabelGlow.On
+            || CounterGlow.On || ActiveCounterGlow.On || CounterStrokeWidth > 0.01f
+            || ActiveOffsetX != 0f || ActiveOffsetY != 0f
+            || IdleOffset != Vector2.zero || ActiveOffset != Vector2.zero
+            || IdleScale != Vector2.one || ActiveScale != Vector2.one
+            || IdleRot != 0f || ActiveRot != 0f
+            || IdleFilter != Color.white || ActiveFilter != Color.white
+            || IdleBackdrop > 0f || ActiveBackdrop > 0f
+            || FillGradient != null || ActiveFillGradient != null
+            || HasPseudo;
+    }
+
+    // A resolved glow (Unity colour + blur) ready to feed TMPTextShadow or the
+    // box-halo sprite. Default On=false.
+    internal readonly struct CssGlow {
+        public readonly bool On;
+        public readonly float X, Y, Blur;
+        public readonly Color Color;
+        public CssGlow(float x, float y, float blur, Color color) {
+            On = true; X = x; Y = y; Blur = blur; Color = color;
+        }
+    }
+
+    // A gradient resolved to Unity colours plus its scroll period and axis angle.
+    // Text/counter gradients are sampled per glyph; the fill gradient is baked to
+    // a cached texture. Period <= 0 = static.
+    internal sealed class CssAnimGradient {
+        public Color[] Stops;
+        public float Period;     // seconds for a full scroll; <=0 = static
+        public float AngleDeg;   // CSS angle (0 = up, 90 = right, 180 = down)
+    }
+
+    // A resolved :before / :after pseudo layer. Rendered as a child Image behind
+    // (Z<0) or over (Z>=0) the box, optionally with a scrolling gradient texture.
+    internal sealed class CssLayerRt {
+        public Color[] GradStops;   // null = solid Bg
+        public float GradPeriod;
+        public float GradAngle;
+        public Color Bg = new(0f, 0f, 0f, 0f);
+        public float Radius = -1f;  // <0 = inherit the box radius
+        public float InsetT, InsetR, InsetB, InsetL;
+        public float Blur;
+        public int Z;
+        public bool HasGradient => GradStops != null && GradStops.Length > 0;
     }
 
     public static void EnsureConf() {
@@ -246,6 +344,8 @@ public static class KeyViewerOverlay {
             footRoot.sizeDelta = Vector2.zero;
         }
         boxes.Clear();
+        cssFx.Clear();
+        cssGlowLayer = null;
         dragObj = null;
         footDragObj = null;
         kpsMax = 0;
@@ -873,6 +973,7 @@ public static class KeyViewerOverlay {
             result.Clear();
         }
 
+        ApplyCssToSpecs(result);
         return result;
     }
 
@@ -1003,6 +1104,7 @@ public static class KeyViewerOverlay {
         if(string.IsNullOrEmpty(spec.CountKey)) {
             spec.CountKey = spec.KeyName;
         }
+        spec.ClassName = JOptionalString(p, "className") ?? "";
 
         spec.Bg = HexToColor(bgHex, 0.9f);
         spec.ActiveBg = HexToColor(activeBgHex, 0.9f);
@@ -1127,6 +1229,7 @@ public static class KeyViewerOverlay {
         }
 
         boxes.Add(box);
+        BuildCssFx(box, spec);
         ApplyBoxColors(box);
     }
 
@@ -1350,13 +1453,18 @@ public static class KeyViewerOverlay {
             bool dmPressed = box.Pressed;
             DmNoteSpec spec = box.Dm;
             box.Border.color = dmPressed ? spec.ActiveOutline : spec.Outline;
+            // Solid base for the state; an animated gradient overwrites these per
+            // frame in CssTick (the gradient's first stop already seeds them).
             box.Fill.color = dmPressed ? spec.ActiveBg : spec.Bg;
-
             if(box.Label != null) {
                 box.Label.color = dmPressed ? spec.ActiveText : spec.Text;
             }
             if(box.Value != null) {
                 box.Value.color = dmPressed ? spec.ActiveCounterText : spec.CounterText;
+            }
+
+            if(spec.NeedsCssState) {
+                ApplyCssState(box, dmPressed);
             }
             return;
         }
@@ -1783,6 +1891,42 @@ public static class KeyViewerOverlay {
             Rebuild();
             Save();
             MainCore.Log.Msg("[KeyViewer] Imported DM Note preset from " + picked);
+            return true;
+        } catch(Exception ex) {
+            error = "Import failed: " + ex.Message;
+            MainCore.Log.Msg("[KeyViewer] " + error);
+            return false;
+        }
+    }
+
+    // Picks a DM Note custom-CSS file and stores its text on the config (like
+    // the preset, the CSS travels with the config so it survives a file move).
+    // Enables the CSS layer on a successful import. Mirrors ImportDmNotePreset.
+    public static bool ImportDmNoteCss(out string error) {
+        error = null;
+        string picked;
+
+        try {
+            picked = UnityFileDialog.FileBrowser.PickFile(
+                "", "CSS", new[] { "css" }, "Select DM Note custom CSS");
+        } catch(Exception ex) {
+            error = "Picker failed: " + ex.Message;
+            MainCore.Log.Msg("[KeyViewer] " + error);
+            return false;
+        }
+
+        if(string.IsNullOrEmpty(picked)) {
+            return false;
+        }
+
+        try {
+            string text = File.ReadAllText(picked);
+            Conf.DmCssText = text;
+            Conf.DmCssPath = picked;
+            Conf.DmCssEnabled = true;
+            Rebuild();
+            Save();
+            MainCore.Log.Msg("[KeyViewer] Imported DM Note CSS from " + picked);
             return true;
         } catch(Exception ex) {
             error = "Import failed: " + ex.Message;
@@ -2335,6 +2479,22 @@ public static class KeyViewerOverlay {
     }
 
     private sealed class Updater : MonoBehaviour {
+        // CSS animation runs in LateUpdate so it samples the press state set in
+        // Update and recolours after TMP has regenerated its mesh this frame. A
+        // finished font download (background thread) triggers one rebuild here.
+        private void LateUpdate() {
+            if(cssFontArrived) {
+                cssFontArrived = false;
+                if(Conf != null && Conf.IsDmNoteMode && Conf.DmCssEnabled) {
+                    Rebuild();
+                    return;
+                }
+            }
+            if(cssFx.Count > 0 && root != null && root.gameObject.activeSelf) {
+                CssTick(Time.unscaledTime);
+            }
+        }
+
         private void Update() {
             if(root == null) {
                 return;

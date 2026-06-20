@@ -856,6 +856,55 @@ internal static class PageKeyViewer {
             "keyviewer_dm_clear"
         ).SetSecondary();
 
+        // --- Custom CSS: an optional stylesheet layered over the preset's
+        // per-key styling (colors, border, radius, font, glow, gradients). ---
+        var cssStatus = GenerateUI.AddText(GenerateUI.Row(dmNoteBody, 30f));
+        cssStatus.fontSize = 17f;
+        cssStatus.color = new Color(1f, 1f, 1f, 0.45f);
+        void RefreshCssStatus() {
+            cssStatus.text = string.IsNullOrWhiteSpace(conf.DmCssText)
+                ? MainCore.Tr.Get("KEYVIEWER_DM_CSS_NONE", "No custom CSS")
+                : string.Format(MainCore.Tr.Get("KEYVIEWER_DM_CSS_LOADED", "Custom CSS: {0} chars"), conf.DmCssText.Length);
+        }
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(dmNoteBody),
+            def.DmCssEnabled,
+            conf.DmCssEnabled,
+            v => { conf.DmCssEnabled = v; KeyViewerOverlay.Rebuild(); Save(); },
+            "Custom CSS",
+            "keyviewer_dm_css_enabled"
+        );
+
+        GenerateUI.Button(
+            GenerateUI.Row(dmNoteBody),
+            () => {
+                if(KeyViewerOverlay.ImportDmNoteCss(out string error)) {
+                    RefreshCssStatus();
+                } else if(!string.IsNullOrEmpty(error)) {
+                    cssStatus.text = error;
+                }
+            },
+            "Import Custom CSS",
+            "keyviewer_dm_css_import"
+        ).Rect.AddToolTip(
+            "DESC_KEYVIEWER_DM_CSS_IMPORT",
+            "Select a DM Note custom CSS file. Layers over the preset; restyles keys and counters."
+        );
+
+        GenerateUI.Button(
+            GenerateUI.Row(dmNoteBody),
+            () => {
+                conf.DmCssText = "";
+                conf.DmCssPath = "";
+                KeyViewerOverlay.Rebuild();
+                Save();
+                RefreshCssStatus();
+            },
+            "Clear CSS",
+            "keyviewer_dm_css_clear"
+        ).SetSecondary();
+
         UIInput selectedTab = GenerateUI.Input(
             GenerateUI.Row(dmNoteBody),
             "4key",
@@ -959,6 +1008,7 @@ internal static class PageKeyViewer {
             v => { conf.DmKeyDisplayDelayMs = v; Apply(); }, Save);
 
         RefreshPresetStatus();
+        RefreshCssStatus();
         RefreshMode();
     }
 

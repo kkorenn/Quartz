@@ -100,6 +100,15 @@ public sealed class KeyViewerSettings : ISettingsFile {
     // 0 = hide blocked keys, 1 = rain only, 2 = full press.
     public int DmOutOfLimiterMode = 1;
 
+    // Custom CSS layer for the DM Note renderer. DmCssText holds the imported
+    // stylesheet verbatim (like DmPresetJson, so it travels with the config);
+    // DmCssPath remembers where it came from for the page status / re-import.
+    // The CSS is parsed by KeyViewerStylesheet and layered over the preset's
+    // per-key styling (colors, border, radius, font, glow, animated gradients).
+    public bool DmCssEnabled = false;
+    public string DmCssText = "";
+    public string DmCssPath = "";
+
     // Key codes per style, stored as KeyCode ints like v1.
     public int[] Key10 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 104];
     public int[] Key12 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 98, 104, 46];
@@ -351,6 +360,9 @@ public sealed class KeyViewerSettings : ISettingsFile {
             [nameof(DmShortNoteMinLengthPx)] = DmShortNoteMinLengthPx,
             [nameof(DmKeyDisplayDelayMs)] = DmKeyDisplayDelayMs,
             [nameof(DmOutOfLimiterMode)] = DmOutOfLimiterMode,
+            [nameof(DmCssEnabled)] = DmCssEnabled,
+            [nameof(DmCssText)] = DmCssText,
+            [nameof(DmCssPath)] = DmCssPath,
             [nameof(Key10)] = new JArray(Key10),
             [nameof(Key12)] = new JArray(Key12),
             [nameof(Key16)] = new JArray(Key16),
@@ -464,6 +476,9 @@ public sealed class KeyViewerSettings : ISettingsFile {
         DmShortNoteMinLengthPx = Mathf.Clamp(IOUtils.Read(token, nameof(DmShortNoteMinLengthPx), DmShortNoteMinLengthPx), 1f, 9999f);
         DmKeyDisplayDelayMs = Mathf.Clamp(IOUtils.Read(token, nameof(DmKeyDisplayDelayMs), DmKeyDisplayDelayMs), 0f, 9999f);
         DmOutOfLimiterMode = Mathf.Clamp(IOUtils.Read(token, nameof(DmOutOfLimiterMode), DmOutOfLimiterMode), 0, 2);
+        DmCssEnabled = IOUtils.Read(token, nameof(DmCssEnabled), DmCssEnabled);
+        DmCssText = IOUtils.Read(token, nameof(DmCssText), DmCssText) ?? "";
+        DmCssPath = IOUtils.Read(token, nameof(DmCssPath), DmCssPath) ?? "";
 
         Key10 = ReadKeys(token, nameof(Key10), Key10);
         Key12 = ReadKeys(token, nameof(Key12), Key12);
