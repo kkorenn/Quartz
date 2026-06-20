@@ -225,6 +225,12 @@ internal static class PageOverlay {
         var sec = GenerateUI.Collapsible(parent, panel.Name, startExpanded: false);
         TMP_Text header = sec.Section.Find("Header/Bar/Label")?.GetComponent<TMP_Text>();
 
+        // Drag the header's 6-dot handle to reorder this panel's layer. List
+        // order = draw order: the top section renders on top where panels
+        // overlap. Mirrors the stat rows' reorder handle below.
+        sec.Section.gameObject.AddComponent<PanelSectionMarker>().Config = panel;
+        AddPanelLayerHandle(sec, panel);
+
         void Save() => PanelsOverlay.Save();
 
         // === Panel settings ===
@@ -1216,6 +1222,279 @@ internal static class PageOverlay {
         rect.anchorMax = Vector2.one;
         rect.offsetMin = new Vector2(xPad, 0f);
         rect.offsetMax = new Vector2(-xPad, 0f);
+    }
+
+    // Adds a 6-dot drag handle to the left of a panel section's header and
+    // wires it to reorder the section among its siblings. The header bar is
+    // inset to make room. Dropping commits the new order via CommitPanelOrder.
+    private static void AddPanelLayerHandle(GenerateUI.CollapsibleSection sec, PanelConfig panel) {
+        if(sec.HeaderObj.transform.Find("Bar") is RectTransform barRect) {
+            barRect.offsetMin = new Vector2(44f, barRect.offsetMin.y);
+        }
+
+        GameObject handle = new("LayerHandle");
+        handle.transform.SetParent(sec.HeaderObj.transform, false);
+
+        RectTransform handleRect = handle.AddComponent<RectTransform>();
+        handleRect.anchorMin = new Vector2(0f, 0f);
+        handleRect.anchorMax = new Vector2(0f, 1f);
+        handleRect.pivot = new Vector2(0f, 0.5f);
+        handleRect.anchoredPosition = Vector2.zero;
+        handleRect.sizeDelta = new Vector2(44f, 0f);
+
+        handle.AddComponent<EmptyGraphic>().raycastTarget = true;
+
+        PanelLayerDrag drag = handle.AddComponent<PanelLayerDrag>();
+        drag.Row = sec.Section;
+
+        for(int col = 0; col < 2; col++) {
+            for(int dotRow = 0; dotRow < 3; dotRow++) {
+                GameObject dot = new("Dot");
+                dot.transform.SetParent(handle.transform, false);
+
+                RectTransform dotRect = dot.AddComponent<RectTransform>();
+                dotRect.anchorMin = new Vector2(0.5f, 0.5f);
+                dotRect.anchorMax = new Vector2(0.5f, 0.5f);
+                dotRect.pivot = new Vector2(0.5f, 0.5f);
+                dotRect.anchoredPosition = new Vector2(col * 8f - 4f, dotRow * 8f - 8f);
+                dotRect.sizeDelta = new Vector2(4f, 4f);
+
+                Image dotImg = dot.AddComponent<Image>();
+                dotImg.sprite = MainCore.Spr.Get(UISprite.Circle256);
+                dotImg.color = new Color(1f, 1f, 1f, 0.4f);
+                dotImg.raycastTarget = false;
+            }
+        }
+
+        handleRect.AddToolTip(
+            "DESC_PANEL_LAYER",
+            "Drag to reorder. Panels higher in the list draw on top where they overlap."
+        );
+    }
+
+    // Reads the panel sections' hierarchy order and commits it as the new
+    // panel (layer) order, then rebuilds the live panels so the draw order
+    // follows. Called after a section is dropped in a new slot.
+    private static void CommitPanelOrder() {
+        if(panelsList == null) {
+            return;
+        }
+
+        List<PanelConfig> order = [];
+        for(int i = 0; i < panelsList.transform.childCount; i++) {
+            PanelSectionMarker marker =
+                panelsList.transform.GetChild(i).GetComponent<PanelSectionMarker>();
+            if(marker != null && marker.Config != null) {
+                order.Add(marker.Config);
+            }
+        }
+
+        if(order.Count == 0) {
+            return;
+        }
+
+        PanelsOverlay.Conf.Panels.Clear();
+        PanelsOverlay.Conf.Panels.AddRange(order);
+        PanelsOverlay.Save();
+        PanelsOverlay.Rebuild();
+    }
+
+    // Ties a panel section back to its config so a layer reorder can read the
+    // new order straight off the hierarchy.
+    private sealed class PanelSectionMarker : MonoBehaviour {
+        public PanelConfig Config;
+    }
+
+    // Drag-to-reorder for whole panel sections — same mechanism as the stat
+    // rows, but the committed order is the panels' layer (draw) order. The
+    // dragged section leaves the layout and floats with the pointer; a
+    // placeholder gap marks the drop slot; on release the section glides into
+    // the gap and the new order is committed.
+    private sealed class PanelLayerDrag : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler {
+        public RectTransform Row;
+
+        private LayoutElement rowLE;
+        private RectTransform placeholder;
+        private float grabOffsetY;
+        private GTween scaleSeq;
+        private GTween dropSeq;
+        private bool dragging;
+
+        private readonly Dictionary<RectTransform, GTween> rowSlides = [];
+        private readonly List<(RectTransform rt, Vector2 oldPos)> reflowCapture = [];
+
+        private static bool IsSection(Transform t) => t.GetComponent<PanelSectionMarker>() != null;
+
+        private void AnimateReflow(Transform container) {
+            reflowCapture.Clear();
+            for(int i = 0; i < container.childCount; i++) {
+                Transform child = container.GetChild(i);
+                if(child == Row || !IsSection(child)) {
+                    continue;
+                }
+                RectTransform rt = (RectTransform)child;
+                reflowCapture.Add((rt, rt.anchoredPosition));
+            }
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)container);
+
+            foreach((RectTransform rt, Vector2 oldPos) in reflowCapture) {
+                Vector2 target = rt.anchoredPosition;
+                if((target - oldPos).sqrMagnitude < 0.01f) {
+                    continue;
+                }
+
+                rt.anchoredPosition = oldPos;
+
+                if(rowSlides.TryGetValue(rt, out GTween running)) {
+                    running?.Kill();
+                }
+
+                GTween slide = GTweenExtensions.Tween(
+                    () => rt.anchoredPosition.y,
+                    y => rt.anchoredPosition = new Vector2(rt.anchoredPosition.x, y),
+                    target.y,
+                    0.15f
+                ).SetEasing(Easing.OutCubic);
+                rowSlides[rt] = slide;
+                MainCore.TC.Play(slide);
+            }
+        }
+
+        public void OnBeginDrag(PointerEventData eventData) {
+            if(Row == null || Row.parent == null) {
+                return;
+            }
+
+            // A previous drop animation still running: jump it to its end so
+            // the placeholder/layout state is clean before re-grabbing.
+            if(dropSeq != null) {
+                dropSeq.Complete();
+                dropSeq.Kill();
+                dropSeq = null;
+            }
+
+            dragging = true;
+
+            // Sections size themselves with a ContentSizeFitter and have no
+            // LayoutElement; add an inert one so the section can be lifted out
+            // of the list layout (ignoreLayout) while it floats.
+            rowLE = Row.GetComponent<LayoutElement>();
+            if(rowLE == null) {
+                rowLE = Row.gameObject.AddComponent<LayoutElement>();
+            }
+
+            // Gap that holds the section's slot while it floats.
+            GameObject ph = new("DragPlaceholder");
+            ph.transform.SetParent(Row.parent, false);
+            placeholder = ph.AddComponent<RectTransform>();
+            LayoutElement phLE = ph.AddComponent<LayoutElement>();
+            phLE.preferredHeight = Row.rect.height;
+            phLE.minHeight = Row.rect.height;
+            placeholder.SetSiblingIndex(Row.GetSiblingIndex());
+
+            rowLE.ignoreLayout = true;
+            Row.SetAsLastSibling();
+
+            grabOffsetY = Row.position.y - eventData.position.y;
+
+            PlayScale(1.04f);
+        }
+
+        public void OnDrag(PointerEventData eventData) {
+            if(!dragging || Row == null || placeholder == null) {
+                return;
+            }
+
+            Vector3 pos = Row.position;
+            pos.y = eventData.position.y + grabOffsetY;
+            Row.position = pos;
+
+            // Slot index = how many other sections sit above the pointer.
+            Transform container = Row.parent;
+            int target = 0;
+            for(int i = 0; i < container.childCount; i++) {
+                Transform child = container.GetChild(i);
+                if(child == Row || child == placeholder) {
+                    continue;
+                }
+                if(!IsSection(child)) {
+                    continue;
+                }
+                if(((RectTransform)child).position.y > eventData.position.y) {
+                    target++;
+                }
+            }
+
+            if(placeholder.GetSiblingIndex() != target) {
+                placeholder.SetSiblingIndex(target);
+                AnimateReflow(container);
+            }
+        }
+
+        public void OnEndDrag(PointerEventData eventData) {
+            if(!dragging || Row == null || placeholder == null) {
+                return;
+            }
+
+            dragging = false;
+
+            Transform container = Row.parent;
+            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)container);
+
+            float targetY = placeholder.position.y;
+            int finalIndex = placeholder.GetSiblingIndex();
+
+            RectTransform ph = placeholder;
+            placeholder = null;
+
+            PlayScale(1f);
+
+            // Glide into the gap, then rejoin the layout at the gap's slot.
+            dropSeq = GTweenSequenceBuilder.New()
+                .Append(GTweenExtensions.Tween(
+                    () => Row.position.y,
+                    y => {
+                        Vector3 pos = Row.position;
+                        pos.y = y;
+                        Row.position = pos;
+                    },
+                    targetY,
+                    0.12f
+                ).SetEasing(Easing.OutCubic))
+                .AppendCallback(() => {
+                    if(ph != null) {
+                        ph.gameObject.SetActive(false);
+                        Object.Destroy(ph.gameObject);
+                    }
+                    if(rowLE != null) {
+                        rowLE.ignoreLayout = false;
+                    }
+                    if(Row != null) {
+                        Row.SetSiblingIndex(finalIndex);
+                        Row.localScale = Vector3.one;
+                        AnimateReflow(Row.parent);
+                    }
+                    CommitPanelOrder();
+                })
+                .Build();
+            MainCore.TC.Play(dropSeq);
+        }
+
+        private void PlayScale(float target) {
+            if(Row == null) {
+                return;
+            }
+
+            scaleSeq?.Kill();
+            scaleSeq = GTweenExtensions.Tween(
+                () => Row.localScale.x,
+                x => Row.localScale = new Vector3(x, x, 1f),
+                target,
+                0.12f
+            ).SetEasing(Easing.OutSine);
+            MainCore.TC.Play(scaleSeq);
+        }
     }
 
     // Ties a list row back to its config entry so a reorder commit can read

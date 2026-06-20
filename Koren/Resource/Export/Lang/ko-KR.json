@@ -104,6 +104,7 @@
     "DESC_OTTO_ON": "에디터의 Otto(auto-play) 아이콘을 모드 아이콘으로 바꾸고 아래 색상을 적용합니다. auto-play가 꺼져 있으면 자동으로 흐려집니다.",
     "DESC_OVERLAY_ENABLED": "패널, 진행 바, 콤보, 판정 등 모든 오버레이 HUD의 마스터 스위치입니다.",
     "DESC_PANEL_ADDSTAT": "이 패널에 추가할 스탯을 고릅니다.",
+    "DESC_PANEL_LAYER": "끌어서 순서를 바꿉니다. 목록에서 위에 있는 패널이 겹칠 때 위에 그려집니다.",
     "DESC_PANEL_LOCALIZESTATS": "끄면 이 패널의 스탯 이름이 영어로 유지됩니다(X-Acc, Max X-Acc…). 켜면 UI 언어를 따릅니다.",
     "DESC_PANEL_NAME": "재배치 중 패널에 보이며, 이 섹션의 제목으로도 사용됩니다.",
     "DESC_PANEL_PREFIX": "패널 맨 위에 추가로 표시할 줄입니다.",

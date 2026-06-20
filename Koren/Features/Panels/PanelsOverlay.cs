@@ -283,6 +283,14 @@ public static class PanelsOverlay {
         for(int i = 0; i < configs.Count; i++) {
             panels.Add(CreatePanel(configs[i]));
         }
+
+        // Layer order: config index 0 is the front-most panel. Unity UI draws
+        // later siblings on top, so push them back-to-front — index 0 ends up
+        // last in the hierarchy and renders over the rest where they overlap.
+        // Matches the settings list, where the top section is the top layer.
+        for(int i = configs.Count - 1; i >= 0; i--) {
+            panels[i].Rect.SetAsLastSibling();
+        }
     }
 
     // Re-applies appearance settings to the live panels (UI change).
