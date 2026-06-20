@@ -9,8 +9,6 @@ namespace Koren.Features.KeyViewer;
 // v1's Settings.cs: style 2 (16 keys), the KeyViewerSimpleKey* key codes,
 // and the SKv* colors.
 // Lives in UserData/Koren/KeyViewer.json.
-//
-// Not ported yet (v1 simple-mode features): foot keys.
 public sealed class KeyViewerSettings : ISettingsFile {
     public const string ModeSimple = "simple";
     public const string ModeDmNote = "dmnote";
@@ -25,8 +23,11 @@ public sealed class KeyViewerSettings : ISettingsFile {
     // the DM-note preset renderer.
     public string Mode = ModeSimple;
 
-    // 0 = 10 keys, 1 = 12, 2 = 16, 3 = 20 (v1 KeyViewerSimpleStyle).
+    // 0 = 10 keys, 1 = 12, 2 = 16, 3 = 20, 4 = 8, 5 = 14. The first four match
+    // v1's KeyViewerSimpleStyle; 8 and 14 are v2 additions appended at the end
+    // so existing saved Style ints keep their meaning.
     public int Style = 2;
+    public const int MaxStyle = 5;
 
     public bool IsSimpleMode => string.Equals(Mode, ModeSimple, StringComparison.OrdinalIgnoreCase);
     public bool IsDmNoteMode => string.Equals(Mode, ModeDmNote, StringComparison.OrdinalIgnoreCase);
@@ -56,6 +57,17 @@ public sealed class KeyViewerSettings : ISettingsFile {
     // KPS/Total placement on the back row: false = far apart (one on each
     // side, the v1 default), true = side by side in the centre.
     public bool StatsTogether = true;
+
+    // Counter display extras (v1 simple-mode options).
+    // CountFormatting: thousands separators on the counters (1,234).
+    // HideMainKeyCount: hide the per-key counters on the key boxes.
+    // PerKeyKps: the key boxes' counters show that key's KPS instead of its
+    //   cumulative press count.
+    // StreamerMode: hide the KPS and Total stat boxes entirely.
+    public bool CountFormatting = false;
+    public bool HideMainKeyCount = false;
+    public bool PerKeyKps = false;
+    public bool StreamerMode = false;
 
     public float RainR = 1f, RainG = 0f, RainB = 0f, RainA = 1f;
     public float Rain2R = 1f, Rain2G = 1f, Rain2B = 1f, Rain2A = 1f;
@@ -93,6 +105,10 @@ public sealed class KeyViewerSettings : ISettingsFile {
     public int[] Key12 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 98, 104, 46];
     public int[] Key16 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 98, 104, 46, 97, 304, 273, 13];
     public int[] Key20 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 98, 104, 44, 97, 304, 303, 13, 110, 103, 109, 107];
+    // v2 additions: 8 = the front row only; 14 = front row + a centred 6-key
+    // back row. Defaults reuse the matching prefixes of Key10/Key16.
+    public int[] Key8 = [113, 51, 52, 116, 111, 45, 61, 92];
+    public int[] Key14 = [113, 51, 52, 116, 111, 45, 61, 92, 32, 98, 104, 46, 97, 304];
 
     // Per-slot label overrides (v1 KeyViewerSimpleKey*Text); empty = derive
     // the caption from the key code.
@@ -100,6 +116,8 @@ public sealed class KeyViewerSettings : ISettingsFile {
     public string[] Key12Text = new string[12];
     public string[] Key16Text = new string[16];
     public string[] Key20Text = new string[20];
+    public string[] Key8Text = new string[8];
+    public string[] Key14Text = new string[14];
 
     // Box colors, idle and pressed (v1 SKvBg/SKvBgc/SKvOut/SKvOutc/SKvTxt/SKvTxtc).
     public float BgR = 1f, BgG = 0.2352941f, BgB = 0.2352941f, BgA = 0.1960784f;
@@ -109,6 +127,60 @@ public sealed class KeyViewerSettings : ISettingsFile {
     public float TextR = 1f, TextG = 1f, TextB = 1f, TextA = 1f;
     public float TextPressedR = 0f, TextPressedG = 0f, TextPressedB = 0f, TextPressedA = 1f;
 
+    // Per-key overrides use a flat slot model, like v1: 0-19 = main keys,
+    // 20-35 = foot keys. A style only fills the slots it actually has.
+    public const int SlotCount = 36;
+    public const int FootSlotBase = 20;
+
+    // Font sizes: global multipliers (v1 KeyFontSize / CounterFontSize) with
+    // optional per-key overrides.
+    public float KeyFontScale = 1f;
+    public float CounterFontScale = 1f;
+    public bool PerKeyFontSizes = false;
+    public bool PerKeyFontInitialized = false;
+    public float[] PerKeyKeyFont = Filled(SlotCount, 1f);
+    public float[] PerKeyCounterFont = Filled(SlotCount, 1f);
+
+    // Per-key colors (v1 EnablePerKeyColors + PerKey* arrays). Each slot keeps
+    // an idle/pressed pair for background, outline and text, plus a rain colour.
+    // Defaults match the global colours so enabling looks identical until edited.
+    public bool PerKeyColors = false;
+    public bool PerKeyColorsInitialized = false;
+    public Color[] PerKeyBg = FilledColor(SlotCount, new Color(1f, 0.2352941f, 0.2352941f, 0.1960784f));
+    public Color[] PerKeyBgPressed = FilledColor(SlotCount, new Color(1f, 1f, 1f, 1f));
+    public Color[] PerKeyOutline = FilledColor(SlotCount, new Color(1f, 0f, 0f, 1f));
+    public Color[] PerKeyOutlinePressed = FilledColor(SlotCount, new Color(1f, 1f, 1f, 1f));
+    public Color[] PerKeyText = FilledColor(SlotCount, new Color(1f, 1f, 1f, 1f));
+    public Color[] PerKeyTextPressed = FilledColor(SlotCount, new Color(0f, 0f, 0f, 1f));
+    public Color[] PerKeyRain = FilledColor(SlotCount, new Color(1f, 0f, 0f, 1f));
+
+    // Foot keys: a SEPARATE draggable overlay element with its own position,
+    // moved independently of the main grid in Reorganize mode (FootOffsetX/Y is
+    // that element's position, not an offset from the main grid). FootStyle
+    // 0 = none, 1..8 = 2/4/6/8/10/12/14/16 keys. They share the flat per-key
+    // slot space at FootSlotBase (20-35), light on press, don't add to counters.
+    public int FootStyle = 0;
+    // Default position sits beside (to the right of) the main grid at the same
+    // height, so a freshly-enabled foot row is easy to find before dragging.
+    public float FootOffsetX = -360f;
+    public float FootOffsetY = 24.76001f;
+    public int[] FootKeys = [289, 285, 288, 284, 287, 283, 286, 282, 48, 54, 57, 53, 56, 52, 55, 51];
+    public string[] FootKeysText = new string[16];
+    public int FootKeyCount() => Mathf.Clamp(FootStyle, 0, 8) * 2;
+
+    // Ghost rain: an optional secondary key per slot that emits its own
+    // ghost-coloured rain streak without touching the press counters
+    // (v1 KeyViewerSimpleGhost* + SKvGhostRain*). 0 = no ghost key for a slot;
+    // a slot's ghost rain is active simply by having a ghost key set (no
+    // separate enable flag).
+    public float GhostRainR = 1f, GhostRainG = 0f, GhostRainB = 0f, GhostRainA = 0.45f;
+    public int[] GhostKey8 = new int[8];
+    public int[] GhostKey10 = new int[10];
+    public int[] GhostKey12 = new int[12];
+    public int[] GhostKey14 = new int[14];
+    public int[] GhostKey16 = new int[16];
+    public int[] GhostKey20 = new int[20];
+
     // Per-key press counts, keyed by upper-case KeyCode name. v1 kept these
     // in PlayerPrefs ("kvkey_*"); v2 keeps them with the rest of the config.
     public Dictionary<string, int> Counts = new(StringComparer.OrdinalIgnoreCase);
@@ -117,6 +189,8 @@ public sealed class KeyViewerSettings : ISettingsFile {
         0 => Key10,
         1 => Key12,
         3 => Key20,
+        4 => Key8,
+        5 => Key14,
         _ => Key16,
     };
 
@@ -124,8 +198,22 @@ public sealed class KeyViewerSettings : ISettingsFile {
         0 => Key10Text,
         1 => Key12Text,
         3 => Key20Text,
+        4 => Key8Text,
+        5 => Key14Text,
         _ => Key16Text,
     };
+
+    public int[] GhostKeysForStyle(int style) => style switch {
+        0 => GhostKey10,
+        1 => GhostKey12,
+        3 => GhostKey20,
+        4 => GhostKey8,
+        5 => GhostKey14,
+        _ => GhostKey16,
+    };
+
+    public Color GetGhostRain() => new(GhostRainR, GhostRainG, GhostRainB, GhostRainA);
+    public void SetGhostRain(Color c) { GhostRainR = c.r; GhostRainG = c.g; GhostRainB = c.b; GhostRainA = c.a; }
 
     public Color GetBg() => new(BgR, BgG, BgB, BgA);
     public void SetBg(Color c) { BgR = c.r; BgG = c.g; BgB = c.b; BgA = c.a; }
@@ -153,6 +241,55 @@ public sealed class KeyViewerSettings : ISettingsFile {
 
     public Color GetRain3() => new(Rain3R, Rain3G, Rain3B, Rain3A);
     public void SetRain3(Color c) { Rain3R = c.r; Rain3G = c.g; Rain3B = c.b; Rain3A = c.a; }
+
+    // Per-key resolvers: the slot's override when per-key is on and the slot is
+    // in range, otherwise the matching global value.
+    public Color PerKeyOr(Color[] arr, int slot, Color global) =>
+        PerKeyColors && arr != null && slot >= 0 && slot < arr.Length ? arr[slot] : global;
+
+    public float KeyFontFor(int slot) =>
+        PerKeyFontSizes && slot >= 0 && slot < PerKeyKeyFont.Length ? PerKeyKeyFont[slot] : KeyFontScale;
+
+    public float CounterFontFor(int slot) =>
+        PerKeyFontSizes && slot >= 0 && slot < PerKeyCounterFont.Length ? PerKeyCounterFont[slot] : CounterFontScale;
+
+    // Copy the current global colours / font scales into every slot. Used to
+    // seed the per-key arrays the first time the user enables them so the view
+    // doesn't jump, and from the page's "copy from global" buttons.
+    public void SeedPerKeyColorsFromGlobal() {
+        for(int i = 0; i < SlotCount; i++) {
+            PerKeyBg[i] = GetBg();
+            PerKeyBgPressed[i] = GetBgPressed();
+            PerKeyOutline[i] = GetOutline();
+            PerKeyOutlinePressed[i] = GetOutlinePressed();
+            PerKeyText[i] = GetText();
+            PerKeyTextPressed[i] = GetTextPressed();
+            PerKeyRain[i] = GetRain();
+        }
+    }
+
+    public void SeedPerKeyFontFromGlobal() {
+        for(int i = 0; i < SlotCount; i++) {
+            PerKeyKeyFont[i] = KeyFontScale;
+            PerKeyCounterFont[i] = CounterFontScale;
+        }
+    }
+
+    private static float[] Filled(int n, float v) {
+        float[] a = new float[n];
+        for(int i = 0; i < n; i++) {
+            a[i] = v;
+        }
+        return a;
+    }
+
+    private static Color[] FilledColor(int n, Color c) {
+        Color[] a = new Color[n];
+        for(int i = 0; i < n; i++) {
+            a[i] = c;
+        }
+        return a;
+    }
 
     public int GetCount(string key) =>
         key != null && Counts.TryGetValue(key, out int v) ? v : 0;
@@ -187,6 +324,10 @@ public sealed class KeyViewerSettings : ISettingsFile {
             [nameof(RainOffsetY)] = RainOffsetY,
             [nameof(Rain2OffsetY)] = Rain2OffsetY,
             [nameof(StatsTogether)] = StatsTogether,
+            [nameof(CountFormatting)] = CountFormatting,
+            [nameof(HideMainKeyCount)] = HideMainKeyCount,
+            [nameof(PerKeyKps)] = PerKeyKps,
+            [nameof(StreamerMode)] = StreamerMode,
             [nameof(RainR)] = RainR, [nameof(RainG)] = RainG, [nameof(RainB)] = RainB, [nameof(RainA)] = RainA,
             [nameof(Rain2R)] = Rain2R, [nameof(Rain2G)] = Rain2G, [nameof(Rain2B)] = Rain2B, [nameof(Rain2A)] = Rain2A,
             [nameof(Rain3R)] = Rain3R, [nameof(Rain3G)] = Rain3G, [nameof(Rain3B)] = Rain3B, [nameof(Rain3A)] = Rain3A,
@@ -214,16 +355,47 @@ public sealed class KeyViewerSettings : ISettingsFile {
             [nameof(Key12)] = new JArray(Key12),
             [nameof(Key16)] = new JArray(Key16),
             [nameof(Key20)] = new JArray(Key20),
+            [nameof(Key8)] = new JArray(Key8),
+            [nameof(Key14)] = new JArray(Key14),
             [nameof(Key10Text)] = WriteLabels(Key10Text),
             [nameof(Key12Text)] = WriteLabels(Key12Text),
             [nameof(Key16Text)] = WriteLabels(Key16Text),
             [nameof(Key20Text)] = WriteLabels(Key20Text),
+            [nameof(Key8Text)] = WriteLabels(Key8Text),
+            [nameof(Key14Text)] = WriteLabels(Key14Text),
             [nameof(BgR)] = BgR, [nameof(BgG)] = BgG, [nameof(BgB)] = BgB, [nameof(BgA)] = BgA,
             [nameof(BgPressedR)] = BgPressedR, [nameof(BgPressedG)] = BgPressedG, [nameof(BgPressedB)] = BgPressedB, [nameof(BgPressedA)] = BgPressedA,
             [nameof(OutlineR)] = OutlineR, [nameof(OutlineG)] = OutlineG, [nameof(OutlineB)] = OutlineB, [nameof(OutlineA)] = OutlineA,
             [nameof(OutlinePressedR)] = OutlinePressedR, [nameof(OutlinePressedG)] = OutlinePressedG, [nameof(OutlinePressedB)] = OutlinePressedB, [nameof(OutlinePressedA)] = OutlinePressedA,
             [nameof(TextR)] = TextR, [nameof(TextG)] = TextG, [nameof(TextB)] = TextB, [nameof(TextA)] = TextA,
             [nameof(TextPressedR)] = TextPressedR, [nameof(TextPressedG)] = TextPressedG, [nameof(TextPressedB)] = TextPressedB, [nameof(TextPressedA)] = TextPressedA,
+            [nameof(KeyFontScale)] = KeyFontScale,
+            [nameof(CounterFontScale)] = CounterFontScale,
+            [nameof(PerKeyFontSizes)] = PerKeyFontSizes,
+            [nameof(PerKeyFontInitialized)] = PerKeyFontInitialized,
+            [nameof(PerKeyKeyFont)] = new JArray(PerKeyKeyFont),
+            [nameof(PerKeyCounterFont)] = new JArray(PerKeyCounterFont),
+            [nameof(PerKeyColors)] = PerKeyColors,
+            [nameof(PerKeyColorsInitialized)] = PerKeyColorsInitialized,
+            [nameof(PerKeyBg)] = WriteColors(PerKeyBg),
+            [nameof(PerKeyBgPressed)] = WriteColors(PerKeyBgPressed),
+            [nameof(PerKeyOutline)] = WriteColors(PerKeyOutline),
+            [nameof(PerKeyOutlinePressed)] = WriteColors(PerKeyOutlinePressed),
+            [nameof(PerKeyText)] = WriteColors(PerKeyText),
+            [nameof(PerKeyTextPressed)] = WriteColors(PerKeyTextPressed),
+            [nameof(PerKeyRain)] = WriteColors(PerKeyRain),
+            [nameof(GhostRainR)] = GhostRainR, [nameof(GhostRainG)] = GhostRainG, [nameof(GhostRainB)] = GhostRainB, [nameof(GhostRainA)] = GhostRainA,
+            [nameof(GhostKey8)] = new JArray(GhostKey8),
+            [nameof(GhostKey10)] = new JArray(GhostKey10),
+            [nameof(GhostKey12)] = new JArray(GhostKey12),
+            [nameof(GhostKey14)] = new JArray(GhostKey14),
+            [nameof(GhostKey16)] = new JArray(GhostKey16),
+            [nameof(GhostKey20)] = new JArray(GhostKey20),
+            [nameof(FootStyle)] = FootStyle,
+            [nameof(FootOffsetX)] = FootOffsetX,
+            [nameof(FootOffsetY)] = FootOffsetY,
+            [nameof(FootKeys)] = new JArray(FootKeys),
+            [nameof(FootKeysText)] = WriteLabels(FootKeysText),
             [nameof(Counts)] = counts,
         };
     }
@@ -232,7 +404,7 @@ public sealed class KeyViewerSettings : ISettingsFile {
         Enabled = IOUtils.Read(token, nameof(Enabled), Enabled);
         ShowOutsideGame = IOUtils.Read(token, nameof(ShowOutsideGame), ShowOutsideGame);
         Mode = NormalizeMode(IOUtils.Read(token, nameof(Mode), Mode));
-        Style = Mathf.Clamp(IOUtils.Read(token, nameof(Style), Style), 0, 3);
+        Style = Mathf.Clamp(IOUtils.Read(token, nameof(Style), Style), 0, MaxStyle);
         Size = IOUtils.Read(token, nameof(Size), Size);
         OffsetX = IOUtils.Read(token, nameof(OffsetX), OffsetX);
         OffsetY = IOUtils.Read(token, nameof(OffsetY), OffsetY);
@@ -247,6 +419,10 @@ public sealed class KeyViewerSettings : ISettingsFile {
         RainOffsetY = IOUtils.Read(token, nameof(RainOffsetY), RainOffsetY);
         Rain2OffsetY = IOUtils.Read(token, nameof(Rain2OffsetY), Rain2OffsetY);
         StatsTogether = IOUtils.Read(token, nameof(StatsTogether), StatsTogether);
+        CountFormatting = IOUtils.Read(token, nameof(CountFormatting), CountFormatting);
+        HideMainKeyCount = IOUtils.Read(token, nameof(HideMainKeyCount), HideMainKeyCount);
+        PerKeyKps = IOUtils.Read(token, nameof(PerKeyKps), PerKeyKps);
+        StreamerMode = IOUtils.Read(token, nameof(StreamerMode), StreamerMode);
         RainR = IOUtils.Read(token, nameof(RainR), RainR);
         RainG = IOUtils.Read(token, nameof(RainG), RainG);
         RainB = IOUtils.Read(token, nameof(RainB), RainB);
@@ -293,11 +469,15 @@ public sealed class KeyViewerSettings : ISettingsFile {
         Key12 = ReadKeys(token, nameof(Key12), Key12);
         Key16 = ReadKeys(token, nameof(Key16), Key16);
         Key20 = ReadKeys(token, nameof(Key20), Key20);
+        Key8 = ReadKeys(token, nameof(Key8), Key8);
+        Key14 = ReadKeys(token, nameof(Key14), Key14);
 
         Key10Text = ReadLabels(token, nameof(Key10Text), Key10Text);
         Key12Text = ReadLabels(token, nameof(Key12Text), Key12Text);
         Key16Text = ReadLabels(token, nameof(Key16Text), Key16Text);
         Key20Text = ReadLabels(token, nameof(Key20Text), Key20Text);
+        Key8Text = ReadLabels(token, nameof(Key8Text), Key8Text);
+        Key14Text = ReadLabels(token, nameof(Key14Text), Key14Text);
 
         BgR = IOUtils.Read(token, nameof(BgR), BgR);
         BgG = IOUtils.Read(token, nameof(BgG), BgG);
@@ -324,6 +504,39 @@ public sealed class KeyViewerSettings : ISettingsFile {
         TextPressedB = IOUtils.Read(token, nameof(TextPressedB), TextPressedB);
         TextPressedA = IOUtils.Read(token, nameof(TextPressedA), TextPressedA);
 
+        KeyFontScale = IOUtils.Read(token, nameof(KeyFontScale), KeyFontScale);
+        CounterFontScale = IOUtils.Read(token, nameof(CounterFontScale), CounterFontScale);
+        PerKeyFontSizes = IOUtils.Read(token, nameof(PerKeyFontSizes), PerKeyFontSizes);
+        PerKeyFontInitialized = IOUtils.Read(token, nameof(PerKeyFontInitialized), PerKeyFontInitialized);
+        PerKeyKeyFont = ReadFloats(token, nameof(PerKeyKeyFont), PerKeyKeyFont);
+        PerKeyCounterFont = ReadFloats(token, nameof(PerKeyCounterFont), PerKeyCounterFont);
+        PerKeyColors = IOUtils.Read(token, nameof(PerKeyColors), PerKeyColors);
+        PerKeyColorsInitialized = IOUtils.Read(token, nameof(PerKeyColorsInitialized), PerKeyColorsInitialized);
+        PerKeyBg = ReadColors(token, nameof(PerKeyBg), PerKeyBg);
+        PerKeyBgPressed = ReadColors(token, nameof(PerKeyBgPressed), PerKeyBgPressed);
+        PerKeyOutline = ReadColors(token, nameof(PerKeyOutline), PerKeyOutline);
+        PerKeyOutlinePressed = ReadColors(token, nameof(PerKeyOutlinePressed), PerKeyOutlinePressed);
+        PerKeyText = ReadColors(token, nameof(PerKeyText), PerKeyText);
+        PerKeyTextPressed = ReadColors(token, nameof(PerKeyTextPressed), PerKeyTextPressed);
+        PerKeyRain = ReadColors(token, nameof(PerKeyRain), PerKeyRain);
+
+        GhostRainR = IOUtils.Read(token, nameof(GhostRainR), GhostRainR);
+        GhostRainG = IOUtils.Read(token, nameof(GhostRainG), GhostRainG);
+        GhostRainB = IOUtils.Read(token, nameof(GhostRainB), GhostRainB);
+        GhostRainA = IOUtils.Read(token, nameof(GhostRainA), GhostRainA);
+        GhostKey8 = ReadKeys(token, nameof(GhostKey8), GhostKey8);
+        GhostKey10 = ReadKeys(token, nameof(GhostKey10), GhostKey10);
+        GhostKey12 = ReadKeys(token, nameof(GhostKey12), GhostKey12);
+        GhostKey14 = ReadKeys(token, nameof(GhostKey14), GhostKey14);
+        GhostKey16 = ReadKeys(token, nameof(GhostKey16), GhostKey16);
+        GhostKey20 = ReadKeys(token, nameof(GhostKey20), GhostKey20);
+
+        FootStyle = Mathf.Clamp(IOUtils.Read(token, nameof(FootStyle), FootStyle), 0, 8);
+        FootOffsetX = IOUtils.Read(token, nameof(FootOffsetX), FootOffsetX);
+        FootOffsetY = IOUtils.Read(token, nameof(FootOffsetY), FootOffsetY);
+        FootKeys = ReadKeys(token, nameof(FootKeys), FootKeys);
+        FootKeysText = ReadLabels(token, nameof(FootKeysText), FootKeysText);
+
         Counts.Clear();
         if(token[nameof(Counts)] is JObject counts) {
             foreach(var prop in counts.Properties()) {
@@ -346,6 +559,53 @@ public sealed class KeyViewerSettings : ISettingsFile {
             arr.Add(label ?? "");
         }
         return arr;
+    }
+
+    // Color arrays serialize as a flat [r,g,b,a, r,g,b,a, ...] run.
+    private static JArray WriteColors(Color[] colors) {
+        JArray arr = [];
+        foreach(Color c in colors) {
+            arr.Add(c.r);
+            arr.Add(c.g);
+            arr.Add(c.b);
+            arr.Add(c.a);
+        }
+        return arr;
+    }
+
+    private static Color[] ReadColors(JToken token, string name, Color[] fallback) {
+        if(token[name] is not JArray arr || arr.Count != fallback.Length * 4) {
+            return fallback;
+        }
+
+        try {
+            Color[] result = new Color[fallback.Length];
+            for(int i = 0; i < result.Length; i++) {
+                int b = i * 4;
+                result[i] = new Color(
+                    arr[b].Value<float>(), arr[b + 1].Value<float>(),
+                    arr[b + 2].Value<float>(), arr[b + 3].Value<float>());
+            }
+            return result;
+        } catch {
+            return fallback;
+        }
+    }
+
+    private static float[] ReadFloats(JToken token, string name, float[] fallback) {
+        if(token[name] is not JArray arr || arr.Count != fallback.Length) {
+            return fallback;
+        }
+
+        try {
+            float[] result = new float[arr.Count];
+            for(int i = 0; i < arr.Count; i++) {
+                result[i] = arr[i].Value<float>();
+            }
+            return result;
+        } catch {
+            return fallback;
+        }
     }
 
     private static string[] ReadLabels(JToken token, string name, string[] fallback) {

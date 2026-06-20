@@ -36,6 +36,14 @@ public static class KeyViewerOverlay {
     private const float KeyFontSize = 18f;
     private const float CounterFontSize = 14f;
     private const float StatFontSize = 16f;
+    // Foot keys: smaller boxes on their own row(s) below the main grid (v1
+    // FootKeyviewerStyle: 30px boxes, font 13, no rain or counter).
+    private const float FootKeyW = 30f;
+    private const float FootKeyH = 30f;
+    private const float FootKeyGap = 6f;
+    private const float FootRowPitch = 40f;
+    private const float FootGapAbove = 12f;
+    private const float FootFontSize = 13f;
     // Second-row slot order for the 16/20-key styles (v1 BackSeq16).
     private static readonly int[] BackSeq16 = [12, 13, 9, 8, 10, 11, 14, 15];
 
@@ -43,6 +51,10 @@ public static class KeyViewerOverlay {
     private static GraphicRaycaster raycaster;
     private static RectTransform root;
     private static GameObject dragObj;
+    // Foot keys are a separate, independently-draggable element (own root +
+    // reorganize handle), so they never move or resize the main grid.
+    private static RectTransform footRoot;
+    private static GameObject footDragObj;
     private static readonly List<Box> boxes = [];
     private static int builtStyle = -1;
     private static string builtMode;
@@ -70,6 +82,8 @@ public static class KeyViewerOverlay {
 
     private sealed class Box {
         public KeyCode Key;
+        public KeyCode GhostKey = KeyCode.None;
+        public bool IsFoot;
         public bool IsKps;
         public bool IsKpsAvg;
         public bool IsKpsMax;
@@ -96,6 +110,12 @@ public static class KeyViewerOverlay {
         public float DelayedReleaseTime;
         public int Count;
         public int LastShown = int.MinValue;
+        // Flat per-key slot (0-19 main, 20-35 foot) for per-key colour/font
+        // lookups; -1 for the stat boxes.
+        public int Slot = -1;
+        // Per-key press timestamps for the optional per-key KPS counter; only
+        // filled for the key boxes (not stats).
+        public readonly Queue<float> KpsLog = new();
 
         // Rain spawn parameters: color group (1 = front row, 2 = back row,
         // 3 = the 20-key style's third row, 0 = no rain) and the box span.
@@ -192,6 +212,14 @@ public static class KeyViewerOverlay {
         root.anchorMax = new Vector2(0.5f, 0f);
         root.pivot = new Vector2(0.5f, 0f);
 
+        // Separate element for the foot keys, dragged on its own.
+        GameObject footObj = new("KeyViewerFoot");
+        footObj.transform.SetParent(canvasObj.transform, false);
+        footRoot = footObj.AddComponent<RectTransform>();
+        footRoot.anchorMin = new Vector2(0.5f, 0f);
+        footRoot.anchorMax = new Vector2(0.5f, 0f);
+        footRoot.pivot = new Vector2(0.5f, 0f);
+
         rainManager = canvasObj.AddComponent<RainManager>();
         canvasObj.AddComponent<Updater>();
 
@@ -211,8 +239,15 @@ public static class KeyViewerOverlay {
         for(int i = root.childCount - 1; i >= 0; i--) {
             Object.Destroy(root.GetChild(i).gameObject);
         }
+        if(footRoot != null) {
+            for(int i = footRoot.childCount - 1; i >= 0; i--) {
+                Object.Destroy(footRoot.GetChild(i).gameObject);
+            }
+            footRoot.sizeDelta = Vector2.zero;
+        }
         boxes.Clear();
         dragObj = null;
+        footDragObj = null;
         kpsMax = 0;
         kpsSum = 0;
         kpsSamples = 0;
@@ -231,7 +266,7 @@ public static class KeyViewerOverlay {
             return;
         }
 
-        int style = Mathf.Clamp(Conf.Style, 0, 3);
+        int style = Mathf.Clamp(Conf.Style, 0, KeyViewerSettings.MaxStyle);
         builtMode = KeyViewerSettings.ModeSimple;
         builtStyle = style;
         int[] keys = Conf.KeysForStyle(style);
@@ -259,6 +294,8 @@ public static class KeyViewerOverlay {
         }
 
         root.sizeDelta = GridSize(style);
+
+        BuildFoot();
 
         totalCount = 0;
         foreach(Box box in boxes) {
@@ -301,7 +338,7 @@ public static class KeyViewerOverlay {
 
         Features.KeyLimiter.KeyLimiter.EnsureConf();
 
-        int[] keys = Conf.KeysForStyle(Mathf.Clamp(Conf.Style, 0, 3));
+        int[] keys = Conf.KeysForStyle(Mathf.Clamp(Conf.Style, 0, KeyViewerSettings.MaxStyle));
         List<int> result = [];
         HashSet<int> seen = [];
         foreach(int code in keys) {
@@ -363,7 +400,7 @@ public static class KeyViewerOverlay {
             return;
         }
 
-        if(builtMode != KeyViewerSettings.ModeSimple || builtStyle != Mathf.Clamp(Conf.Style, 0, 3)) {
+        if(builtMode != KeyViewerSettings.ModeSimple || builtStyle != Mathf.Clamp(Conf.Style, 0, KeyViewerSettings.MaxStyle)) {
             Rebuild();
             return;
         }
@@ -371,6 +408,12 @@ public static class KeyViewerOverlay {
         root.anchoredPosition = OverlayCalibration.Scale(new Vector2(Conf.OffsetX, Conf.OffsetY));
         float size = Mathf.Clamp(Conf.Size, 0.2f, 4f);
         root.localScale = new Vector3(size, size, 1f);
+
+        // Foot element rides its own position at the same scale.
+        if(footRoot != null) {
+            footRoot.anchoredPosition = OverlayCalibration.Scale(new Vector2(Conf.FootOffsetX, Conf.FootOffsetY));
+            footRoot.localScale = new Vector3(size, size, 1f);
+        }
 
         if(!Conf.RainEnabled) {
             rainManager?.Clear();
@@ -439,14 +482,102 @@ public static class KeyViewerOverlay {
                 stats.Add(new StatSlot(false, ColX(0), RowGap * 2f, SpanW(2), KeyH));
                 stats.Add(new StatSlot(true, ColX(6), RowGap * 2f, SpanW(2), KeyH));
                 break;
+            case 4:
+                // 8 keys: the front row only, with the stat boxes on the row
+                // below (no back row).
+                stats.Add(new StatSlot(false, ColX(0), RowGap, SpanW(4), 30f));
+                stats.Add(new StatSlot(true, ColX(4), RowGap, SpanW(4), 30f));
+                break;
+            case 5:
+                // 14 keys: front row + a 6-key back row centred on columns 1-6,
+                // stats on a third row like the 20-key style.
+                for(int i = 0; i < 6; i++) {
+                    keys.Add(new KeySlot(8 + i, ColX(1 + i), RowGap, KeyW, KeyH));
+                }
+                stats.Add(new StatSlot(false, ColX(0), RowGap * 2f, SpanW(2), KeyH));
+                stats.Add(new StatSlot(true, ColX(6), RowGap * 2f, SpanW(2), KeyH));
+                break;
         }
     }
 
     internal static Vector2 GridSize(int style) => new(SpanW(8), style switch {
         2 => RowGap * 2f + 30f,
         3 => RowGap * 2f + KeyH,
+        4 => RowGap + 30f,
+        5 => RowGap * 2f + KeyH,
         _ => RowGap + KeyH,
     });
+
+    // Foot-key layout in the foot element's OWN local space (top-left origin),
+    // independent of the main grid. footCount 0 = none. Fills footSlots with
+    // KeySlots whose Slot is FootSlotBase + foot index, and returns the foot
+    // block's size. Up to 8 keys per row, centred; a second row centres below.
+    internal static Vector2 BuildFootLayout(int footCount, List<KeySlot> footSlots) {
+        if(footCount <= 0) {
+            return Vector2.zero;
+        }
+
+        int row1 = Mathf.Min(footCount, 8);
+        int row2 = Mathf.Max(0, footCount - 8);
+
+        static float RowW(int n) => n <= 0 ? 0f : n * FootKeyW + (n - 1) * FootKeyGap;
+        float blockW = Mathf.Max(RowW(row1), RowW(row2));
+
+        void Row(int startIndex, int count, float y) {
+            float startX = (blockW - RowW(count)) * 0.5f;
+            for(int i = 0; i < count; i++) {
+                int footIndex = startIndex + i;
+                footSlots.Add(new KeySlot(
+                    KeyViewerSettings.FootSlotBase + footIndex,
+                    startX + i * (FootKeyW + FootKeyGap), y, FootKeyW, FootKeyH));
+            }
+        }
+
+        Row(0, row1, 0f);
+        if(row2 > 0) {
+            Row(8, row2, FootRowPitch);
+        }
+
+        float blockH = row2 > 0 ? FootRowPitch + FootKeyH : FootKeyH;
+        return new Vector2(blockW, blockH);
+    }
+
+    // Combined size used ONLY by the settings-page preview, which stacks the
+    // foot block under the main grid for rebinding (the live overlay keeps them
+    // as two separate elements). Returns the bounding size; the page offsets the
+    // foot rows down by main height + gap.
+    internal static Vector2 GridSizeWithFoot(int style, int footCount) {
+        Vector2 main = GridSize(style);
+        if(footCount <= 0) {
+            return main;
+        }
+        List<KeySlot> footSlots = [];
+        Vector2 foot = BuildFootLayout(footCount, footSlots);
+        return new Vector2(Mathf.Max(main.x, foot.x), main.y + FootGapAbove + foot.y);
+    }
+
+    // Builds the foot-key element (its own root, sized + reorganize handle).
+    private static void BuildFoot() {
+        if(footRoot == null) {
+            return;
+        }
+
+        int footCount = Conf.FootKeyCount();
+        if(!Conf.IsSimpleMode || footCount <= 0) {
+            footRoot.sizeDelta = Vector2.zero;
+            return;
+        }
+
+        List<KeySlot> footSlots = [];
+        Vector2 footSize = BuildFootLayout(footCount, footSlots);
+        footRoot.sizeDelta = footSize;
+
+        foreach(KeySlot slot in footSlots) {
+            AddFootKey(slot.Slot - KeyViewerSettings.FootSlotBase, slot.X, slot.Y, slot.W, slot.H);
+        }
+
+        AddFootReorganizeHandle();
+    }
 
     private static void AddKey(int[] keys, int slot, float x, float y, float w, float h) {
         if(slot < 0 || slot >= keys.Length) {
@@ -456,6 +587,9 @@ public static class KeyViewerOverlay {
         KeyCode key = (KeyCode)keys[slot];
         Box box = NewBox("Key_" + slot, x, y, w, h);
         box.Key = key;
+        box.Slot = slot;
+        int[] ghostKeys = Conf.GhostKeysForStyle(builtStyle);
+        box.GhostKey = slot < ghostKeys.Length ? (KeyCode)ghostKeys[slot] : KeyCode.None;
         box.Name = key.ToString().ToUpperInvariant();
         box.Count = Conf.GetCount(box.Name);
 
@@ -478,21 +612,28 @@ public static class KeyViewerOverlay {
                 : 0f;
         }
 
-        // Key label: centered, lifted off the counter strip at the bottom.
-        box.Label = NewText(box.Fill.transform, "Label", LabelFor(builtStyle, slot), KeyFontSize);
+        // With the counter shown, the label is lifted off the counter strip at
+        // the bottom; with main counts hidden there's no strip, so the label
+        // fills the box and reads vertically centered.
+        bool showCount = !Conf.HideMainKeyCount;
+        box.Label = NewText(box.Fill.transform, "Label", LabelFor(builtStyle, slot), KeyFontSize * Conf.KeyFontFor(slot));
         RectTransform labelRect = box.Label.rectTransform;
         labelRect.anchorMin = Vector2.zero;
         labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = new Vector2(0f, 12f);
+        labelRect.offsetMin = new Vector2(0f, showCount ? 12f : 0f);
         labelRect.offsetMax = Vector2.zero;
 
-        box.Value = NewText(box.Fill.transform, "Counter", "0", CounterFontSize);
-        RectTransform counterRect = box.Value.rectTransform;
-        counterRect.anchorMin = Vector2.zero;
-        counterRect.anchorMax = new Vector2(1f, 0f);
-        counterRect.pivot = new Vector2(0.5f, 0f);
-        counterRect.anchoredPosition = new Vector2(0f, 3f);
-        counterRect.sizeDelta = new Vector2(0f, 16f);
+        // No counter object at all when main counts are hidden — keeps the label
+        // centered and skips the per-frame counter work for these boxes.
+        if(showCount) {
+            box.Value = NewText(box.Fill.transform, "Counter", "0", CounterFontSize * Conf.CounterFontFor(slot));
+            RectTransform counterRect = box.Value.rectTransform;
+            counterRect.anchorMin = Vector2.zero;
+            counterRect.anchorMax = new Vector2(1f, 0f);
+            counterRect.pivot = new Vector2(0.5f, 0f);
+            counterRect.anchoredPosition = new Vector2(0f, 3f);
+            counterRect.sizeDelta = new Vector2(0f, 16f);
+        }
 
         boxes.Add(box);
     }
@@ -501,10 +642,13 @@ public static class KeyViewerOverlay {
         Box box = NewBox(total ? "Total" : "Kps", x, y, w, h);
         box.IsKps = !total;
         box.IsTotal = total;
-        string caption = total ? "Total" : "KPS";
+        string caption = total ? MainCore.Tr.Get("KEYVIEWER_STAT_TOTAL", "Total") : "KPS";
         box.StatCaption = caption;
 
-        bool together = Conf != null && Conf.StatsTogether;
+        // 10/12-key styles (0/1): the stat box is narrow, so stack the caption
+        // over the value instead of side by side. Overrides Together/Apart.
+        bool stacked = builtStyle is 0 or 1;
+        bool together = Conf != null && Conf.StatsTogether && !stacked;
         box.StatTogether = together;
 
         box.Label = NewText(box.Fill.transform, "Label", caption, StatFontSize);
@@ -521,7 +665,13 @@ public static class KeyViewerOverlay {
         valueRect.offsetMin = Vector2.zero;
         valueRect.offsetMax = Vector2.zero;
 
-        if(together) {
+        if(stacked) {
+            // Caption in the top half, value in the bottom half (vertical stack).
+            labelRect.anchorMin = new Vector2(0f, 0.5f);
+            box.Label.alignment = TextAlignmentOptions.Center;
+            valueRect.anchorMax = new Vector2(1f, 0.5f);
+            box.Value.alignment = TextAlignmentOptions.Center;
+        } else if(together) {
             // Caption + value centred together as one group ("KPS  0"). The
             // value text carries the caption (see the stat update in Update),
             // so the standalone label is hidden.
@@ -535,6 +685,36 @@ public static class KeyViewerOverlay {
             valueRect.offsetMax = new Vector2(-10f, 0f);
             box.Value.alignment = TextAlignmentOptions.MidlineRight;
         }
+
+        boxes.Add(box);
+    }
+
+    private static void AddFootKey(int footIndex, float x, float y, float w, float h) {
+        int[] footKeys = Conf.FootKeys;
+        if(footIndex < 0 || footIndex >= footKeys.Length) {
+            return;
+        }
+
+        int slot = KeyViewerSettings.FootSlotBase + footIndex;
+        KeyCode key = (KeyCode)footKeys[footIndex];
+        // Foot boxes live under the separate foot element, not the main grid.
+        (Image fill, Image border) = NewBoxVisual("Foot_" + footIndex, footRoot, x, y, w, h);
+        Box box = new() { Border = border, Fill = fill };
+        box.Key = key;
+        box.Slot = slot;
+        box.IsFoot = true;
+        // Foot keys never rain or count; they only light on press.
+        box.RainGroup = 0;
+        box.CenterX = x + w * 0.5f;
+        box.BoxW = w;
+        box.Name = key.ToString().ToUpperInvariant();
+
+        box.Label = NewText(box.Fill.transform, "Label", LabelFor(builtStyle, slot), FootFontSize * Conf.KeyFontFor(slot));
+        RectTransform labelRect = box.Label.rectTransform;
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = Vector2.zero;
+        labelRect.offsetMax = Vector2.zero;
 
         boxes.Add(box);
     }
@@ -585,6 +765,28 @@ public static class KeyViewerOverlay {
         ReorganizeHandle handle = drag.AddComponent<ReorganizeHandle>();
         handle.Target = root;
         handle.GetName = () => MainCore.Tr.Get("KEYVIEWER_TITLE", "Key Viewer");
+        handle.OnMoved = Save;
+        drag.SetActive(false);
+    }
+
+    // Separate reorganize handle for the foot element, so it drags on its own.
+    private static void AddFootReorganizeHandle() {
+        if(footRoot == null) {
+            return;
+        }
+
+        GameObject drag = new("FootDrag");
+        footDragObj = drag;
+        drag.transform.SetParent(footRoot, false);
+        RectTransform dragRect = drag.AddComponent<RectTransform>();
+        dragRect.anchorMin = Vector2.zero;
+        dragRect.anchorMax = Vector2.one;
+        dragRect.offsetMin = Vector2.zero;
+        dragRect.offsetMax = Vector2.zero;
+        drag.AddComponent<EmptyGraphic>().raycastTarget = true;
+        ReorganizeHandle handle = drag.AddComponent<ReorganizeHandle>();
+        handle.Target = footRoot;
+        handle.GetName = () => MainCore.Tr.Get("KEYVIEWER_FOOT_TITLE", "Foot Keys");
         handle.OnMoved = Save;
         drag.SetActive(false);
     }
@@ -1101,6 +1303,18 @@ public static class KeyViewerOverlay {
     // Caption for a key slot: the user override if set, else derived from the
     // bound key code. Shared with the settings-page preview.
     internal static string LabelFor(int style, int slot) {
+        // Foot slots (20+) live in their own key/label arrays, shared by every
+        // main style.
+        if(slot >= KeyViewerSettings.FootSlotBase) {
+            int fi = slot - KeyViewerSettings.FootSlotBase;
+            string[] footOverrides = Conf.FootKeysText;
+            if(fi >= 0 && fi < footOverrides.Length && !string.IsNullOrEmpty(footOverrides[fi])) {
+                return footOverrides[fi];
+            }
+            int[] footKeys = Conf.FootKeys;
+            return fi >= 0 && fi < footKeys.Length ? KeyCodeShortLabel((KeyCode)footKeys[fi]) : "";
+        }
+
         string[] overrides = Conf.LabelsForStyle(style);
         if(slot >= 0 && slot < overrides.Length && !string.IsNullOrEmpty(overrides[slot])) {
             return overrides[slot];
@@ -1109,6 +1323,12 @@ public static class KeyViewerOverlay {
         int[] keys = Conf.KeysForStyle(style);
         return slot >= 0 && slot < keys.Length ? KeyCodeShortLabel((KeyCode)keys[slot]) : "";
     }
+
+    // Counter text: optionally with a thousands separator (v1 count formatting).
+    private static string FormatCount(int value) =>
+        Conf != null && Conf.CountFormatting
+            ? value.ToString("N0", CultureInfo.InvariantCulture)
+            : value.ToString(CultureInfo.InvariantCulture);
 
     internal static TextMeshProUGUI NewText(Transform parent, string name, string text, float fontSize) {
         GameObject obj = new(name);
@@ -1142,10 +1362,17 @@ public static class KeyViewerOverlay {
         }
 
         bool pressed = box.Pressed;
-        box.Border.color = pressed ? Conf.GetOutlinePressed() : Conf.GetOutline();
-        box.Fill.color = pressed ? Conf.GetBgPressed() : Conf.GetBg();
+        int slot = box.Slot;
+        box.Border.color = pressed
+            ? Conf.PerKeyOr(Conf.PerKeyOutlinePressed, slot, Conf.GetOutlinePressed())
+            : Conf.PerKeyOr(Conf.PerKeyOutline, slot, Conf.GetOutline());
+        box.Fill.color = pressed
+            ? Conf.PerKeyOr(Conf.PerKeyBgPressed, slot, Conf.GetBgPressed())
+            : Conf.PerKeyOr(Conf.PerKeyBg, slot, Conf.GetBg());
 
-        Color text = pressed ? Conf.GetTextPressed() : Conf.GetText();
+        Color text = pressed
+            ? Conf.PerKeyOr(Conf.PerKeyTextPressed, slot, Conf.GetTextPressed())
+            : Conf.PerKeyOr(Conf.PerKeyText, slot, Conf.GetText());
         if(box.Label != null) {
             box.Label.color = text;
         }
@@ -1154,9 +1381,15 @@ public static class KeyViewerOverlay {
         }
     }
 
-    // True while the key is held. Unity's legacy Input on Windows reports the
-    // numpad Enter as KeyCode.Return (it can't tell them apart), so a box bound
-    // to KeypadEnter would never light — accept Return as a fallback for it.
+    // True while the key is held. Unity's legacy Input is NumLock-aware: with
+    // NumLock OFF the numpad keys report as their navigation twins (Keypad0 ->
+    // Insert, KeypadPeriod -> Delete, Keypad2 -> DownArrow, ...) and it always
+    // reports the numpad Enter as Return (it can't tell them apart). So a box
+    // bound to a numpad key would never light with NumLock off — accept the nav
+    // twin as a fallback too. (Mirror of the KeypadEnter -> Return special case
+    // this replaces. The reverse ambiguity — a real Insert/arrow press lighting
+    // a numpad box when NumLock is on — is unavoidable with the Input API and
+    // rare in play; the hook-based KeyLimiter path stays NumLock-independent.)
     private static bool KeyHeld(KeyCode key) {
         if(key == KeyCode.None) {
             return false;
@@ -1164,11 +1397,40 @@ public static class KeyViewerOverlay {
         if(Input.GetKey(key)) {
             return true;
         }
-        return key == KeyCode.KeypadEnter && Input.GetKey(KeyCode.Return);
+        KeyCode twin = NumpadNavTwin(key);
+        return twin != KeyCode.None && Input.GetKey(twin);
     }
+
+    // The navigation key Unity's legacy Input reports for each numpad key while
+    // NumLock is off. KeyCode.None for non-numpad keys (no fallback).
+    private static KeyCode NumpadNavTwin(KeyCode key) => key switch {
+        KeyCode.KeypadEnter => KeyCode.Return,
+        KeyCode.Keypad0 => KeyCode.Insert,
+        KeyCode.Keypad1 => KeyCode.End,
+        KeyCode.Keypad2 => KeyCode.DownArrow,
+        KeyCode.Keypad3 => KeyCode.PageDown,
+        KeyCode.Keypad4 => KeyCode.LeftArrow,
+        KeyCode.Keypad5 => KeyCode.Clear,
+        KeyCode.Keypad6 => KeyCode.RightArrow,
+        KeyCode.Keypad7 => KeyCode.Home,
+        KeyCode.Keypad8 => KeyCode.UpArrow,
+        KeyCode.Keypad9 => KeyCode.PageUp,
+        KeyCode.KeypadPeriod => KeyCode.Delete,
+        _ => KeyCode.None,
+    };
 
     // v1 SimplePresets.KeyCodeShortLabel: compact key captions.
     internal static string KeyCodeShortLabel(KeyCode kc) {
+        // Arrows resolve first: the Left/Right prefix rewrite below would turn
+        // "LeftArrow"/"RightArrow" into "LArrow"/"RArrow", which then miss the
+        // arrow-glyph switch at the end (Up/Down lack the prefix and worked).
+        switch(kc) {
+            case KeyCode.UpArrow: return "↑";
+            case KeyCode.DownArrow: return "↓";
+            case KeyCode.LeftArrow: return "←";
+            case KeyCode.RightArrow: return "→";
+        }
+
         string s = kc.ToString();
         if(s.StartsWith("Alpha")) s = s[5..];
         // Numpad keys: "N" prefix + the symbol/digit (the generic transforms
@@ -1216,10 +1478,6 @@ public static class KeyViewerOverlay {
             "BackQuote" => "`",
             "CapsLock" => "⇪",
             "Backspace" => "Back",
-            "UpArrow" => "↑",
-            "DownArrow" => "↓",
-            "LeftArrow" => "←",
-            "RightArrow" => "→",
             "LBracket" or "LeftBracket" => "[",
             "RBracket" or "RightBracket" => "]",
             "None" => "",
@@ -1242,7 +1500,7 @@ public static class KeyViewerOverlay {
                 return "MAX";
             }
             if(keyName.Equals("total", StringComparison.OrdinalIgnoreCase)) {
-                return "Total";
+                return MainCore.Tr.Get("KEYVIEWER_STAT_TOTAL", "Total");
             }
             return keyName.ToUpperInvariant();
         }
@@ -1341,8 +1599,12 @@ public static class KeyViewerOverlay {
             case "QUOTE": return KeyCode.Quote;
             case "BACKQUOTE":
             case "BACKTICK": return KeyCode.BackQuote;
+            case "SQUAREBRACKETOPEN":
+            case "OPENBRACKET":
             case "LEFTBRACKET":
             case "LBRACKET": return KeyCode.LeftBracket;
+            case "SQUAREBRACKETCLOSE":
+            case "CLOSEBRACKET":
             case "RIGHTBRACKET":
             case "RBRACKET": return KeyCode.RightBracket;
             case "UP":
@@ -1482,6 +1744,9 @@ public static class KeyViewerOverlay {
         } else {
             Conf.OffsetX = def.OffsetX;
             Conf.OffsetY = def.OffsetY;
+            // The foot element is a separate piece — reset it too.
+            Conf.FootOffsetX = def.FootOffsetX;
+            Conf.FootOffsetY = def.FootOffsetY;
         }
         Apply();
         Save();
@@ -1560,6 +1825,8 @@ public static class KeyViewerOverlay {
         raycaster = null;
         root = null;
         dragObj = null;
+        footRoot = null;
+        footDragObj = null;
         rainManager = null;
         boxes.Clear();
         pressLog.Clear();
@@ -1572,7 +1839,7 @@ public static class KeyViewerOverlay {
     // ===== rain (port of v1's KvRain* — one manager Update, batched row meshes,
     // custom graphic with vertex-alpha fade; allocation only on key press) =====
 
-    private static RawRain SpawnRain(Box box, float now) {
+    private static RawRain SpawnRain(Box box, float now, bool ghost = false) {
         bool frontRow = box.RainGroup == 1;
         float width = frontRow ? Conf.RainWidth : Conf.Rain2Width;
         if(width <= 0.5f) {
@@ -1600,11 +1867,12 @@ public static class KeyViewerOverlay {
             TrackHeight = Mathf.Max(1f, Conf.RainHeight),
             Speed = Mathf.Max(1f, Conf.RainSpeed),
             FadePx = Mathf.Max(0f, Conf.RainFade),
-            Color = box.RainGroup switch {
+            // Ghost rain uses its own shared colour and ignores per-key rain.
+            Color = ghost ? Conf.GetGhostRain() : Conf.PerKeyOr(Conf.PerKeyRain, box.Slot, box.RainGroup switch {
                 1 => Conf.GetRain(),
                 3 => Conf.GetRain3(),
                 _ => Conf.GetRain2(),
-            },
+            }),
         };
         raw.ColorTop = raw.Color;
         raw.ColorBottom = raw.Color;
@@ -2079,6 +2347,19 @@ public static class KeyViewerOverlay {
                 dragObj.SetActive(isReorganizing);
             }
 
+            // Foot element: shown only in simple mode with foot keys configured,
+            // and draggable on its own in Reorganize mode.
+            bool footShow = show && Conf.IsSimpleMode && Conf.FootKeyCount() > 0;
+            if(footRoot != null && footRoot.gameObject.activeSelf != footShow) {
+                footRoot.gameObject.SetActive(footShow);
+            }
+            if(footDragObj != null) {
+                bool footDragActive = isReorganizing && footShow;
+                if(footDragObj.activeSelf != footDragActive) {
+                    footDragObj.SetActive(footDragActive);
+                }
+            }
+
             if(!show) {
                 return;
             }
@@ -2098,7 +2379,13 @@ public static class KeyViewerOverlay {
             }
 
             // Drag writes the position; mirror it back into the settings so it
-            // persists. Only the drag (Reorganize mode) can move root.
+            // persists. Only the drag (Reorganize mode) can move root. The foot
+            // element is dragged independently and writes its own position.
+            if(isReorganizing && footRoot != null) {
+                Vector2 footStored = OverlayCalibration.Unscale(footRoot.anchoredPosition);
+                Conf.FootOffsetX = footStored.x;
+                Conf.FootOffsetY = footStored.y;
+            }
             if(isReorganizing) {
                 Vector2 stored = OverlayCalibration.Unscale(root.anchoredPosition);
                 Conf.OffsetX = stored.x;
@@ -2121,6 +2408,15 @@ public static class KeyViewerOverlay {
                 }
 
                 if(box.IsStat) {
+                    // Streamer mode hides the KPS and Total boxes entirely.
+                    bool statVisible = !Conf.StreamerMode;
+                    if(box.Fill.gameObject.activeSelf != statVisible) {
+                        box.Fill.gameObject.SetActive(statVisible);
+                    }
+                    if(!statVisible) {
+                        continue;
+                    }
+
                     // Per-box LastShown (not persistent updater fields), so the
                     // cache dies with the box on Rebuild/ResetCounts and a fresh
                     // box never gets stuck on "0" when its restored value happens
@@ -2129,8 +2425,8 @@ public static class KeyViewerOverlay {
                     if(box.Value != null && box.LastShown != value) {
                         // Together mode renders the caption inline with the value.
                         box.Value.text = box.StatTogether
-                            ? box.StatCaption + "  " + value.ToString(CultureInfo.InvariantCulture)
-                            : value.ToString(CultureInfo.InvariantCulture);
+                            ? box.StatCaption + "  " + FormatCount(value)
+                            : FormatCount(value);
                         box.LastShown = value;
                     }
                     continue;
@@ -2138,10 +2434,14 @@ public static class KeyViewerOverlay {
 
                 bool pressed = KeyHeld(box.Key);
                 if(pressed && !box.Pressed) {
-                    box.Count++;
-                    totalCount++;
-                    pressLog.Enqueue(now);
-                    countsDirty = true;
+                    // Foot keys light up but never add to the counters.
+                    if(!box.IsFoot) {
+                        box.Count++;
+                        totalCount++;
+                        pressLog.Enqueue(now);
+                        box.KpsLog.Enqueue(now);
+                        countsDirty = true;
+                    }
 
                     if(Conf.RainEnabled && box.RainGroup != 0 && rainManager != null) {
                         box.LastRain = SpawnRain(box, now);
@@ -2152,14 +2452,60 @@ public static class KeyViewerOverlay {
                     box.LastRain = null;
                 }
 
+                // Ghost rain: a separate streak from the slot's secondary key,
+                // ghost-coloured, with no effect on the press counters. Active
+                // whenever the slot has a ghost key set (no separate enable).
+                if(Conf.RainEnabled && box.RainGroup != 0
+                    && rainManager != null && box.GhostKey != KeyCode.None) {
+                    bool ghostPressed = KeyHeld(box.GhostKey);
+                    if(ghostPressed && !box.GhostPressed) {
+                        box.LastGhostRain = SpawnRain(box, now, ghost: true);
+                    } else if(!ghostPressed && box.GhostPressed && box.LastGhostRain != null) {
+                        box.LastGhostRain.EndTime = now;
+                        box.LastGhostRain = null;
+                    }
+                    box.GhostPressed = ghostPressed;
+                } else if(box.GhostPressed) {
+                    // Ghost disabled mid-hold: close any open streak.
+                    if(box.LastGhostRain != null) {
+                        box.LastGhostRain.EndTime = now;
+                        box.LastGhostRain = null;
+                    }
+                    box.GhostPressed = false;
+                }
+
                 if(pressed != box.Pressed) {
                     box.Pressed = pressed;
                     ApplyBoxColors(box);
                 }
 
-                if(box.Count != box.LastShown) {
+                if(box.Value == null) {
+                    continue;
+                }
+
+                // Hide the per-key counter entirely if requested.
+                bool countVisible = !Conf.HideMainKeyCount;
+                if(box.Value.gameObject.activeSelf != countVisible) {
+                    box.Value.gameObject.SetActive(countVisible);
+                }
+                if(!countVisible) {
+                    continue;
+                }
+
+                if(Conf.PerKeyKps) {
+                    // Per-key KPS: this key's presses in the last second. The
+                    // window slides every frame, so recompute unconditionally.
+                    while(box.KpsLog.Count > 0 && now - box.KpsLog.Peek() > 1f) {
+                        box.KpsLog.Dequeue();
+                    }
+                    int kps = box.KpsLog.Count;
+                    if(box.LastShown != kps) {
+                        box.LastShown = kps;
+                        box.Value.text = FormatCount(kps);
+                    }
+                } else if(box.Count != box.LastShown) {
                     box.LastShown = box.Count;
-                    box.Value.text = box.Count.ToString(CultureInfo.InvariantCulture);
+                    box.Value.text = FormatCount(box.Count);
                 }
             }
 
