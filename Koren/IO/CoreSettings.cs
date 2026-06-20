@@ -26,6 +26,11 @@ public sealed class CoreSettings : ISettingsFile {
     // from the same picker, so the in-game text can use a different face.
     public string GameOverlayFontName = "";
 
+    // Font for the mod's own settings window. Empty means "follow the overlay
+    // font (FontName)"; otherwise a font display name from the same picker, so
+    // the settings window can use a different face than the gameplay overlays.
+    public string SettingsFontName = "";
+
     public float ScrollSpeed = 80f;
 
     // Settings-window opacity (0..1). Default fully opaque (shown as 100%).
@@ -109,6 +114,7 @@ public sealed class CoreSettings : ISettingsFile {
             [nameof(FontName)] = FontName,
             [nameof(ApplyFontToGameOverlay)] = ApplyFontToGameOverlay,
             [nameof(GameOverlayFontName)] = GameOverlayFontName,
+            [nameof(SettingsFontName)] = SettingsFontName,
             [nameof(ScrollSpeed)] = ScrollSpeed,
             [nameof(PanelOpacity)] = PanelOpacity,
             [nameof(PanelWidth)] = PanelWidth,
@@ -137,6 +143,7 @@ public sealed class CoreSettings : ISettingsFile {
         FontName = IOUtils.Read(token, nameof(FontName), FontName);
         ApplyFontToGameOverlay = IOUtils.Read(token, nameof(ApplyFontToGameOverlay), ApplyFontToGameOverlay);
         GameOverlayFontName = IOUtils.Read(token, nameof(GameOverlayFontName), GameOverlayFontName);
+        SettingsFontName = IOUtils.Read(token, nameof(SettingsFontName), SettingsFontName);
         ScrollSpeed = IOUtils.Read(token, nameof(ScrollSpeed), ScrollSpeed);
         PanelOpacity = IOUtils.Read(token, nameof(PanelOpacity), PanelOpacity);
         PanelWidth = IOUtils.Read(token, nameof(PanelWidth), PanelWidth);

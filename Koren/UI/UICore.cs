@@ -56,6 +56,10 @@ public static class UICore {
         canvasObj.transform.SetParent(MainCore.Root.transform, false);
         canvasObj.SetActive(false);
 
+        // Texts under this canvas follow the settings-window font; everything
+        // else under the mod root uses the overlay font.
+        FontManager.MenuRoot = canvasObj.transform;
+
         canvas = canvasObj.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 32767;
@@ -93,6 +97,10 @@ public static class UICore {
         MainCore.Tr.OnLoadEnd += _onRefresh;
 
         TextLocalization.RefreshAll();
+
+        // Every settings-window text was built with the overlay font; if a
+        // window-specific font is set, re-point the window's texts to it now.
+        FontManager.ApplyMenuFont();
 
         if(MainCore.Conf.IsFirstRun) {
             MakeFirstRunHelper();
@@ -1155,6 +1163,7 @@ public static class UICore {
         // interrupt a live gameplay overlay animation in practice.
         MainCore.TC.Clear();
 
+        FontManager.MenuRoot = null;
         UnityEngine.Object.Destroy(canvasObj);
         canvasObj = null;
     }

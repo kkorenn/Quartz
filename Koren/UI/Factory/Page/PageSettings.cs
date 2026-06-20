@@ -38,6 +38,7 @@ internal static class PageSettings {
     private static TextMeshProUGUI fontStatusText;
     private static UIDropDown<string> gameFontDropdown;
     private static GameObject gameFontPickerRow;
+    private static UIDropDown<string> settingsFontDropdown;
     private static string pendingFontName = "";
 
     // Update UI, refreshed from UpdateService.OnChanged.
@@ -64,6 +65,8 @@ internal static class PageSettings {
         // The page can be built more than once per session (profile switches
         // rebuild the whole UI); drop rows from the previous build.
         objects.Clear();
+        FontManager.OnFontCatalogChanged -= RefreshFontDropdowns;
+        FontManager.OnFontCatalogChanged += RefreshFontDropdowns;
 
         GameObject pad = new("Pad");
         pad.transform.SetParent(parent, false);
@@ -764,6 +767,43 @@ internal static class PageSettings {
         // the default font).
         gameFontDropdown.ItemFont = FontManager.GetFont;
         RefreshGameFontRow();
+
+        // Settings-window font: lets this mod's own settings window use a
+        // different face than the gameplay overlays. "Same as overlay font"
+        // (the default) follows the Font picker above, so setups that never
+        // touch this are unchanged.
+        var settingsFontLabelRow = GenerateUI.Row(content.transform);
+        var settingsFontText = GenerateUI.AddTextH1(settingsFontLabelRow);
+        var settingsFontTextTr = settingsFontText.gameObject.AddComponent<TextLocalization>().Init("SETTINGS_FONT", "Settings Window Font");
+
+        var settingsFontRow = GenerateUI.Row(content.transform);
+        settingsFontDropdown = GenerateUI.DropDown(
+            settingsFontRow,
+            FontManager.SameAsOverlay,
+            CurrentSettingsFontValue(),
+            BuildGameFontValues(),
+            DisplayGameFont,
+            OnSettingsFontSelected,
+            "settings_font_dropdown"
+        );
+        settingsFontDropdown.ItemFont = FontManager.GetFont;
+        settingsFontDropdown.Rect.AddToolTip(
+            "DESC_SETTINGS_FONT",
+            "Font for this mod's own settings window. \"Same as overlay font\" follows the Font picker above."
+        );
+        objects[settingsFontTextTr] = (settingsFontLabelRow.gameObject, settingsFontRow.gameObject);
+    }
+
+    private static string CurrentSettingsFontValue() {
+        string name = MainCore.Conf.SettingsFontName;
+        return string.IsNullOrEmpty(name) ? FontManager.SameAsOverlay : name;
+    }
+
+    private static void OnSettingsFontSelected(string name) {
+        MainCore.Conf.SettingsFontName = name == FontManager.SameAsOverlay ? "" : name;
+        MainCore.ConfMgr.RequestSave();
+        // Re-font only the settings window; the overlays keep the overlay font.
+        FontManager.ApplyMenuFont();
     }
 
     private static IReadOnlyList<string> BuildGameFontValues() {
@@ -780,7 +820,9 @@ internal static class PageSettings {
     private static string DisplayGameFont(string name) =>
         name == FontManager.SameAsOverlay
             ? Tr("FONT_SAME_AS_OVERLAY", "Same as overlay font")
-            : name;
+            : name == FontManager.DefaultName
+                ? Tr("FONT_DEFAULT", "Default (Cookie Run Bold)")
+                : name;
 
     private static void OnGameFontSelected(string name) {
         MainCore.Conf.GameOverlayFontName = name == FontManager.SameAsOverlay ? "" : name;
@@ -798,6 +840,25 @@ internal static class PageSettings {
         }
     }
 
+    // Rebuild every open font picker after an import, rename, or delete. This
+    // also updates selections whose persisted override was renamed or reset.
+    private static void RefreshFontDropdowns() {
+        if(fontDropdown != null) {
+            fontDropdown.SetValues(BuildFontValues());
+            fontDropdown.Set(FontManager.CurrentName, false);
+        }
+
+        if(gameFontDropdown != null) {
+            gameFontDropdown.SetValues(BuildGameFontValues());
+            gameFontDropdown.Set(CurrentGameFontValue(), false);
+        }
+
+        if(settingsFontDropdown != null) {
+            settingsFontDropdown.SetValues(BuildGameFontValues());
+            settingsFontDropdown.Set(CurrentSettingsFontValue(), false);
+        }
+    }
+
     private static IReadOnlyList<string> BuildFontValues() {
         var list = new List<string>(FontManager.GetAvailableFonts()) { FontManager.AddSentinel };
         return list;
@@ -806,7 +867,9 @@ internal static class PageSettings {
     private static string DisplayFont(string name) =>
         name == FontManager.AddSentinel
             ? Tr("FONT_ADD", "＋  Add custom font…")
-            : name;
+            : name == FontManager.DefaultName
+                ? Tr("FONT_DEFAULT", "Default (Cookie Run Bold)")
+                : name;
 
     private static void OnFontSelected(string name) {
         if(name == FontManager.AddSentinel) {

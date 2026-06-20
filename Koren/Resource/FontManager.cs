@@ -42,10 +42,32 @@ public static class FontManager {
         }
     }
 
+    // The settings-window canvas subtree (UICore's KorenUICanvas). TMP texts
+    // under it follow the settings-window font (MenuFontAsset); every other text
+    // under the mod root uses the overlay font (Current). Set by UICore when the
+    // window is built, cleared on teardown.
+    public static Transform MenuRoot { get; set; }
+
+    // Font for the mod's own settings window. Follows the overlay font when
+    // SettingsFontName is empty / "same as overlay", otherwise the named font
+    // (falling back to the default if it's gone).
+    public static TMP_FontAsset MenuFontAsset {
+        get {
+            string name = MainCore.Conf?.SettingsFontName;
+            return string.IsNullOrEmpty(name) || name == SameAsOverlay
+                ? Current
+                : GetFont(name);
+        }
+    }
+
     // Raised after the selected font changes (and after ApplyToAll re-points the
     // mod's UI). The GameOverlayFont feature listens so it can re-apply the font
     // to the game's own text when that option is on.
     public static event Action OnFontChanged;
+
+    // Raised whenever the set of importable fonts changes so open pickers can
+    // rebuild their option rows without FontManager depending on UI classes.
+    public static event Action OnFontCatalogChanged;
 
     private static TMP_FontAsset defaultFont;
     // Source Font behind defaultFont when it was built from DefaultFontFile;
@@ -213,6 +235,7 @@ public static class FontManager {
 
             File.Copy(srcPath, Path.Combine(dir, name + ext), false);
             Invalidate();
+            OnFontCatalogChanged?.Invoke();
             return name;
         } catch(Exception e) {
             MainCore.Log.Err($"[FontManager] import failed: {e.Message}");
@@ -268,6 +291,26 @@ public static class FontManager {
         if(wasCurrent) {
             SetFont(clean, true);
         }
+        // Keep a settings-window override that pointed at this font in step.
+        if(string.Equals(MainCore.Conf?.SettingsFontName, oldName, StringComparison.OrdinalIgnoreCase)) {
+            MainCore.Conf.SettingsFontName = clean;
+            MainCore.ConfMgr.RequestSave();
+            ApplyMenuFont();
+        }
+
+        // Keep the in-game overlay override pointing at the renamed file too.
+        bool gameFontRenamed = string.Equals(
+            MainCore.Conf?.GameOverlayFontName,
+            oldName,
+            StringComparison.OrdinalIgnoreCase
+        );
+        if(gameFontRenamed) {
+            MainCore.Conf.GameOverlayFontName = clean;
+            MainCore.ConfMgr.RequestSave();
+            OnFontChanged?.Invoke();
+        }
+
+        OnFontCatalogChanged?.Invoke();
         return true;
     }
 
@@ -297,6 +340,28 @@ public static class FontManager {
         if(wasCurrent) {
             SetFont(DefaultName, true);
         }
+        // A settings-window override that pointed at this font reverts to
+        // following the overlay font.
+        if(string.Equals(MainCore.Conf?.SettingsFontName, name, StringComparison.OrdinalIgnoreCase)) {
+            MainCore.Conf.SettingsFontName = "";
+            MainCore.ConfMgr.RequestSave();
+            ApplyMenuFont();
+        }
+
+        // A game-overlay override that pointed at this file also falls back to
+        // following the overlay font, then immediately refreshes live labels.
+        bool gameFontDeleted = string.Equals(
+            MainCore.Conf?.GameOverlayFontName,
+            name,
+            StringComparison.OrdinalIgnoreCase
+        );
+        if(gameFontDeleted) {
+            MainCore.Conf.GameOverlayFontName = "";
+            MainCore.ConfMgr.RequestSave();
+            OnFontChanged?.Invoke();
+        }
+
+        OnFontCatalogChanged?.Invoke();
         return true;
     }
 
@@ -363,17 +428,52 @@ public static class FontManager {
     // UnityEngine.UI.Text, which needs a Font rather than the TMP_FontAsset that
     // Current exposes; the GameOverlayFont feature uses this to drive it.
 
-    // Re-points every existing TMP text under the mod root at the current
-    // font. Texts marked FontExempt manage their own font (font-picker rows).
+    // Re-points every existing TMP text under the mod root at its font: texts
+    // under the settings window (MenuRoot) draw with the settings-window font
+    // (MenuFontAsset), everything else with the overlay font (Current). When the
+    // window font is "same as overlay" both are equal, so this stays a plain
+    // global re-font. Texts marked FontExempt manage their own font (font-picker
+    // rows).
     public static void ApplyToAll() {
         if(MainCore.Root == null || Current == null) {
             return;
         }
 
+        TMP_FontAsset menuFont = MenuFontAsset ?? Current;
+        Transform menuRoot = MenuRoot;
+
         TMP_Text[] texts = MainCore.Root.GetComponentsInChildren<TMP_Text>(true);
         for(int i = 0; i < texts.Length; i++) {
-            if(texts[i] != null && texts[i].GetComponent<FontExempt>() == null) {
-                texts[i].font = Current;
+            TMP_Text text = texts[i];
+            if(text == null || text.GetComponent<FontExempt>() != null) {
+                continue;
+            }
+
+            bool isMenu = menuRoot != null
+                && (text.transform == menuRoot || text.transform.IsChildOf(menuRoot));
+            text.font = isMenu ? menuFont : Current;
+        }
+    }
+
+    // Re-points only the settings-window texts at the current settings-window
+    // font. Used when that font changes and after the window is (re)built, so a
+    // window-specific font takes hold without disturbing the overlays.
+    public static void ApplyMenuFont() {
+        Transform menuRoot = MenuRoot;
+        if(menuRoot == null) {
+            return;
+        }
+
+        TMP_FontAsset menuFont = MenuFontAsset ?? Current;
+        if(menuFont == null) {
+            return;
+        }
+
+        TMP_Text[] texts = menuRoot.GetComponentsInChildren<TMP_Text>(true);
+        for(int i = 0; i < texts.Length; i++) {
+            TMP_Text text = texts[i];
+            if(text != null && text.GetComponent<FontExempt>() == null) {
+                text.font = menuFont;
             }
         }
     }
