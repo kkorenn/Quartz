@@ -235,8 +235,15 @@ public static class Reorganizer {
         // Half-opacity so the floating panel doesn't fully hide whatever sits
         // behind it while repositioning. No uGUI Outline here, so partial alpha
         // fades cleanly (no white bleed).
+        //
+        // blocksRaycasts = false makes the whole panel click-through: this canvas
+        // sorts above every overlay HUD, so without it the sliders would steal
+        // pointer events from any element parked underneath the panel. Letting
+        // raycasts pass means the element behind keeps selection/drag priority;
+        // the sliders stay as a live position readout (synced during drag).
         CanvasGroup group = panelObj.AddComponent<CanvasGroup>();
         group.alpha = 0.5f;
+        group.blocksRaycasts = false;
 
         VerticalLayoutGroup layout = panelObj.AddComponent<VerticalLayoutGroup>();
         layout.spacing = 8f;
