@@ -172,6 +172,22 @@ internal static class PageTweaks {
             "Keeps the game running at full speed when its window loses focus, so a run or practice session doesn't stall when you alt-tab."
         );
 
+        var lossyCompress = GenerateUI.Toggle(
+            GenerateUI.Row(optimizerSec.Body),
+            optDef.LossyTextureCompression,
+            opt.LossyTextureCompression,
+            v => {
+                opt.LossyTextureCompression = v;
+                Optimizer.Save();
+            },
+            "Lossy Texture Compression",
+            "opt_lossytexture"
+        );
+        lossyCompress.Rect.AddToolTip(
+            "DESC_OPT_LOSSYTEXTURE",
+            "Compresses custom textures loaded from disk (DXT) to cut their memory use ~4-8x, with a small visual quality cost. Applies to textures loaded after it's turned on."
+        );
+
         var mainMenuSec = GenerateUI.Collapsible(content.transform, "Main Menu", startExpanded: false);
 
         var menuMusic = GenerateUI.Toggle(

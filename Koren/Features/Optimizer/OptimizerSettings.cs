@@ -31,12 +31,19 @@ public sealed class OptimizerSettings : ISettingsFile {
     // or practice session keeps going while alt-tabbed.
     public bool RunInBackground = true;
 
+    // Compress custom textures loaded from disk with lossy DXT compression
+    // (~4-8x less VRAM/RAM, small visual quality cost). Unlike the toggles above
+    // this changes how textures look, so it defaults off. Only affects disk-
+    // loaded custom textures; internal-level and bundle assets are untouched.
+    public bool LossyTextureCompression = false;
+
     public JToken Serialize() {
         return new JObject {
             [nameof(SmoothGC)] = SmoothGC,
             [nameof(CollectOnLevelLoad)] = CollectOnLevelLoad,
             [nameof(BoostProcessPriority)] = BoostProcessPriority,
             [nameof(RunInBackground)] = RunInBackground,
+            [nameof(LossyTextureCompression)] = LossyTextureCompression,
         };
     }
 
@@ -45,5 +52,6 @@ public sealed class OptimizerSettings : ISettingsFile {
         CollectOnLevelLoad = IOUtils.Read(token, nameof(CollectOnLevelLoad), CollectOnLevelLoad);
         BoostProcessPriority = IOUtils.Read(token, nameof(BoostProcessPriority), BoostProcessPriority);
         RunInBackground = IOUtils.Read(token, nameof(RunInBackground), RunInBackground);
+        LossyTextureCompression = IOUtils.Read(token, nameof(LossyTextureCompression), LossyTextureCompression);
     }
 }
