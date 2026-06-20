@@ -1,0 +1,40 @@
+Koren/UI/Factory/Page/PageEditor.cs
+  s_dfb59582625633::t_a86e970ea5c2fa 84-100
+  s_dfb59582625633::t_c1fa3fb04ba57e 101-110
+Koren/Features/Editor/EditorSettings.cs
+  s_dfb59582625633::t_4982a30fc4e6c9 4,19-31,36-39,49-52
+  s_dfb59582625633::t_624e7cff111234 15-18,35,48
+Koren/Resource/Export/Lang/ko-KR.json
+  s_dfb59582625633::t_c96bad7239418f 156
+  s_dfb59582625633::t_8e8ac3885431c1 70
+  s_dfb59582625633::t_50465df469474e 157
+Koren/UI/Utility/TMPTextShadow.cs
+  s_dfb59582625633::t_9e4d7eea1e5cc0 204-211
+  s_dfb59582625633::t_48821ffe4bf66e 233-235,239,242-267
+Koren/Resource/Export/Lang/en-US.json
+  s_dfb59582625633::t_8ce35c0b7d7392 157
+  s_dfb59582625633::t_07414504268891 70
+  s_dfb59582625633::t_9af519e2be1107 156
+Koren/Features/Editor/EditorAngleLabels.cs
+  s_dfb59582625633::t_3f72ff56017a6a 1-82,84-105,107,110-156
+  s_dfb59582625633::t_d720d4bcbbc752 83
+  s_dfb59582625633::t_63bda1a689a002 106,108-109
+Koren/Features/Editor/Editor.cs
+  s_dfb59582625633::t_b073c4a305c7ab 61-64,68-71,79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "08c48ccf8a13d83ebe7ee0dcd037e9b4ab5a03f5",
+  "prompts": {},
+  "sessions": {
+    "s_dfb59582625633": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fe5f20d0-1b49-4fbd-8244-f65f7383eb91",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
