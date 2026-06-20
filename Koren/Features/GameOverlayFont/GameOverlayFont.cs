@@ -333,6 +333,16 @@ public sealed class GameFontMirror : MonoBehaviour {
         mat.SetFloat("_UnderlayOffsetY", ShadowOffsetY);
         mat.SetFloat("_UnderlaySoftness", ShadowSoftness);
         mat.SetFloat("_UnderlayDilate", ShadowDilate);
+
+        // Enabling the underlay by poking the material directly does NOT tell the
+        // TMP component to grow each glyph's quad padding — it stays sized for no
+        // shadow, so the underlay (drawn in the same mesh, offset down-right) is
+        // culled at the quad edge into a hard square box behind the text. TMP only
+        // recomputes that padding when it notices the material change, which a raw
+        // SetFloat/EnableKeyword bypasses. Force the recompute so the quads get
+        // room and the shadow renders soft. (Flags the mesh dirty — it rebuilds on
+        // the next canvas pass, alongside the text Apply sets right after.)
+        twin.UpdateMeshPadding();
     }
 
     private static GameFontMirror instance;
