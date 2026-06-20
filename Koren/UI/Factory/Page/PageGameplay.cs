@@ -1,6 +1,7 @@
 using Koren.Core;
 using Koren.Features.AutoDeafen;
 using Koren.Features.ChatterBlocker;
+using Koren.Features.Interop;
 using Koren.Features.KeyLimiter;
 using Koren.Features.KeyViewer;
 using Koren.Features.Restriction;
@@ -466,9 +467,10 @@ internal static class PageGameplay {
         RestrictionSettings conf = Restriction.Conf;
         RestrictionSettings def = new();
 
-        // v1 mode 2 was "XPure Perfect" (XPerfect mod integration), not
-        // ported — fall back to Pure Perfect.
-        if(conf.JRestrictMode == 2) {
+        // Mode 2 is "XPure Perfect" (XPerfect mod integration). It only makes
+        // sense with XPerfect installed; otherwise fall back to Pure Perfect so
+        // the dropdown has a valid selection.
+        if(conf.JRestrictMode == 2 && !XPerfectBridge.Installed) {
             conf.JRestrictMode = 1;
         }
 
@@ -493,7 +495,8 @@ internal static class PageGameplay {
             }
         }
 
-        int[] modes = [0, 1, 3, 4];
+        // XPure Perfect (mode 2) only appears when the XPerfect mod is present.
+        int[] modes = XPerfectBridge.Installed ? [0, 1, 2, 3, 4] : [0, 1, 3, 4];
         GenerateUI.DropDown(
             GenerateUI.Row(sec.Body),
             def.JRestrictMode,
@@ -588,6 +591,7 @@ internal static class PageGameplay {
     private static string ModeName(int mode) => mode switch {
         0 => MainCore.Tr.Get("JR_MODE_MIN_ACCURACY", "Minimum Accuracy"),
         1 => MainCore.Tr.Get("JR_MODE_PURE_PERFECT", "Pure Perfect Only"),
+        2 => MainCore.Tr.Get("JR_MODE_XPURE_PERFECT", "X-Perfect Only"),
         3 => MainCore.Tr.Get("JR_MODE_CUSTOM", "Custom Judgements"),
         4 => MainCore.Tr.Get("JR_MODE_NO_TOO_EARLY", "No Too Early"),
         _ => mode.ToString(),

@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Koren.Core;
+using Koren.Features.Interop;
 using Koren.Features.Status;
 using Koren.IO;
 
@@ -96,6 +97,20 @@ public static class Restriction {
             // Pure Perfect only.
             case 1:
                 return marginInt != (int)HitMargin.Perfect;
+
+            // XPure Perfect: only X (dead-centre) Perfects from the XPerfect mod
+            // pass. With XPerfect absent/inactive there are no X grades, so every
+            // Perfect is accepted rather than failing the whole run.
+            case 2: {
+                if(marginInt != (int)HitMargin.Perfect) {
+                    return true;
+                }
+                if(!XPerfectBridge.Active) {
+                    return false;
+                }
+                XPerfectBridge.Judge xj = XPerfectBridge.LastJudge();
+                return xj != XPerfectBridge.Judge.None && xj != XPerfectBridge.Judge.X;
+            }
 
             // Custom: any judgement whose bit isn't in the allowed mask
             // fails. An empty mask is treated as "off" rather than
