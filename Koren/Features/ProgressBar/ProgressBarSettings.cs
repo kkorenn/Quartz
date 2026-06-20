@@ -1,4 +1,5 @@
 using Newtonsoft.Json.Linq;
+using Koren.Features.Panels;
 using Koren.IO;
 using Koren.IO.Interface;
 using UnityEngine;
@@ -26,6 +27,18 @@ public sealed class ProgressBarSettings : ISettingsFile {
     public float FillR = 1f, FillG = 0f, FillB = 0f, FillA = 0.96f;
     public float BackR = 0.05f, BackG = 0.05f, BackB = 0.06f, BackA = 0.80f;
     public float OutlineColR = 1f, OutlineColG = 1f, OutlineColB = 1f, OutlineColA = 1f;
+
+    // Optional progress-driven fill gradient (v1's ProgressBarFillColor range):
+    // when enabled, the fill colour is the gradient evaluated at the current
+    // progress (0 = empty, 1 = complete) instead of the flat FillColor above.
+    // Disabled by default so the bar keeps its solid colour. Reuses the Panels
+    // StatColor gradient model.
+    public StatColor FillGradient = StatColor.DefaultFor("progress");
+
+    // Fill colour for a given progress ratio: the gradient when enabled, else
+    // the flat fill colour.
+    public Color GetFillColorForProgress(float progress) =>
+        FillGradient is { Enabled: true } ? FillGradient.Evaluate(progress) : GetFillColor();
 
     public Color GetFillColor() => new(
         Mathf.Clamp01(FillR),
@@ -91,6 +104,7 @@ public sealed class ProgressBarSettings : ISettingsFile {
             [nameof(OutlineColG)] = OutlineColG,
             [nameof(OutlineColB)] = OutlineColB,
             [nameof(OutlineColA)] = OutlineColA,
+            [nameof(FillGradient)] = FillGradient?.Serialize(),
         };
     }
 
@@ -115,5 +129,8 @@ public sealed class ProgressBarSettings : ISettingsFile {
         OutlineColG = IOUtils.Read(token, nameof(OutlineColG), OutlineColG);
         OutlineColB = IOUtils.Read(token, nameof(OutlineColB), OutlineColB);
         OutlineColA = IOUtils.Read(token, nameof(OutlineColA), OutlineColA);
+        if(token[nameof(FillGradient)] is JObject fillGradient) {
+            FillGradient = StatColor.Deserialize(fillGradient);
+        }
     }
 }

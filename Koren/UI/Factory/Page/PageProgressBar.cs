@@ -1,8 +1,11 @@
 using Koren.Core;
+using Koren.Features.Panels;
 using Koren.Features.ProgressBar;
 using Koren.UI.Generator;
 using Koren.UI.Objects.Impl;
 using UnityEngine;
+using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 namespace Koren.UI.Factory.Page;
 
@@ -94,15 +97,106 @@ internal static class PageProgressBar {
         // === Color ===
         GenerateUI.Localize(GenerateUI.AddTextH1(GenerateUI.Row(sec.Body)), "HEADING_COLOR", "Color");
 
-        GenerateUI.ColorPicker(
+        // Fill: a flat colour, or a progress-driven gradient (white at 0% ...
+        // red at 100%, by default). The gradient reuses the Panels StatColor.
+        StatColor grad = conf.FillGradient;
+        Action rebuildFill = null;
+
+        GenerateUI.Toggle(
             GenerateUI.Row(sec.Body),
-            def.GetFillColor(),
-            conf.GetFillColor(),
-            c => { conf.SetFillColor(c); ProgressBarOverlay.Apply(); },
-            c => { conf.SetFillColor(c); ProgressBarOverlay.Apply(); Save(); },
-            "Fill Color",
-            "progressbar_fillcolor"
+            false,
+            grad.Enabled,
+            v => { grad.Enabled = v; ProgressBarOverlay.Apply(); Save(); rebuildFill?.Invoke(); },
+            "Fill Color Gradient",
+            "progressbar_fillgradient"
+        ).Rect.AddToolTip(
+            "DESC_PROGRESSBAR_FILLGRADIENT",
+            "Shift the fill colour as the run progresses (0% to 100%) instead of using one flat colour."
         );
+
+        RectTransform fillBody = MakeBody(sec.Body, "FillColorBody");
+
+        rebuildFill = () => {
+            for(int i = fillBody.childCount - 1; i >= 0; i--) {
+                Object.Destroy(fillBody.GetChild(i).gameObject);
+            }
+
+            if(!grad.Enabled) {
+                GenerateUI.ColorPicker(
+                    GenerateUI.Row(fillBody),
+                    def.GetFillColor(),
+                    conf.GetFillColor(),
+                    c => { conf.SetFillColor(c); ProgressBarOverlay.Apply(); },
+                    c => { conf.SetFillColor(c); ProgressBarOverlay.Apply(); Save(); },
+                    "Fill Color",
+                    "progressbar_fillcolor"
+                );
+                return;
+            }
+
+            for(int i = 0; i < grad.Points.Count; i++) {
+                ColorPoint point = grad.Points[i];
+                int index = i + 1;
+
+                GenerateUI.ColorPicker(
+                    GenerateUI.Row(fillBody),
+                    point.GetColor(),
+                    point.GetColor(),
+                    c => { point.SetColor(c); ProgressBarOverlay.Apply(); },
+                    c => { point.SetColor(c); ProgressBarOverlay.Apply(); Save(); },
+                    string.Format(MainCore.Tr.Get("PROGRESSBAR_STOP_COLOR", "Stop {0} Color"), index),
+                    "progressbar_stopcolor_" + i
+                );
+
+                UISlider pos = GenerateUI.Slider(
+                    GenerateUI.Row(fillBody),
+                    point.Pos * 100f, 0f, 100f, point.Pos * 100f,
+                    v => Mathf.Clamp(Mathf.Round(v), 0f, 100f), null, null,
+                    string.Format(MainCore.Tr.Get("PROGRESSBAR_STOP_POS", "Stop {0} Position"), index),
+                    "progressbar_stoppos_" + i
+                );
+                pos.Format = "0 %";
+                pos.OnChanged = v => { point.Pos = v * 0.01f; ProgressBarOverlay.Apply(); };
+                pos.OnComplete = v => {
+                    point.Pos = v * 0.01f;
+                    grad.SortPoints();
+                    ProgressBarOverlay.Apply();
+                    Save();
+                    rebuildFill();
+                };
+
+                if(grad.Points.Count > 1) {
+                    GenerateUI.Button(
+                        GenerateUI.Row(fillBody),
+                        () => {
+                            grad.Points.Remove(point);
+                            grad.SortPoints();
+                            ProgressBarOverlay.Apply();
+                            Save();
+                            rebuildFill();
+                        },
+                        string.Format(MainCore.Tr.Get("PROGRESSBAR_STOP_REMOVE", "Remove Stop {0}"), index),
+                        "progressbar_stopremove_" + i
+                    ).SetSecondary();
+                }
+            }
+
+            if(grad.Points.Count < 8) {
+                GenerateUI.Button(
+                    GenerateUI.Row(fillBody),
+                    () => {
+                        grad.Points.Add(new ColorPoint(0.5f, grad.Evaluate(0.5f)));
+                        grad.SortPoints();
+                        ProgressBarOverlay.Apply();
+                        Save();
+                        rebuildFill();
+                    },
+                    "Add Stop",
+                    "progressbar_stopadd"
+                ).SetSecondary();
+            }
+        };
+        rebuildFill();
 
         GenerateUI.ColorPicker(
             GenerateUI.Row(sec.Body),
@@ -123,5 +217,31 @@ internal static class PageProgressBar {
             "Outline Color",
             "progressbar_outlinecolor"
         );
+    }
+
+    // A self-sizing vertical container whose children can be rebuilt in place
+    // (used for the gradient-stops editor, which adds/removes rows).
+    private static RectTransform MakeBody(Transform parent, string name) {
+        GameObject obj = new(name);
+        obj.transform.SetParent(parent, false);
+
+        RectTransform rect = obj.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 0f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        VerticalLayoutGroup layout = obj.AddComponent<VerticalLayoutGroup>();
+        layout.spacing = 8f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+
+        ContentSizeFitter fitter = obj.AddComponent<ContentSizeFitter>();
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        return rect;
     }
 }

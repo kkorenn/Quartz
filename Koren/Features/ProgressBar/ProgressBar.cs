@@ -154,7 +154,9 @@ public static class ProgressBarOverlay {
         }
 
         if(fill != null) {
-            fill.color = Conf.GetFillColor();
+            // The gradient (if on) is driven by live progress each frame in the
+            // updater; seed it here so a settings change shows immediately.
+            fill.color = Conf.GetFillColorForProgress(Mathf.Clamp01(GameStats.Progress));
         }
 
         ApplyOutline();
@@ -270,6 +272,11 @@ public static class ProgressBarOverlay {
 
             fillContainer.anchoredPosition = new Vector2(startX, 0f);
             fillContainer.sizeDelta = new Vector2(fillW, 0f);
+
+            // Progress-driven fill gradient: recolour from the current progress.
+            if(fill != null && Conf.FillGradient is { Enabled: true }) {
+                fill.color = Conf.FillGradient.Evaluate(now);
+            }
         }
     }
 }
