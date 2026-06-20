@@ -70,6 +70,20 @@ internal static class Judgement {
         }
     }
 
+    // Built-in/official levels never instantiate scnGame, so scnGame.Play (the
+    // custom-level run-start) never fires for them — their run begins in
+    // scrController.Start via WaitForStartCo. Without this the counts carried
+    // over across restarts of a main level. Start runs on every scene (re)load
+    // and Restart reloads the scene, so this covers first play and every retry.
+    [HarmonyPatch(typeof(scrController), "Start")]
+    private static class ResetOnControllerStartPatch {
+        private static void Postfix(scrController __instance) {
+            if(MainCore.IsModEnabled && __instance.gameworld) {
+                Reset();
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(scrController), "StartLoadingScene")]
     private static class ResetOnRunExitPatch {
         private static void Postfix() {
