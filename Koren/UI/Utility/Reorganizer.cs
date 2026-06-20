@@ -231,19 +231,24 @@ public static class Reorganizer {
         bg.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P1024);
         bg.type = Image.Type.Sliced;
         bg.color = UIColors.PanelBG;
+        // Background is click-through so an element parked behind the panel keeps
+        // selection/drag priority. The sliders carry their own raycast targets, so
+        // dropping the bg (and name label) out of raycasting leaves only the
+        // sliders interactive — exactly what we want them to be.
+        bg.raycastTarget = false;
 
         // Half-opacity so the floating panel doesn't fully hide whatever sits
         // behind it while repositioning. No uGUI Outline here, so partial alpha
         // fades cleanly (no white bleed).
         //
-        // blocksRaycasts = false makes the whole panel click-through: this canvas
-        // sorts above every overlay HUD, so without it the sliders would steal
-        // pointer events from any element parked underneath the panel. Letting
-        // raycasts pass means the element behind keeps selection/drag priority;
-        // the sliders stay as a live position readout (synced during drag).
+        // blocksRaycasts MUST stay true: a CanvasGroup with blocksRaycasts = false
+        // blanks raycasts for the whole subtree, sliders included, so the sliders
+        // would never receive drag events. Per-graphic raycastTarget (above) gives
+        // the same click-through for the empty panel area without killing the
+        // sliders.
         CanvasGroup group = panelObj.AddComponent<CanvasGroup>();
         group.alpha = 0.5f;
-        group.blocksRaycasts = false;
+        group.blocksRaycasts = true;
 
         VerticalLayoutGroup layout = panelObj.AddComponent<VerticalLayoutGroup>();
         layout.spacing = 8f;
@@ -260,6 +265,7 @@ public static class Reorganizer {
         nameLabel = GenerateUI.AddText(nameRow, true);
         nameLabel.fontSize = 22f;
         nameLabel.alignment = TextAlignmentOptions.Center;
+        nameLabel.raycastTarget = false;
 
         xSlider = MakeAxisSlider("X Position", "reorganize_x", VirtualW, v => MoveSelected(v, null));
         ySlider = MakeAxisSlider("Y Position", "reorganize_y", VirtualH, v => MoveSelected(null, v));
