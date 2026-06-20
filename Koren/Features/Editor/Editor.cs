@@ -83,6 +83,60 @@ public static partial class EditorFeature {
         public bool controlWidth, controlHeight, expandWidth, expandHeight;
     }
 
+    // A property's label (TMP, best-fit) and its control share the row evenly.
+    // A text property (Song / Artist) whose value is a long rich-text string
+    // reports a huge preferred width on its control, which eats the whole row
+    // in the preferred-width pass and squeezes the label column to a few px —
+    // the best-fit caption then shrinks to fit. So on the shared template cap
+    // the control's preferred width to 0 (it still force-expands to its half)
+    // and give the label a readable minimum width. Both are restored on revert.
+    private const float LabelMinWidth = 140f;
+
+    private struct LeSnapshot {
+        public LayoutElement le;
+        public bool created;
+        public float min, pref, flex;
+    }
+
+    private static LeSnapshot labelLe;
+    private static LeSnapshot controlLe;
+
+    private static LeSnapshot ApplyLe(GameObject go, float min, float pref, float flex) {
+        LeSnapshot s = default;
+        if(go == null) {
+            return s;
+        }
+
+        LayoutElement le = go.GetComponent<LayoutElement>();
+        if(le == null) {
+            le = go.AddComponent<LayoutElement>();
+            s.created = true;
+        } else {
+            s.min = le.minWidth;
+            s.pref = le.preferredWidth;
+            s.flex = le.flexibleWidth;
+        }
+
+        s.le = le;
+        le.minWidth = min;
+        le.preferredWidth = pref;
+        le.flexibleWidth = flex;
+        return s;
+    }
+
+    private static void RestoreLe(ref LeSnapshot s) {
+        if(s.le != null) {
+            if(s.created) {
+                Object.DestroyImmediate(s.le);
+            } else {
+                s.le.minWidth = s.min;
+                s.le.preferredWidth = s.pref;
+                s.le.flexibleWidth = s.flex;
+            }
+        }
+        s = default;
+    }
+
     private static void Reconcile() {
         bool want;
         try { want = ShouldUseHorizontalProperties; }
@@ -139,6 +193,14 @@ public static partial class EditorFeature {
         horizontal.childForceExpandWidth = true;
         horizontal.childForceExpandHeight = true;
 
+        // Keep the label readable on long-content (text) properties — see the
+        // LeSnapshot note above.
+        Property prop = template.GetComponent<Property>();
+        if(prop != null) {
+            labelLe = ApplyLe(prop.label != null ? prop.label.gameObject : null, LabelMinWidth, -1f, 1f);
+            controlLe = ApplyLe(prop.controlContainer != null ? prop.controlContainer.gameObject : null, 0f, 0f, 1f);
+        }
+
         applied = true;
         RebuildInspector();
     }
@@ -150,6 +212,9 @@ public static partial class EditorFeature {
             if(horizontal != null) {
                 Object.DestroyImmediate(horizontal);
             }
+
+            RestoreLe(ref labelLe);
+            RestoreLe(ref controlLe);
 
             if(captured) {
                 VerticalLayoutGroup vertical = template.GetComponent<VerticalLayoutGroup>()
