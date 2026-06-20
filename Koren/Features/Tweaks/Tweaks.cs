@@ -75,6 +75,8 @@ public static partial class Tweaks {
         AddResultLabel(labels, Conf.HideResultXAccuracy, "xAccuracy");
         AddResultLabel(labels, Conf.HideResultAccuracy, "accuracy");
         AddResultLabel(labels, Conf.HideResultCheckpoints, "checkpoints");
+        // In practice mode the checkpoints slot is labelled "practiceAttempts".
+        AddResultLabel(labels, Conf.HideResultCheckpoints, "practiceAttempts");
         AddResultLabel(labels, Conf.HideResultMaximumUsedKeys, "maximumUsedKeys");
         if(labels.Count == 0) {
             return result;
@@ -83,8 +85,9 @@ public static partial class Tweaks {
         string[] rows = result.Split('\n');
         List<string> kept = new(rows.Length);
         for(int i = 0; i < rows.Length; i++) {
-            if(!ShouldDropDetailedResultRow(rows[i], labels)) {
-                kept.Add(rows[i]);
+            string filtered = FilterDetailedResultRow(rows[i], labels);
+            if(filtered != null) {
+                kept.Add(filtered);
             }
         }
         return string.Join("\n", kept.ToArray());
@@ -104,15 +107,33 @@ public static partial class Tweaks {
         }
     }
 
-    private static bool ShouldDropDetailedResultRow(string row, List<string> labels) {
+    // A single result row can pack several stats into columns joined by a
+    // 5-space gap (e.g. "Accuracy: 99%     Checkpoints: 3"). Drop only the
+    // columns whose label matches so hiding one stat can't take its row-mate
+    // with it. Returns null when no column survives (row removed entirely).
+    private static string FilterDetailedResultRow(string row, List<string> labels) {
         if(string.IsNullOrEmpty(row)) {
-            return false;
+            return row;
         }
 
+        string[] cells = row.Split(new[] { "     " }, StringSplitOptions.None);
+        List<string> kept = new(cells.Length);
+        for(int i = 0; i < cells.Length; i++) {
+            if(!CellMatchesLabel(cells[i], labels)) {
+                kept.Add(cells[i]);
+            }
+        }
+
+        if(kept.Count == 0) {
+            return null;
+        }
+        return string.Join("     ", kept.ToArray());
+    }
+
+    private static bool CellMatchesLabel(string cell, List<string> labels) {
+        string trimmed = cell.TrimStart();
         for(int i = 0; i < labels.Count; i++) {
-            string label = labels[i];
-            if(row.StartsWith(label, StringComparison.Ordinal) ||
-                row.Contains("     " + label)) {
+            if(trimmed.StartsWith(labels[i], StringComparison.Ordinal)) {
                 return true;
             }
         }
