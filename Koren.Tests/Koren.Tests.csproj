@@ -10,5 +10,6 @@
 	<ItemGroup>
 		<Compile Include="../Koren/Core/SemVer.cs" Link="Source/SemVer.cs" />
 		<Compile Include="../Koren/IO/AtomicFile.cs" Link="Source/AtomicFile.cs" />
+		<Compile Include="../Koren/Features/KeyViewer/KeyViewerCss.cs" Link="Source/KeyViewerCss.cs" />
 	</ItemGroup>
 </Project>
