@@ -58,11 +58,17 @@ public static partial class EditorFeature {
     public static readonly IRuntimeTick Ticker = new TickImpl();
 
     private sealed class TickImpl : IRuntimeTick {
-        public void Tick() => Reconcile();
+        public void Tick() {
+            Reconcile();
+            ReconcileAngleLabels();
+        }
     }
 
     // Immediate path for the settings toggle.
-    public static void Apply() => Reconcile();
+    public static void Apply() {
+        Reconcile();
+        ReconcileAngleLabels();
+    }
 
     // Hard revert, used when the mod is disabled / torn down so the shared
     // template doesn't stay flipped after the mod stops running.
@@ -70,6 +76,7 @@ public static partial class EditorFeature {
         if(applied) {
             DisableHorizontal();
         }
+        ClearAngleLabels();
     }
 
     private static bool applied;

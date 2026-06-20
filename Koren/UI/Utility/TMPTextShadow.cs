@@ -201,11 +201,14 @@ public static class TMPTextShadow {
         rect.offsetMax = offset;
 
         layer.font = source.font;
-        // A drop shadow is a flat silhouette: strip the source's <color> tags so
-        // every glyph renders in the shadow's own `color`, not the title's
-        // per-glyph rich-text colors. <size>/<b>/etc. (zero geometry change from
-        // removing colors) stay, so the silhouette still matches the text.
-        layer.text = StripColorTags(source.text);
+        // A drop shadow is a flat silhouette in the shadow's own `color`, not the
+        // title's per-glyph RGB — but it must still fade where the title fades. So
+        // convert each <color> tag to an <alpha> tag: the RGB is dropped (shadow
+        // keeps its colour) while the tag's opacity is preserved, so a glyph the
+        // title draws at 00 alpha casts a 00-alpha shadow, a 7F-alpha title a half
+        // shadow, etc. <size>/<b>/etc. (zero geometry change) stay, so the
+        // silhouette still matches the text.
+        layer.text = StripColorKeepAlpha(source.text);
         layer.fontSize = source.fontSize;
         layer.fontStyle = source.fontStyle;
         layer.alignment = source.alignment;
@@ -227,16 +230,41 @@ public static class TMPTextShadow {
         layer.raycastTarget = false;
     }
 
-    // Removes <color ...> / </color> tags only. Color tags carry no width, so
-    // dropping them leaves layout identical — the shadow silhouette still lines
-    // up with the colored source text.
+    // Rewrites <color ...> / </color> tags to <alpha> tags, keeping only the
+    // opacity. Color and alpha tags carry no width, so the swap leaves layout
+    // identical — the shadow silhouette still lines up with the colored source.
     private static readonly Regex ColorTagRegex =
         new(@"</?color[^>]*>", RegexOptions.IgnoreCase);
 
-    private static string StripColorTags(string s) =>
+    private static string StripColorKeepAlpha(string s) =>
         string.IsNullOrEmpty(s) || s.IndexOf("color", System.StringComparison.OrdinalIgnoreCase) < 0
             ? s
-            : ColorTagRegex.Replace(s, string.Empty);
+            : ColorTagRegex.Replace(s, m => ColorTagToAlpha(m.Value));
+
+    // <color=#RRGGBBAA> → <alpha=#AA> (opacity kept, RGB discarded).
+    // <color=#RRGGBB> / <color=#RGB> / <color=name> / </color> → <alpha=#FF>
+    // (no alpha channel, a named colour, or a close: treat as fully opaque). We
+    // can't track a colour stack, but the common case is a single span or a
+    // whole-title colour, where resetting to opaque on close is correct.
+    private static string ColorTagToAlpha(string tag) {
+        int eq = tag.IndexOf('=');
+        if(eq < 0) {
+            return "<alpha=#FF>"; // </color> or a bare <color>
+        }
+
+        string val = tag.Substring(eq + 1, tag.Length - eq - 2).Trim().Trim('"', '\'');
+        if(val.Length == 0 || val[0] != '#') {
+            return "<alpha=#FF>"; // named colour (red, etc.) → opaque silhouette
+        }
+
+        string hex = val.Substring(1);
+        string aa = hex.Length switch {
+            >= 8 => hex.Substring(6, 2),        // RRGGBBAA
+            4 or 5 => $"{hex[3]}{hex[3]}",       // RGBA short form (alpha nibble)
+            _ => "FF",                           // RRGGBB / RGB / malformed → opaque
+        };
+        return $"<alpha=#{aa}>";
+    }
 
     private static Vector2 SoftnessOffset(int index, float spread) {
         if(spread <= 0.001f) {

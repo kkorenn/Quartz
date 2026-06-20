@@ -81,5 +81,32 @@ internal static class PageEditor {
             "DESC_EDITOR_HORIZONTAL_PROPERTIES",
             "Lays each level-editor inspector property out as \"label [field]\" on one row, instead of the label stacked above the field. Affects the in-game editor, not this settings window."
         );
+
+        var showTileAngle = GenerateUI.Toggle(
+            GenerateUI.Row(content.transform),
+            def.ShowTileAngle,
+            conf.ShowTileAngle,
+            v => {
+                conf.ShowTileAngle = v;
+                EditorFeature.Apply();
+                EditorFeature.Save();
+            },
+            "Show Tile Angle",
+            "editor_show_tile_angle"
+        );
+        showTileAngle.Rect.AddToolTip(
+            "DESC_EDITOR_SHOW_TILE_ANGLE",
+            "Shows the selected tile's angle in degrees as a label on the tile, in the level editor. Affects the in-game editor, not this settings window."
+        );
+
+        GenerateUI.ColorPicker(
+            GenerateUI.Row(content.transform),
+            def.GetAngleColor(),
+            conf.GetAngleColor(),
+            c => conf.SetAngleColor(c),
+            c => { conf.SetAngleColor(c); EditorFeature.Save(); },
+            "Tile Angle Color",
+            "editor_tile_angle_color"
+        );
     }
 }
