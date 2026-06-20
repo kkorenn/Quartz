@@ -1,0 +1,19 @@
+Koren/Features/GameOverlayFont/GameOverlayFont.cs
+  s_f5cd5ba9eb06ac::t_d4b0b7f292cabd 336-345
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "0d5b6f818db96761f96b0cbbb992f3b8c4c79442",
+  "prompts": {},
+  "sessions": {
+    "s_f5cd5ba9eb06ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4f394ae-8c02-470d-a25c-3195f6d9a54e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
