@@ -612,12 +612,21 @@ public sealed class GameFontMirror : MonoBehaviour {
         s = SizeTag.Replace(s, "");
         s = ColorHex.Replace(s, m => {
             string hex = m.Groups[1].Value;
-            // TMP accepts #RRGGBB or #RRGGBBAA. Truncate longer (UI.Text took the
-            // first 6), pad shorter so a typo'd tag still parses instead of
-            // dumping the literal "<color=#...>" into the title.
-            int len = hex.Length >= 8 ? 8 : 6;
-            hex = hex.Length >= len ? hex.Substring(0, len) : hex.PadRight(len, '0');
-            return "<color=#" + hex + ">";
+            // TMP (this game's build) accepts #RGB, #RGBA, #RRGGBB and #RRGGBBAA,
+            // so keep the largest VALID length instead of zero-padding short
+            // forms: the old pad turned a hidden #RGBA like #FFF0 (alpha 0) into
+            // an opaque #FFF000, so text the level author had made invisible via
+            // a 00-alpha tag showed up. Mirrors SongTitle.NormalizeColorTags.
+            int valid = hex.Length switch {
+                >= 8 => 8,      // RRGGBBAA (drop any extra digits)
+                6 or 7 => 6,    // RRGGBB
+                4 or 5 => 4,    // RGBA short form (preserves the alpha nibble)
+                3 => 3,         // RGB short form
+                _ => 0,         // 1-2 digits: not a colour, drop the tag
+            };
+            return valid == 0 ? string.Empty
+                : valid == hex.Length ? m.Value
+                : "<color=#" + hex.Substring(0, valid) + ">";
         });
         return s;
     }
