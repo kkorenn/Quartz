@@ -248,6 +248,49 @@ public static class KeyLimiter {
         }
     }
 
+    // ===== hook-fed held-key state (for the key viewer) =====
+    //
+    // Unity's legacy Input is blind to a few physical keys — notably the Korean
+    // Hangul (한/영) and Hanja keys, which Windows reports as VK 0x15 / 0x19
+    // rather than the Right-Alt / Right-Control virtual keys Input.GetKey
+    // watches, so a viewer box bound to RightAlt/RightControl never lit. The
+    // SkyHook hook does see them (it's how the limiter blocks them), so the
+    // chatter-blocker hook prefix forwards every key edge here and the viewer
+    // consults this as a fallback when Input.GetKey comes up empty.
+    //
+    // Written from the SkyHook thread (NoteHookEvent) and read from the main
+    // thread (HookKeyHeld), so it's lock-guarded. Hangul/Hanja don't reliably
+    // emit a release edge, so a press marks the key held for a short window that
+    // each auto-repeat refreshes; a real release, when it comes, clears it at
+    // once. Expiry means a missing release can never leave a box stuck lit.
+    private const int HookHeldWindowMs = 250;
+    private static readonly Dictionary<KeyCode, int> hookHeldUntil = new();
+
+    public static void NoteHookEvent(KeyCode key, bool pressed) {
+        if(key == KeyCode.None) {
+            return;
+        }
+        lock(hookHeldUntil) {
+            if(pressed) {
+                hookHeldUntil[key] = Environment.TickCount + HookHeldWindowMs;
+            } else {
+                hookHeldUntil.Remove(key);
+            }
+        }
+    }
+
+    public static bool HookKeyHeld(KeyCode key) {
+        if(key == KeyCode.None) {
+            return false;
+        }
+        lock(hookHeldUntil) {
+            // Unchecked (until - now) keeps the right sign across the ~49-day
+            // Environment.TickCount wrap.
+            return hookHeldUntil.TryGetValue(key, out int until)
+                && unchecked(until - Environment.TickCount) > 0;
+        }
+    }
+
     public static KeyCode HookKeyToPhysicalUnityKey(ushort key, KeyLabel label) {
         KeyCode labelKey = AsyncKeyMapper.AsyncKeyToUnityKey(label);
         if(IsNumpadOrArrowKey(labelKey)) {

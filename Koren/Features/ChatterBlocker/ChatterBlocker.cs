@@ -215,6 +215,14 @@ public static class ChatterBlocker {
                 return true;
             }
 
+            // Forward every key edge to the viewer's hook-held tracker before the
+            // KeyReleased early-out below. Unity's Input can't see Hangul/Hanja,
+            // so the key viewer relies on these edges to light RightAlt /
+            // RightControl boxes (and clear them on release).
+            KeyLimiter.KeyLimiter.NoteHookEvent(
+                KeyLimiter.KeyLimiter.HookKeyToPhysicalUnityKey(ev.Key, ev.Label),
+                ev.Type == SkyHook.EventType.KeyPressed);
+
             if(ev.Type == SkyHook.EventType.KeyReleased || ev.Key == 27) {
                 return true;
             }

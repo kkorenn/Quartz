@@ -1398,7 +1398,14 @@ public static class KeyViewerOverlay {
             return true;
         }
         KeyCode twin = NumpadNavTwin(key);
-        return twin != KeyCode.None && Input.GetKey(twin);
+        if(twin != KeyCode.None && Input.GetKey(twin)) {
+            return true;
+        }
+        // Unity's Input is blind to the Korean Hangul/Hanja keys (which map to
+        // RightAlt/RightControl); fall back to the SkyHook-fed held state, the
+        // only path that sees them. Additive — a no-op for keys Unity already
+        // reports, so normal keys are unaffected.
+        return Features.KeyLimiter.KeyLimiter.HookKeyHeld(key);
     }
 
     // The navigation key Unity's legacy Input reports for each numpad key while
