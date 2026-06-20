@@ -188,6 +188,37 @@ public static partial class GenerateUI {
         GameObject changeUp = AddSmallChangedCircle(fillRect);
         Image changeUpImg = changeUp.GetComponent<Image>();
 
+        // Eval-state outline — normally transparent, recolors while typing an
+        // expression. Last sibling so it frames over the fill; raycast off so
+        // it never eats slider drags. Matches the panel Border pattern.
+        GameObject outline = new("Outline");
+        outline.transform.SetParent(rect, false);
+
+        RectTransform outlineRect = outline.AddComponent<RectTransform>();
+        outlineRect.anchorMin = Vector2.zero;
+        outlineRect.anchorMax = Vector2.one;
+        outlineRect.offsetMin = Vector2.zero;
+        outlineRect.offsetMax = Vector2.zero;
+
+        Image outlineImg = outline.AddComponent<Image>();
+        outlineImg.sprite = MainCore.Spr.Get(UISliceSprite.CircleOutline256P2048);
+        outlineImg.type = Image.Type.Sliced;
+        outlineImg.color = new Color(1f, 1f, 1f, 0f);
+        outlineImg.raycastTarget = false;
+
+        // Live "<result> = <typed expr>" overlay, right-aligned over the value
+        // area like the readout. richText for the invisible-tail alignment
+        // trick; raycast off so the edit zone underneath still receives clicks.
+        TextMeshProUGUI previewLabel = AddText(rect);
+        previewLabel.alignment = TextAlignmentOptions.Right;
+        previewLabel.richText = true;
+        previewLabel.raycastTarget = false;
+        previewLabel.text = "";
+
+        RectTransform previewRect = previewLabel.gameObject.GetComponent<RectTransform>();
+        previewRect.offsetMin = Vector2.zero;
+        previewRect.offsetMax = new(-16f, 0f);
+
         UISlider slider = new(
             id,
             rect,
@@ -197,6 +228,8 @@ public static partial class GenerateUI {
             valueText,
             changeImg,
             changeUpImg,
+            outlineImg,
+            previewLabel,
             defaultValue,
             min,
             max,
@@ -308,11 +341,20 @@ public static partial class GenerateUI {
         TextMeshProUGUI editText = AddText(editObj.transform, true);
         editText.alignment = TextAlignmentOptions.Right;
         editText.rectTransform.offsetMax = new Vector2(-16f, 0f);
+        // Field is Standard now (expressions need operators/letters), so keep
+        // typed input literal — don't let a stray '<' be eaten as rich text.
+        editText.richText = false;
 
         editField.textViewport = editRect;
         editField.textComponent = editText;
         editField.lineType = TMP_InputField.LineType.SingleLine;
-        editField.contentType = TMP_InputField.ContentType.DecimalNumber;
+        // Standard, not DecimalNumber: the field accepts math expressions
+        // (6*7, max/2, pi*10), so operators and letters must be typeable.
+        editField.contentType = TMP_InputField.ContentType.Standard;
+
+        // Hand the field to the slider so it owns the eval/preview/state-color
+        // pipeline driven by this field's onValueChanged/onEndEdit.
+        slider.EditField = editField;
 
         editObj.SetActive(false);
 
@@ -327,14 +369,9 @@ public static partial class GenerateUI {
             editObj.SetActive(false);
             valueText.gameObject.SetActive(true);
 
-            if(float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out float v)
-                || float.TryParse(raw, out v)) {
-                slider.Set(v);
-                slider.OnComplete?.Invoke(slider.Value);
-            } else {
-                // Unparseable input — just restore the readout.
-                slider.UpdateVisual(true);
-            }
+            // Evaluate the expression, commit if valid (else restore), and clear
+            // the preview / reset the eval-state visuals.
+            slider.CommitExpression(raw);
         }
 
         void BeginEdit() {
@@ -352,6 +389,9 @@ public static partial class GenerateUI {
             editField.ActivateInputField();
         }
 
+        // Live expression preview as the user types (BeginEdit seeds the field
+        // via SetTextWithoutNotify, so this doesn't fire on open).
+        editField.onValueChanged.AddListener(slider.PreviewExpression);
         editField.onEndEdit.AddListener(EndEdit);
 
         // Click zone over the readout. Its EventTrigger swallows the press, so

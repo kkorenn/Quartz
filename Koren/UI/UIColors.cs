@@ -41,6 +41,13 @@ public static class UIColors {
     public static Color ObjectActiveLightBright { get; private set; } = new(0.557f, 0.596f, 1f, 1f);
     public static Color ObjectButton { get; private set; } = new(0.478f, 0.514f, 0.875f, 1f);
 
+    // Expression-evaluator slider state colors (green/yellow/red). Fixed
+    // semantic colors, deliberately accent-independent — they signal eval
+    // state, not theme, so ApplyAccent leaves them alone.
+    public static readonly Color ObjectActiveMathOk = new(0.588f, 1f, 0.569f, 1f);
+    public static readonly Color ObjectActiveMathWarn = new(1f, 0.898f, 0.569f, 1f);
+    public static readonly Color ObjectActiveMathErr = new(1f, 0.569f, 0.569f, 1f);
+
     public static Color SoftRed { get; private set; } = BaseSoftRed;
 
     public static Palette Current => new() {
