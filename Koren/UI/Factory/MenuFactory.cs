@@ -50,6 +50,7 @@ public static class MenuFactory {
         var editor = CreateItem(parent, "Editor", MainCore.Spr.Get(UISprite.Wrench128, iconUnits), (int)OriginalMenuState.Editor);
         var search = CreateItem(parent, "Search", MainCore.Spr.Get(UISprite.MagnifyingGlass128, iconUnits), (int)OriginalMenuState.Search);
         var profiles = CreateItem(parent, "Profiles", MainCore.Spr.Get(UISprite.Users128, iconUnits), (int)OriginalMenuState.Profiles);
+        var import = CreateItem(parent, "Import", MainCore.Spr.Get(UISprite.Book128, iconUnits), (int)OriginalMenuState.Import);
         var settings = CreateItem(parent, "Settings", MainCore.Spr.Get(UISprite.Gear128, iconUnits), (int)OriginalMenuState.Settings);
         var credits = CreateItem(parent, "Credits", MainCore.Spr.Get(UISprite.Star128, iconUnits), (int)OriginalMenuState.Credits);
 
@@ -70,6 +71,9 @@ public static class MenuFactory {
 
         profiles.label.gameObject.AddComponent<TextLocalization>()
             .Init("PROFILES", "Profiles");
+
+        import.label.gameObject.AddComponent<TextLocalization>()
+            .Init("IMPORT", "Import");
 
         settings.label.gameObject.AddComponent<TextLocalization>()
             .Init("SETTINGS", "Settings");

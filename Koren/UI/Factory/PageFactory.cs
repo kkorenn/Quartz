@@ -32,6 +32,7 @@ public static class PageFactory {
 
         PageCredits.Create(UICore.Pages[(int)OriginalMenuState.Credits]);
         PageProfiles.Create(UICore.Pages[(int)OriginalMenuState.Profiles]);
+        PageImport.Create(UICore.Pages[(int)OriginalMenuState.Import]);
         PageSettings.Create(UICore.Pages[(int)OriginalMenuState.Settings]);
         PageOverlay.Create(UICore.Pages[(int)OriginalMenuState.Overlay]);
         PageGameplay.Create(UICore.Pages[(int)OriginalMenuState.Gameplay]);

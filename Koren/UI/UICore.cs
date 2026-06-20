@@ -27,6 +27,7 @@ public enum OriginalMenuState {
     Visuals,
     Tweaks,
     Profiles,
+    Import,
     Settings,
     Search,
     Credits,
