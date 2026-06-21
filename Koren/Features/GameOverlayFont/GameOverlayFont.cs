@@ -11,6 +11,11 @@ using UnityEngine.UI;
 
 namespace Koren.Features.GameOverlayFont;
 
+// Marker for mod-created text that already lives in the game world (e.g. the
+// editor floor readout) and manages its own font. TrackScene skips any Text/TMP
+// carrying it, so the twin/override sweep doesn't capture or re-size it.
+public sealed class GameFontExclude : MonoBehaviour { }
+
 // Applies the mod's selected font to A Dance of Fire and Ice's OWN text — the
 // menus, level titles and in-game HUD — rather than only the mod's UI (which
 // FontManager.ApplyToAll already covers).
@@ -86,12 +91,24 @@ public static class GameOverlayFont {
 
         GameObject root = MainCore.Root;
         foreach(Text text in UnityEngine.Object.FindObjectsByType<Text>(FindObjectsSortMode.None)) {
-            if(!IsModUi(text, root)) {
+            if(!IsModUi(text, root) && text.GetComponent<GameFontExclude>() == null) {
                 mirror.Track(text);
             }
         }
         foreach(TMP_Text tmp in UnityEngine.Object.FindObjectsByType<TMP_Text>(FindObjectsSortMode.None)) {
-            if(!IsModUi(tmp, root) && !GameFontMirror.IsTwin(tmp)) {
+            if(tmp == null) {
+                continue;
+            }
+            // A label the game/another mod Instantiated carried a copy of our twin
+            // as a child (e.g. TUFPlay cloning the "Calibration" object). That copy
+            // is an unmanaged ghost rendering stale mod-font text — destroy it
+            // rather than re-fonting it. The clone's own real twin is made when its
+            // source is Tracked.
+            if(GameFontMirror.IsOrphanTwin(tmp)) {
+                UnityEngine.Object.Destroy(tmp.gameObject);
+                continue;
+            }
+            if(!IsModUi(tmp, root) && !GameFontMirror.IsTwin(tmp) && tmp.GetComponent<GameFontExclude>() == null) {
                 OverrideTmp(tmp);
             }
         }
@@ -263,6 +280,14 @@ public static class GameOverlayFont {
         }
     }
 
+    // NOTE: an OnEnable hook (Text/TextMeshProUGUI) to twin labels the instant they
+    // show was tried to kill the residual flash, but reverted — it twinned
+    // transient/animated labels (e.g. an external mod's "Calibration" splash) that
+    // fade via CanvasRenderer alpha (CrossFadeAlpha), which the twin (mirroring
+    // Text.color, not the canvasRenderer alpha) doesn't follow, leaving a ghost
+    // duplicate in the mod font. The SetLocalizedFont patches + burst + idle sweep
+    // remain the discovery path.
+
     // The in-game judgement hit text ("Perfect", "Early"…) renders larger in the
     // mod font. Init sets its fontSize (after the font swap) and animates only
     // transform scale, so trimming fontSize here sticks without fighting the
@@ -302,7 +327,16 @@ public sealed class GameFontMirror : MonoBehaviour {
         public bool IsSettingRow;
     }
 
-    private const string TwinName = "KorenFontTwin";
+    internal const string TwinName = "KorenFontTwin";
+
+    // An orphan twin is a KorenFontTwin GameObject that the game/another mod copied
+    // by Instantiating an already-twinned label (e.g. TUFPlay clones the game's
+    // "Calibration" object, which by then has our twin as a child). The copy keeps
+    // the TwinName but a fresh instance id never registered in twinIds, so it is
+    // never synced or hidden and renders stale baked text in the mod font. Detect
+    // it so the sweep can destroy it.
+    public static bool IsOrphanTwin(Component c) =>
+        c != null && c.gameObject.name == TwinName && !twinIds.Contains(c.GetInstanceID());
     // Twin point size relative to the original's nominal point size. Shared so
     // the TMP path scales game text to match.
     internal const float SizeScale = 0.5f;
