@@ -83,22 +83,30 @@ internal static class PageVisuals {
             conf.On
         );
 
-        var saveToggle = GenerateUI.Toggle(
+        // Mode: Simple (runtime effect disabling, editor-safe) vs Enhanced
+        // (the original chart-stripping behaviour). Switching rebuilds the page.
+        GenerateUI.DropDown(
             GenerateUI.Row(sec.Body),
-            def.EnableSave,
-            conf.EnableSave,
+            EffectRemoverSettings.ModeEnhanced,
+            conf.Mode,
+            new[] { EffectRemoverSettings.ModeSimple, EffectRemoverSettings.ModeEnhanced },
+            m => MainCore.Tr.Get(
+                m == EffectRemoverSettings.ModeSimple ? "FXRM_MODE_SIMPLE" : "FXRM_MODE_ENHANCED",
+                m == EffectRemoverSettings.ModeSimple ? "Simple" : "Enhanced"),
             v => {
-                conf.EnableSave = v;
-                EffectRemover.RefreshEditorSaveButtons();
+                conf.Mode = v;
                 Save();
+                EffectRemover.RefreshEditorSaveButtons();
+                UICore.Rebuild();
             },
-            "Allow Saving in Editor",
-            "fxrm_save"
+            "fxrm_mode",
+            260f,
+            "Mode"
         );
-        saveToggle.Rect.AddToolTip(
-            "DESC_FXRM_SAVE",
-            "While the remover is on, the editor holds the stripped copy of the level — saving would overwrite the original chart, so it's blocked unless you enable this."
-        );
+
+        if(conf.IsSimple) {
+            CreateSimpleEffectRemover(sec.Body, conf, def);
+        } else {
 
         // === Non-DLC events ===
         GenerateUI.Localize(GenerateUI.AddTextH1(GenerateUI.Row(sec.Body)), "HEADING_NON_DLC_EVENTS", "Non-DLC Events");
@@ -289,11 +297,63 @@ internal static class PageVisuals {
 
         RefreshConditionalRows();
 
+        } // end Enhanced-mode branch
+
         CreateHideJudgements(content.transform);
         CreateVisualTweaks(content.transform);
         CreatePlanetColors(content.transform);
         CreateOttoIcon(content.transform);
         CreateUiHiding(content.transform);
+        NostalgiaUI.AddVisualsSection(content.transform);
+    }
+
+    // Simple mode — runtime effect disabling (AdofaiTweaks DisableEffects).
+    // Editor-safe (it never strips the chart), so no save-block toggle here.
+    private static void CreateSimpleEffectRemover(
+        Transform parent, EffectRemoverSettings conf, EffectRemoverSettings def) {
+        void Save() => EffectRemover.Save();
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(parent), def.SimpleFilter, conf.SimpleFilter,
+            v => { conf.SimpleFilter = v; Save(); },
+            "Disable Filters", "fxrm_s_filter"
+        ).Rect.AddToolTip("DESC_FXRM_S_FILTER",
+            "Turns off VFX filters (Grayscale, Arcade, etc.) at runtime without changing the chart.");
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(parent), def.SimpleBloom, conf.SimpleBloom,
+            v => { conf.SimpleBloom = v; Save(); },
+            "Disable Bloom", "fxrm_s_bloom"
+        ).Rect.AddToolTip("DESC_FXRM_S_BLOOM", "Skips the bloom effect.");
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(parent), def.SimpleFlash, conf.SimpleFlash,
+            v => { conf.SimpleFlash = v; Save(); },
+            "Disable Flash", "fxrm_s_flash"
+        ).Rect.AddToolTip("DESC_FXRM_S_FLASH", "Neutralises screen-flash effects.");
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(parent), def.SimpleHallOfMirrors, conf.SimpleHallOfMirrors,
+            v => { conf.SimpleHallOfMirrors = v; Save(); },
+            "Disable Hall of Mirrors", "fxrm_s_hom"
+        ).Rect.AddToolTip("DESC_FXRM_S_HOM", "Skips the Hall of Mirrors effect.");
+
+        GenerateUI.Toggle(
+            GenerateUI.Row(parent), def.SimpleScreenShake, conf.SimpleScreenShake,
+            v => { conf.SimpleScreenShake = v; Save(); },
+            "Disable Screen Shake", "fxrm_s_shake"
+        ).Rect.AddToolTip("DESC_FXRM_S_SHAKE", "Skips screen-shake effects.");
+
+        GenerateUI.Slider(
+            GenerateUI.Row(parent),
+            def.SimpleMoveTrackMax, 5f, EffectRemoverSettings.MoveTrackUpperBound + 5f,
+            conf.SimpleMoveTrackMax,
+            f => Mathf.Round(f / 5f) * 5f,
+            _ => { },
+            v => { conf.SimpleMoveTrackMax = Mathf.RoundToInt(v); Save(); },
+            "Max Tile Movements", "fxrm_s_movemax"
+        ).Rect.AddToolTip("DESC_FXRM_S_MOVEMAX",
+            "Caps how many tiles a single Move Track event can move (around the current tile). The maximum value means unlimited.");
     }
 
     // v1 ResourceChanger's "Change Otto icon": swaps the editor's auto-play

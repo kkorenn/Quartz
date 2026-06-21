@@ -16,7 +16,7 @@ namespace Koren.Features.EffectRemover;
 // While the remover is on, the editor's Save buttons are disabled (saving
 // would write the stripped level over the original chart) unless the user
 // explicitly re-enables saving.
-public static class EffectRemover {
+public static partial class EffectRemover {
     public static SettingsFile<EffectRemoverSettings> ConfMgr { get; private set; }
     public static EffectRemoverSettings Conf => ConfMgr?.Data;
 
@@ -40,7 +40,17 @@ public static class EffectRemover {
         }
     }
 
-    public static bool EditorSaveEnabled => !Enabled || Conf.EnableSave;
+    // Neither mode touches the editor any more (Simple is runtime-only;
+    // Enhanced only strips while playing), so the editor always holds the
+    // original chart and saving is always safe.
+    public static bool EditorSaveEnabled => true;
+
+    // Enhanced mode is the chart-stripping behaviour; gates the Decode patch.
+    private static bool EnhancedActive => Enabled && Conf.IsEnhanced;
+
+    // Simple mode disables live effect components at runtime (see
+    // EffectRemoverSimplePatches); gates those patches.
+    internal static bool SimpleActive => Enabled && Conf.IsSimple;
 
     // Tag keys on a conditional-events block (event 35) whose referenced
     // decorations must survive removal — they're gameplay feedback, not
@@ -355,7 +365,14 @@ public static class EffectRemover {
 
     [HarmonyPatch(typeof(LevelData), "Decode")]
     private static class LevelDataDecodePatch {
-        private static void Postfix(LevelData __instance) => Remove(__instance);
+        private static void Postfix(LevelData __instance) {
+            // Only strip while actually playing — never in the editor, so the
+            // editor always holds the original (unstripped) chart and saving is
+            // always safe.
+            if(EnhancedActive && ADOBase.isScnGame) {
+                Remove(__instance);
+            }
+        }
     }
 
     // Blocks the editor's Save action while the remover is on (the in-memory

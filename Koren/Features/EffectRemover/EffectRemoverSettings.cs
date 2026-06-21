@@ -1,3 +1,4 @@
+using System;
 using Newtonsoft.Json.Linq;
 using Koren.IO;
 using Koren.IO.Interface;
@@ -9,6 +10,26 @@ namespace Koren.Features.EffectRemover;
 // UserData/Koren/EffectRemover.json.
 public sealed class EffectRemoverSettings : ISettingsFile {
     public bool On = true;
+
+    // === Mode ===
+    // "enhanced" (default, the original KRP behaviour) strips effect events out
+    // of the level data on decode. "simple" instead disables the live effect
+    // components at runtime (ported from PizzaLovers007's AdofaiTweaks
+    // DisableEffects) — it never touches the chart, so it's editor-safe.
+    public const string ModeSimple = "simple";
+    public const string ModeEnhanced = "enhanced";
+    public string Mode = ModeEnhanced;
+    public bool IsSimple => string.Equals(Mode, ModeSimple, StringComparison.OrdinalIgnoreCase);
+    public bool IsEnhanced => !IsSimple;
+
+    // === Simple mode (AdofaiTweaks DisableEffects) ===
+    public const int MoveTrackUpperBound = 100; // above this = unlimited
+    public bool SimpleFilter = false;
+    public bool SimpleBloom = false;
+    public bool SimpleFlash = false;
+    public bool SimpleHallOfMirrors = false;
+    public bool SimpleScreenShake = false;
+    public int SimpleMoveTrackMax = MoveTrackUpperBound + 5; // default: unlimited
 
     // Editor: while the remover is on, saving a chart would write the
     // stripped level over the original — saving is blocked unless this is
@@ -56,6 +77,13 @@ public sealed class EffectRemoverSettings : ISettingsFile {
     public JToken Serialize() {
         return new JObject {
             [nameof(On)] = On,
+            [nameof(Mode)] = Mode,
+            [nameof(SimpleFilter)] = SimpleFilter,
+            [nameof(SimpleBloom)] = SimpleBloom,
+            [nameof(SimpleFlash)] = SimpleFlash,
+            [nameof(SimpleHallOfMirrors)] = SimpleHallOfMirrors,
+            [nameof(SimpleScreenShake)] = SimpleScreenShake,
+            [nameof(SimpleMoveTrackMax)] = SimpleMoveTrackMax,
             [nameof(EnableSave)] = EnableSave,
             [nameof(Filters)] = Filters,
             [nameof(AdvancedFilters)] = AdvancedFilters,
@@ -87,6 +115,13 @@ public sealed class EffectRemoverSettings : ISettingsFile {
 
     public void Deserialize(JToken token) {
         On = IOUtils.Read(token, nameof(On), On);
+        Mode = IOUtils.Read(token, nameof(Mode), Mode);
+        SimpleFilter = IOUtils.Read(token, nameof(SimpleFilter), SimpleFilter);
+        SimpleBloom = IOUtils.Read(token, nameof(SimpleBloom), SimpleBloom);
+        SimpleFlash = IOUtils.Read(token, nameof(SimpleFlash), SimpleFlash);
+        SimpleHallOfMirrors = IOUtils.Read(token, nameof(SimpleHallOfMirrors), SimpleHallOfMirrors);
+        SimpleScreenShake = IOUtils.Read(token, nameof(SimpleScreenShake), SimpleScreenShake);
+        SimpleMoveTrackMax = IOUtils.Read(token, nameof(SimpleMoveTrackMax), SimpleMoveTrackMax);
         EnableSave = IOUtils.Read(token, nameof(EnableSave), EnableSave);
         Filters = IOUtils.Read(token, nameof(Filters), Filters);
         AdvancedFilters = IOUtils.Read(token, nameof(AdvancedFilters), AdvancedFilters);
