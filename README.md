@@ -2,9 +2,9 @@
 
 KorenResourcePack v2 is a **MelonLoader** mod. This will not work on UnityModManager.
 
-JOIN OUR DISCORD FOR ASSISTANCE
-<iframe src="https://discord.com/widget?id=1499236885409566891&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
+## JOIN OUR DISCORD FOR ASSISTANCE
 
+[![Discord](https://img.shields.io/discord/1499236885409566891?logo=discord&logoColor=white&label=Discord&color=5865F2)](INVITE_URL)
 ## Install (Recommended)
 1. Download [modlist.org app](https://github.com/modlist-org/modlist_org_app/releases/latest) and [KorenResourcePack v2](https://github.com/kkorenn/KorenResourcePack_v2/releases/latest)
 2. If not installed MelonLoader yet, install it using the modlist.org app.
