@@ -1,10 +1,16 @@
+<div align="center">
+
 # KorenResourcePack v2
 
-KorenResourcePack v2 is a **MelonLoader** mod. This will not work on UnityModManager.
-
-## JOIN OUR DISCORD FOR ASSISTANCE
-
+[![Latest Release](https://img.shields.io/github/v/release/kkorenn/KorenResourcePack_v2?include_prereleases&sort=semver&label=release&logo=github)](https://github.com/kkorenn/KorenResourcePack_v2/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/kkorenn/KorenResourcePack_v2/total?logo=github&label=downloads)](https://github.com/kkorenn/KorenResourcePack_v2/releases)
+[![Stars](https://img.shields.io/github/stars/kkorenn/KorenResourcePack_v2?logo=github)](https://github.com/kkorenn/KorenResourcePack_v2/stargazers)
 [![Discord](https://img.shields.io/discord/1499236885409566891?logo=discord&logoColor=white&label=Discord&color=5865F2)](INVITE_URL)
+
+**MelonLoader** mod for **A Dance of Fire and Ice**. Does not work on UnityModManager.
+
+</div>
+
 ## Install (Recommended)
 1. Download [modlist.org app](https://github.com/modlist-org/modlist_org_app/releases/latest) and [KorenResourcePack v2](https://github.com/kkorenn/KorenResourcePack_v2/releases/latest)
 2. If not installed MelonLoader yet, install it using the modlist.org app.
@@ -13,6 +19,7 @@ KorenResourcePack v2 is a **MelonLoader** mod. This will not work on UnityModMan
 4. Done!
 
 ## Install (manual)
+0. First make sure you have MelonLoader, (if not follow [Recommended](https://github.com/kkorenn/KorenResourcePack_v2#install-recommended))
 1. Download the zip from [releases](https://github.com/kkorenn/KorenResourcePack_v2/releases/latest).
 2. Shove it in ur ADoFaI folder. (follow 2.1 if on mac)
 2.1. On Mac, it will replace the entire folder instead of just adding the files, manually drag files in.
