@@ -482,6 +482,10 @@ public static class PanelsOverlay {
 
             if(show) {
                 PanelConfig c = p.Config;
+                // Loop-invariant: the separator depends only on c.LabelSeparator
+                // (never mutated per frame), so build it once instead of allocating
+                // an identical " x " string per labeled stat each refresh.
+                string separator = EffectiveSeparator(c.LabelSeparator);
                 if(!string.IsNullOrEmpty(c.Prefix)) {
                     sb.AppendLine(c.Prefix);
                 }
@@ -520,7 +524,7 @@ public static class PanelsOverlay {
                         string label = c.LocalizeStatLabels
                             ? LocalizedStatLabel(stat)
                             : stat.Label;
-                        sb.Append(label).Append(EffectiveSeparator(c.LabelSeparator));
+                        sb.Append(label).Append(separator);
                     }
 
                     // Per-stat value coloring (v1 ColorRange): tint the value
