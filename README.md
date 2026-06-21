@@ -1,57 +1,23 @@
 # KorenResourcePack v2
 
-Koren is a MelonLoader mod for **A Dance of Fire and Ice**. It provides configurable gameplay overlays, key viewing, visual tweaks, profiles, localization, update handling, and Discord auto-deafen support.
+KorenResourcePack v2 is a **MelonLoader** mod. This will not work on UnityModManager.
 
-## Requirements
+JOIN OUR DISCORD FOR ASSISTANCE
+<iframe src="https://discord.com/widget?id=1499236885409566891&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
 
-- .NET 10 SDK
-- A Dance of Fire and Ice
-- MelonLoader installed in the game directory
+## Install (Recommended)
+1. Download [modlist.org app](https://github.com/modlist-org/modlist_org_app/releases/latest) and [KorenResourcePack v2](https://github.com/kkorenn/KorenResourcePack_v2/releases/latest)
+2. If not installed MelonLoader yet, install it using the modlist.org app.
+2.1. If you are on Mac, you need to do the "Copy Native Launch Options" and put it in steam arguments.
+3. Press "Install Mod From File" then select the zip (Koren.zip).
+4. Done!
 
-## Setup
+## Install (manual)
+1. Download the zip from [releases](https://github.com/kkorenn/KorenResourcePack_v2/releases/latest).
+2. Shove it in ur ADoFaI folder. (follow 2.1 if on mac)
+2.1. On Mac, it will replace the entire folder instead of just adding the files, manually drag files in.
+3. Done!
 
-Copy the local build-path template, then edit it for your game installation:
-
-```sh
-cp Directory.Build.example.props Directory.Build.props
-```
-
-`Directory.Build.props` is ignored by Git because it contains machine-specific paths.
-
-## Build
-
-Compile and package without touching the game installation:
-
-```sh
-dotnet build Koren.slnx -c Debug
-```
-
-Output package: `dist/Koren.zip`.
-
-Build, package, and install into the detected game directory:
-
-```sh
-./build.sh Debug
-```
-
-Supported configurations: `Debug`, `Release`, `Debug_IL2CPP`, and `Release_IL2CPP`.
-
-## Tests
-
-```sh
-./test.sh
-```
-
-The smoke-test project covers version ordering, atomic persistence, and localization-key parity.
-
-## Repository layout
-
-- `Koren/Features` — gameplay and visual features
-- `Koren/UI` — settings UI and overlay components
-- `Koren/IO` — settings and profile persistence
-- `Koren/Resource` — embedded and exported assets
-- `tools/release.sh` — release-build number helper
-
-## License
-
-Source code: GPL-3.0. See `LICENSE`.
+## Screenshots!!
+![Main Menu](readme/mainmenu.png)
+![Credits](readme/credits.png)
