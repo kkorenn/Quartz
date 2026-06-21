@@ -257,6 +257,11 @@ public static class ComboOverlay {
         // scales the size, not the text) doesn't pay a full GetPreferredValues
         // layout pass every frame — re-measured only when the digits change.
         private Vector2 prefPerPoint;
+        // Same per-point cache for the caption: the pulse only scales captionSize,
+        // and the caption string is constant during a pulse, so re-measure only
+        // when the caption text or font changes — not every pulse frame.
+        private Vector2 captionPrefPerPoint;
+        private string lastCaptionText;
 
         private void Update() {
             if(root == null || valueText == null) {
@@ -362,7 +367,19 @@ public static class ComboOverlay {
                     if(captionChanged) {
                         captionText.fontSize = captionSize;
                         captionText.color = Color.white;
-                        Vector2 capPref = captionText.GetPreferredValues(captionText.text);
+                        // TMP preferred size is linear in point size and the caption
+                        // string is constant through a pulse (only captionSize moves),
+                        // so only re-measure when the string or font actually changes —
+                        // mirroring the value text's prefPerPoint cache above.
+                        if(captionFontChanged
+                            || captionText.text != lastCaptionText
+                            || captionPrefPerPoint == Vector2.zero
+                        ) {
+                            Vector2 capMeasured = captionText.GetPreferredValues(captionText.text);
+                            captionPrefPerPoint = captionSize > 0f ? capMeasured / captionSize : Vector2.zero;
+                            lastCaptionText = captionText.text;
+                        }
+                        Vector2 capPref = captionPrefPerPoint * captionSize;
                         captionText.rectTransform.sizeDelta = new Vector2(Mathf.Max(capPref.x, 200f), capPref.y);
                         // Caption sits below the value; LabelPulseOffsetY kicks it up
                         // by the pulse intensity (0 by default = no kick).
