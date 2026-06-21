@@ -230,6 +230,14 @@ public static class ProgressBarOverlay {
     }
 
     private sealed class Updater : MonoBehaviour {
+        // Last-applied fill geometry/colour (NaN forces the first in-game frame to
+        // apply). fillContainer is written only here, so these mirror its live
+        // values and let a stalled run skip the redundant native writes + gradient
+        // lerp every frame.
+        private float lastStartX = float.NaN;
+        private float lastFillW = float.NaN;
+        private float lastGradientNow = float.NaN;
+
         private void Update() {
             if(bar == null) {
                 return;
@@ -270,12 +278,23 @@ public static class ProgressBarOverlay {
             float startX = totalW * fillFrom;
             float fillW = Mathf.Clamp(totalW * (now - fillFrom), 0f, totalW);
 
-            fillContainer.anchoredPosition = new Vector2(startX, 0f);
-            fillContainer.sizeDelta = new Vector2(fillW, 0f);
+            // Skip the native RectTransform writes when the geometry is identical
+            // to last frame — a stalled run between hits would otherwise re-cross
+            // the managed/native boundary every frame for no visible change.
+            if(startX != lastStartX || fillW != lastFillW) {
+                fillContainer.anchoredPosition = new Vector2(startX, 0f);
+                fillContainer.sizeDelta = new Vector2(fillW, 0f);
+                lastStartX = startX;
+                lastFillW = fillW;
+            }
 
             // Progress-driven fill gradient: recolour from the current progress.
-            if(fill != null && Conf.FillGradient is { Enabled: true }) {
+            // Only re-evaluate the lerp when progress actually moved; Apply()
+            // reseeds the colour on any settings edit, so a skipped frame already
+            // shows the correct colour.
+            if(fill != null && Conf.FillGradient is { Enabled: true } && now != lastGradientNow) {
                 fill.color = Conf.FillGradient.Evaluate(now);
+                lastGradientNow = now;
             }
         }
     }
