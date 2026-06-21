@@ -198,12 +198,15 @@ public static class KeyLimiter {
     // ===== async (SkyHook) key mapping, ported from v1 =====
 
     public static bool IsMouseLabel(KeyLabel label) {
-        switch(label.ToString()) {
-            case "MouseLeft":
-            case "MouseRight":
-            case "MouseMiddle":
-            case "MouseX1":
-            case "MouseX2":
+        // Switch on the enum value, not label.ToString(): Mono's Enum.ToString does
+        // a reflective name lookup and allocates a fresh string every call, and this
+        // runs on the SkyHook hook thread for every key edge.
+        switch(label) {
+            case KeyLabel.MouseLeft:
+            case KeyLabel.MouseRight:
+            case KeyLabel.MouseMiddle:
+            case KeyLabel.MouseX1:
+            case KeyLabel.MouseX2:
                 return true;
             default:
                 return false;
