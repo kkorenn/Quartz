@@ -7,7 +7,7 @@
 [![Stars](https://img.shields.io/github/stars/kkorenn/KorenResourcePack_v2?logo=github)](https://github.com/kkorenn/KorenResourcePack_v2/stargazers)
 [![Discord](https://img.shields.io/discord/1499236885409566891?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/mAzAghu5Xq)
 
-**MelonLoader** mod for **A Dance of Fire and Ice**. Does not work on UnityModManager.
+An all-in-one **MelonLoader** mod for **A Dance of Fire and Ice**.
 
 </div>
 
