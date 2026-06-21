@@ -21,7 +21,7 @@ An all-in-one **MelonLoader** mod for **A Dance of Fire and Ice**.
 4. Done!
 
 > [!NOTE]
-> On Mac, do "Copy Native Launch Options" and paste it into your Steam launch arguments.
+> If on Mac, In the modlist.org app, press "Copy Native Launch Options" in the "Installed" tab and paste it into your Steam launch arguments.
 
 ## Install (manual)
 0. First make sure you have MelonLoader, (if not follow [Recommended](https://github.com/kkorenn/KorenResourcePack_v2#install-recommended))
@@ -30,7 +30,7 @@ An all-in-one **MelonLoader** mod for **A Dance of Fire and Ice**.
 3. Done!
 
 > [!WARNING]
-> On Mac, this replaces the entire folder instead of just adding the files — drag the files in manually.
+> On Mac, this replaces the entire folder instead of just adding the files. drag the files in manually.
 
 ## Screenshots!!
 ![Main Menu](readme/mainmenu.png)
