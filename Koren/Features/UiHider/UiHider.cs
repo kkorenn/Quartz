@@ -157,16 +157,28 @@ public static partial class UiHider {
     // ===== game access helpers (reflection-tolerant, ported from v1) =====
 
     private static PropertyInfo isEditingLevelProperty;
+    // Getter + its static-ness resolved once: both are immutable for the resolved
+    // property, so caching keeps the per-frame editor check off reflection's
+    // GetGetMethod path. For the common static-bool getter we also build a
+    // zero-boxing delegate so the per-frame read no longer allocates a boxed bool.
+    private static MethodInfo isEditingLevelGetter;
+    private static bool isEditingLevelGetterStatic;
+    private static Func<bool> isEditingLevelStaticFunc;
     private static bool reflectionReady;
 
     private static bool IsEditingLevel() {
         EnsureReflection();
 
-        if(isEditingLevelProperty != null) {
+        if(isEditingLevelProperty != null && isEditingLevelGetter != null) {
             try {
-                MethodInfo getter = isEditingLevelProperty.GetGetMethod(true);
-                object target = getter != null && getter.IsStatic ? null : scnEditor.instance;
-                if(getter == null || getter.IsStatic || target != null) {
+                if(isEditingLevelGetterStatic) {
+                    if(isEditingLevelStaticFunc != null) {
+                        return isEditingLevelStaticFunc();
+                    }
+                    return Convert.ToBoolean(isEditingLevelProperty.GetValue(null, null));
+                }
+                object target = scnEditor.instance;
+                if(target != null) {
                     return Convert.ToBoolean(isEditingLevelProperty.GetValue(target, null));
                 }
             } catch { }
@@ -184,6 +196,18 @@ public static partial class UiHider {
         Type adoBase = AccessTools.TypeByName("ADOBase");
         if(adoBase != null) {
             isEditingLevelProperty = AccessTools.Property(adoBase, "isEditingLevel");
+            if(isEditingLevelProperty != null) {
+                isEditingLevelGetter = isEditingLevelProperty.GetGetMethod(true);
+                isEditingLevelGetterStatic = isEditingLevelGetter != null && isEditingLevelGetter.IsStatic;
+                if(isEditingLevelGetterStatic) {
+                    try {
+                        isEditingLevelStaticFunc =
+                            (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), isEditingLevelGetter);
+                    } catch {
+                        isEditingLevelStaticFunc = null;
+                    }
+                }
+            }
         }
     }
 
