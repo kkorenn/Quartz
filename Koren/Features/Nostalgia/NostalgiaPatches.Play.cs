@@ -197,15 +197,14 @@ public static partial class Nostalgia {
     }
 
     // --- Late Judgement: place the judgement text on the previous tile ---
-    // (BTTP's forceJudgeCount targeted the old 2-arg scrHitTextMesh.Show; the
-    // current engine pools judgement texts itself and Show takes a different
-    // signature, so that sub-toggle is obsolete and not ported.)
-    [HarmonyPatch(typeof(scrController), "ShowHitText")]
-    private static class ShowHitTextPatch {
-        // ShowHitText moved off scrController in newer builds (now on
-        // scrHitTextManager); skip cleanly when it isn't here.
-        private static bool Prepare() => AccessTools.Method(typeof(scrController), "ShowHitText") != null;
-        private static void Prefix(scrController __instance, HitMargin hitMargin, ref Vector3 position) {
+    // ShowHitText moved scrController -> scrHitTextManager and now takes the
+    // planet (not a ref position), computing the spot internally. So instead of
+    // editing an argument, we Postfix it: find the text that was just shown and
+    // move it (via its textPos) onto the previous tile, like the old game did.
+    [HarmonyPatch(typeof(scrHitTextManager), "ShowHitText")]
+    private static class LateJudgementPatch {
+        private static bool Prepare() => AccessTools.Method(typeof(scrHitTextManager), "ShowHitText") != null;
+        private static void Postfix(scrHitTextManager __instance, HitMargin hitMargin, scrPlanet planet) {
             if(!ShouldLateJudgement) {
                 return;
             }
@@ -215,13 +214,40 @@ public static partial class Nostalgia {
                 case HitMargin.FailMiss:
                 case HitMargin.FailOverload:
                     return;
-                default:
-                    scrFloor floor = scrLevelMaker.instance.listFloors[
-                        __instance.chosenPlanet.other.currfloor.seqID - 1];
-                    position = floor.transform.position;
-                    position.y++;
-                    break;
             }
+            try {
+                // The other planet's current floor IS the previous tile (the one
+                // just left), so use it directly — no seqID offset.
+                scrFloor other = planet?.other?.currfloor;
+                if(other == null) {
+                    return;
+                }
+                Vector3 pos = other.transform.position;
+                pos.y += 1f;
+
+                var cached = Traverse.Create(__instance).Field("cachedHitTexts")
+                    .GetValue<Dictionary<HitMargin, scrHitTextMesh[]>>();
+                if(cached == null || !cached.TryGetValue(hitMargin, out scrHitTextMesh[] arr)) {
+                    return;
+                }
+                // The text shown this call is the most recently shown live one.
+                scrHitTextMesh newest = null;
+                int best = int.MinValue;
+                foreach(scrHitTextMesh m in arr) {
+                    if(m == null || m.dead) {
+                        continue;
+                    }
+                    int fs = Traverse.Create(m).Field("frameShown").GetValue<int>();
+                    if(fs >= best) {
+                        best = fs;
+                        newest = m;
+                    }
+                }
+                if(newest != null) {
+                    Traverse.Create(newest).Field("textPos").SetValue(pos);
+                    newest.transform.position = pos;
+                }
+            } catch { }
         }
     }
 }
