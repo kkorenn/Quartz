@@ -310,13 +310,27 @@ public sealed class ResizeFrame : MonoBehaviour {
     public GameObject Handles;
     public float Ring;
 
+    // Last-applied panel geometry; the frame only moves during a drag/resize/tween,
+    // so on static frames skip the native RectTransform writes (which re-dirty the
+    // transform and schedule a canvas/layout pass even for an identical value).
+    private Vector2 lastPanelPos;
+    private Vector2 lastPanelSize;
+    private bool hasApplied;
+
     private void LateUpdate() {
         if(Panel == null || Self == null) {
             return;
         }
 
-        Self.anchoredPosition = Panel.anchoredPosition;
-        Self.sizeDelta = Panel.sizeDelta + new Vector2(Ring * 2f, Ring * 2f);
+        Vector2 panelPos = Panel.anchoredPosition;
+        Vector2 panelSize = Panel.sizeDelta;
+        if(!hasApplied || panelPos != lastPanelPos || panelSize != lastPanelSize) {
+            Self.anchoredPosition = panelPos;
+            Self.sizeDelta = panelSize + new Vector2(Ring * 2f, Ring * 2f);
+            lastPanelPos = panelPos;
+            lastPanelSize = panelSize;
+            hasApplied = true;
+        }
 
         bool show = Panel.gameObject.activeInHierarchy
             && UICore.IsOpen
