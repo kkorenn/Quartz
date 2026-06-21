@@ -1,0 +1,59 @@
+Koren/Features/KeyViewer/KeyViewerOverlay.Graph.cs
+  s_c67afe1f691de8::t_e26068964bb824 49-51
+  s_c67afe1f691de8::t_a93d8aa4ff64b2 138-144,151-158,160
+  s_c67afe1f691de8::t_95f63678f5808b 1-48,52-137,145-150,159,161-273
+Koren/Features/KeyViewer/KeyViewerOverlay.Image.cs
+  s_c67afe1f691de8::t_243fa1e9b21663 1-235
+Koren.Tests/Program.cs
+  s_c67afe1f691de8::t_a2262b9266cb1d 215-231
+Koren/Features/KeyViewer/KeyViewerOverlay.Css.cs
+  s_c67afe1f691de8::t_8e5aab3c26a1d0 69-71
+  s_c67afe1f691de8::t_50e886743c8259 262
+  s_c67afe1f691de8::t_84785be7fbda09 68,72-73
+  s_c67afe1f691de8::t_1d7f351f8cc464 471-472
+  s_58f6e6b5d3b4e7::t_f69a5d599d35c8 322-324
+  s_58f6e6b5d3b4e7::t_04df65d3f8a4e2 360
+Koren/Features/KeyViewer/KeyViewerOverlay.cs
+  s_c67afe1f691de8::t_20e3e69ebd4d3d 220-233,237
+  s_c67afe1f691de8::t_2224d93d1a5771 1262-1266
+  s_c67afe1f691de8::t_5833a9d5011fe5 1146-1149
+  s_c67afe1f691de8::t_09e3297a273ecd 1144
+  s_c67afe1f691de8::t_18c5d278137ede 1125-1143,1145,1150-1153
+  s_c67afe1f691de8::t_b9f067929c9213 234-236
+  s_c67afe1f691de8::t_56437f2e833750 2589-2590,2592-2593
+  s_c67afe1f691de8::t_8a94463ee5e974 980-991
+  s_c67afe1f691de8::t_a90d75760d29a2 2457-2471
+  s_c67afe1f691de8::t_2c1cee858fe745 96-97,101
+  s_c67afe1f691de8::t_d1ac1043b9d3b6 1184-1188
+  s_c67afe1f691de8::t_9e54c667af8855 241-248
+  s_c67afe1f691de8::t_92ff8a06c6b3d6 261
+Koren/Features/KeyViewer/KeyViewerCss.cs
+  s_c67afe1f691de8::t_8ac4f458514deb 304-313,315
+  s_c67afe1f691de8::t_1ada7ba185a4d4 207-208
+  s_c67afe1f691de8::t_b5b989748a0d87 394-449
+  s_c67afe1f691de8::t_4933463c7caf47 150-162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "67a0daf5600cfc708c2f25d3ef349e61e304fb93",
+  "prompts": {},
+  "sessions": {
+    "s_58f6e6b5d3b4e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1ed49995-ab0f-4ceb-babc-69c78dc97e3f",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    },
+    "s_c67afe1f691de8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6aaa7677-b937-48c2-8685-3a1a1248cedc",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
