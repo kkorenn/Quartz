@@ -10,8 +10,12 @@ using Object = UnityEngine.Object;
 namespace Koren.Features.Editor;
 
 // Editor tab feature. Tweaks that target A Dance of Fire and Ice's level
-// editor. Currently: "Horizontal Properties" — each inspector property renders
-// as "label [field]" on one row instead of the stock "label above field".
+// editor. Two tweaks live here: "Horizontal Properties" (this file) — each
+// inspector property renders as "label [field]" on one row instead of the stock
+// "label above field"; and the selected-tile readout (EditorFloorReadout.cs) —
+// total angle/beats/count/duration of the selection drawn on a tile.
+//
+// Horizontal Properties:
 //
 // Approach (adapted from the original KorenResourcePack's EditorUI): the editor
 // instantiates every property row from one shared template, ADOBase.gc
@@ -60,14 +64,16 @@ public static partial class EditorFeature {
     private sealed class TickImpl : IRuntimeTick {
         public void Tick() {
             Reconcile();
-            ReconcileAngleLabels();
+            ReconcileFloorReadout();
+            ReconcileBga();
         }
     }
 
     // Immediate path for the settings toggle.
     public static void Apply() {
         Reconcile();
-        ReconcileAngleLabels();
+        ReconcileFloorReadout();
+        ReconcileBga();
     }
 
     // Hard revert, used when the mod is disabled / torn down so the shared
@@ -76,7 +82,8 @@ public static partial class EditorFeature {
         if(applied) {
             DisableHorizontal();
         }
-        ClearAngleLabels();
+        ClearReadout();
+        RestoreBga();
     }
 
     private static bool applied;
