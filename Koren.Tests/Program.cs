@@ -212,6 +212,23 @@ static void TestKeyViewerCssExtended() {
     // hsl() colour parsing.
     Assert(KeyViewerStylesheet.TryParseColor("hsl(120, 100%, 50%)", out CssColor green)
         && green.G > 0.9f && green.R < 0.1f, "hsl parsed to green");
+
+    // KPS-graph variables, matched by the graph's class (no data-state).
+    KeyViewerStylesheet gsheet = KeyViewerStylesheet.Parse("""
+        .kps-graph {
+          --graph-bg: rgba(7, 10, 18, 0.72);
+          --graph-border: 1px solid rgba(125, 211, 252, 0.55);
+          --graph-radius: 12px;
+          --graph-color: #7dd3fc;
+        }
+        """);
+    CssGraphStyle g = gsheet.ResolveGraph("kps-graph");
+    Assert(g.Bg.Has && Math.Abs(g.Bg.A - 0.72f) < 0.02f, "--graph-bg parsed");
+    Assert(g.BorderWidth == 1f && g.BorderColor.Has, "--graph-border shorthand");
+    Assert(g.Radius == 12f, "--graph-radius parsed");
+    Assert(ColorEq(g.Color, 0x7d, 0xd3, 0xfc), "--graph-color parsed");
+    // A graph rule for a different class must not leak.
+    Assert(!gsheet.ResolveGraph("other").Any, "graph class is scoped");
 }
 
 static bool ColorEq(CssColor c, int r, int g, int b) =>

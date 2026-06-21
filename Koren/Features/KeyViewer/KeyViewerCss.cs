@@ -147,6 +147,19 @@ public sealed class CssCounterStyleSet {
     public bool Any => Idle.Any || Active.Any;
 }
 
+// Resolved KPS-graph style. Graphs are always inactive (no press state); their
+// CSS variables (--graph-bg/-border/-radius/-color) override the preset inline
+// values per the DM Note GraphPanel contract.
+public sealed class CssGraphStyle {
+    public CssColor Bg = CssColor.Unset;
+    public float? BorderWidth;
+    public CssColor BorderColor = CssColor.Unset;
+    public float? Radius;
+    public CssColor Color = CssColor.Unset;
+
+    public bool Any => Bg.Has || BorderWidth.HasValue || BorderColor.Has || Radius.HasValue || Color.Has;
+}
+
 // Declaration store for one (target, state, pseudo) slot: global declarations
 // plus class-scoped rules matched by subset so both `.blue` and `.blue.special`
 // resolve with proper specificity.
@@ -191,6 +204,8 @@ public sealed class KeyViewerStylesheet {
     private readonly CssBucket _beforeIdle = new(), _beforeActive = new();
     private readonly CssBucket _afterIdle = new(), _afterActive = new();
     private readonly CssBucket _ctrIdle = new(), _ctrActive = new();
+    // Graphs have no press state, so a single bucket (class-scoped) suffices.
+    private readonly CssBucket _graph = new();
 
     public List<CssFontFace> FontFaces { get; } = new();
     public bool IsEmpty { get; private set; } = true;
@@ -286,8 +301,18 @@ public sealed class KeyViewerStylesheet {
             string lower = baseSel.ToLowerInvariant();
             bool counter = lower.IndexOf("counter", StringComparison.Ordinal) >= 0;
             bool hasState = lower.IndexOf("data-state", StringComparison.Ordinal) >= 0;
+            string[] classes = ExtractClasses(baseSel);
+
+            // A rule setting any --graph-* variable styles the KPS graph, matched
+            // by the graph's assigned class (e.g. `.kps-graph { --graph-bg: … }`),
+            // which carries no data-state. Route it before the key/counter skip.
+            if(pseudo == 0 && HasGraphVar(decls)) {
+                _graph.Add(classes, decls);
+                IsEmpty = false;
+            }
+
             if(!counter && !hasState) {
-                continue; // unrecognised selector (e.g. .kps-graph)
+                continue; // unrecognised key/counter selector (e.g. bare .graph)
             }
 
             int state = -1; // -1 both, 0 inactive, 1 active
@@ -296,8 +321,6 @@ public sealed class KeyViewerStylesheet {
             } else if(lower.IndexOf("active", StringComparison.Ordinal) >= 0) {
                 state = 1;
             }
-
-            string[] classes = ExtractClasses(baseSel);
 
             if(counter) {
                 AddTo(_ctrIdle, _ctrActive, state, classes, decls);
@@ -366,6 +389,63 @@ public sealed class KeyViewerStylesheet {
         MapCounter(_ctrIdle.Flatten(classes), set.Idle);
         MapCounter(_ctrActive.Flatten(classes), set.Active);
         return set;
+    }
+
+    public CssGraphStyle ResolveGraph(string? className) {
+        var style = new CssGraphStyle();
+        MapGraph(_graph.Flatten(ClassSet(className)), style);
+        return style;
+    }
+
+    private static bool HasGraphVar(Dictionary<string, string> decls) {
+        foreach(string key in decls.Keys) {
+            if(key.StartsWith("--graph-", StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void MapGraph(Dictionary<string, string> d, CssGraphStyle s) {
+        foreach(KeyValuePair<string, string> kv in d) {
+            switch(kv.Key) {
+                case "--graph-bg":
+                    if(TryParseColor(kv.Value, out CssColor bg)) { s.Bg = bg; }
+                    break;
+                case "--graph-border":
+                    ParseGraphBorder(kv.Value, s);
+                    break;
+                case "--graph-radius":
+                    if(TryLen(kv.Value, out float r)) { s.Radius = r; }
+                    break;
+                case "--graph-color":
+                    if(TryParseColor(kv.Value, out CssColor c)) { s.Color = c; }
+                    break;
+            }
+        }
+    }
+
+    private static void ParseGraphBorder(string v, CssGraphStyle s) {
+        string t = v.Trim();
+        if(t.Equals("none", StringComparison.OrdinalIgnoreCase) || t.Length == 0) {
+            s.BorderWidth = 0f;
+            return;
+        }
+        bool gotWidth = false;
+        foreach(string tok in SplitTopLevel(t, ' ')) {
+            string p = tok.Trim();
+            if(p.Length == 0 || p.Equals("solid", StringComparison.OrdinalIgnoreCase)
+                || p.Equals("dashed", StringComparison.OrdinalIgnoreCase)
+                || p.Equals("dotted", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+            if(!gotWidth && TryLen(p, out float w) && !LooksLikeColor(p)) {
+                s.BorderWidth = w;
+                gotWidth = true;
+            } else if(TryParseColor(p, out CssColor bc)) {
+                s.BorderColor = bc;
+            }
+        }
     }
 
     private static HashSet<string> ClassSet(string? className) {

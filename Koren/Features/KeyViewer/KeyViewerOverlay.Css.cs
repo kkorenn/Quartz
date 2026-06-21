@@ -65,6 +65,12 @@ public static partial class KeyViewerOverlay {
             EnsureFontFaces(sheet);
 
             foreach(DmNoteSpec spec in specs) {
+                if(spec.IsGraph) {
+                    if(!spec.GraphInlineStyles) {
+                        ApplyGraphCss(spec, sheet.ResolveGraph(spec.ClassName));
+                    }
+                    continue;
+                }
                 ApplyKeyStyle(spec, sheet.ResolveKey(spec.ClassName));
                 ApplyCounterStyle(spec, sheet.ResolveCounter(spec.ClassName));
             }
@@ -253,6 +259,7 @@ public static partial class KeyViewerOverlay {
             box.Value.color = Color.white;
         }
 
+        BuildKeyImage(box, spec);
         BuildBoxGlow(box, spec);
         BuildFillGradient(box, spec);
         box.BeforeLayer = BuildPseudo(box, spec, spec.IdleBefore ?? spec.ActiveBefore, true);
@@ -312,7 +319,9 @@ public static partial class KeyViewerOverlay {
         // Oversize so rotation never exposes a corner.
         float diag = Mathf.Sqrt(spec.W * spec.W + spec.H * spec.H);
         rt.sizeDelta = new Vector2(diag, diag);
-        rt.localRotation = Quaternion.Euler(0f, 0f, 90f - g.AngleDeg);
+        // Negated for the overlay's Y-down render (same as box transform's -rot),
+        // so the CSS angle convention (0=top, 90=right, 180=bottom) holds.
+        rt.localRotation = Quaternion.Euler(0f, 0f, g.AngleDeg - 90f);
 
         RawImage ri = obj.AddComponent<RawImage>();
         ri.texture = GradientTexture(g.Stops, 0f);
@@ -348,7 +357,7 @@ public static partial class KeyViewerOverlay {
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(cx, -cy);
             rt.sizeDelta = new Vector2(diag, diag);
-            rt.localRotation = Quaternion.Euler(0f, 0f, 90f - layer.GradAngle);
+            rt.localRotation = Quaternion.Euler(0f, 0f, layer.GradAngle - 90f);
             ri.texture = GradientTexture(layer.GradStops, layer.Blur);
             ri.color = Color.white;
         } else if(behind) {
@@ -458,6 +467,9 @@ public static partial class KeyViewerOverlay {
             float frost = Mathf.Clamp01(0.25f + backdrop * 0.03f);
             box.Fill.color = new Color(baseBg.r, baseBg.g, baseBg.b, Mathf.Max(baseBg.a, frost));
         }
+
+        // Per-state background image (swap + fit + dim).
+        ApplyImageState(box, spec, pressed);
 
         // Pseudo layers + fill gradient visibility for the current state.
         ApplyPseudoState(box.BeforeLayer, pressed ? spec.ActiveBefore : spec.IdleBefore);

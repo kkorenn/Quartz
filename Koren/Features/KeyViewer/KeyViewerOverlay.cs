@@ -93,10 +93,12 @@ public static partial class KeyViewerOverlay {
         public Image Fill;
         // Optional soft sprite behind the box for a CSS box-shadow halo.
         public Image Glow;
-        // CSS extras: a masked gradient fill child, and the :before/:after layers.
+        // CSS extras: a masked gradient fill child, the :before/:after layers,
+        // and the per-state background image.
         public RawImage FillGrad;
         public RawImage BeforeLayer;
         public RawImage AfterLayer;
+        public RawImage KeyImage;
         // Last text the per-glyph gradient coloured, so the mesh is only forced
         // to rebuild when the string actually changes.
         public string GradLabelText;
@@ -215,8 +217,34 @@ public static partial class KeyViewerOverlay {
         // :before / :after pseudo layers per state.
         public CssLayerRt IdleBefore, ActiveBefore, IdleAfter, ActiveAfter;
 
+        // KPS-graph element (DM Note GraphPanel). When IsGraph the box renders a
+        // line/bar chart of the stat history instead of a key/counter. Defaults
+        // mirror DmNote's GraphPanel.
+        public bool IsGraph;
+        public string GraphType = "line";      // "line" | "bar"
+        public string GraphStat = "kps";        // which stat to plot
+        public float GraphSpeed = 1000f;         // window in ms (clamped 500..5000)
+        public Color GraphColor = new(0.525f, 0.937f, 0.678f, 1f);  // #86EFAC
+        public bool GraphShowAvg = true;
+        public bool GraphAnim = true;
+        public Color GraphBg = new(17f / 255f, 17f / 255f, 20f / 255f, 0.9f);
+        public Color GraphBorder = new(1f, 1f, 1f, 0.1f);
+        public float GraphBorderWidth = 3f;
+        public float GraphBorderRadius = 8f;
+        // DM Note's "Inline Styles Priority": when true the preset's inline
+        // colours win and --graph-* CSS is ignored.
+        public bool GraphInlineStyles;
+
         public bool HasPseudo =>
             IdleBefore != null || ActiveBefore != null || IdleAfter != null || ActiveAfter != null;
+
+        // Background images (DM Note inactiveImage/activeImage + object-fit). Held
+        // as raw source strings (data URI / URL / file path); resolved to textures
+        // in BuildKeyImage. Fit precedence mirrors useKeyElementStyles.
+        public string InactiveImage = "", ActiveImage = "";
+        public string IdleImageFit = "", ActiveImageFit = "", ImageFitDefault = "";
+        public Texture2D IdleTex, ActiveTex;
+        public bool HasImage => InactiveImage.Length > 0 || ActiveImage.Length > 0;
 
         // Whether ApplyCssState has per-press work: glow, offset, transform,
         // filter, backdrop or pseudo layers. Gradients tick separately.
@@ -230,7 +258,7 @@ public static partial class KeyViewerOverlay {
             || IdleFilter != Color.white || ActiveFilter != Color.white
             || IdleBackdrop > 0f || ActiveBackdrop > 0f
             || FillGradient != null || ActiveFillGradient != null
-            || HasPseudo;
+            || HasImage || HasPseudo;
     }
 
     // A resolved glow (Unity colour + blur) ready to feed TMPTextShadow or the
@@ -949,6 +977,23 @@ public static partial class KeyViewerOverlay {
                 }
             }
 
+            // KPS graphs (DM Note graphPositions table), keyed by tab like keys
+            // and stats.
+            if(preset["graphPositions"] is JObject graphTable && graphTable[tab] is JArray graphArr) {
+                for(int i = 0; i < graphArr.Count; i++) {
+                    if(graphArr[i] is not JObject p || JBool(p, "hidden", false)) {
+                        continue;
+                    }
+                    JObject pos = (p["position"] as JObject) ?? p;
+                    if(JBool(pos, "hidden", false)) {
+                        continue;
+                    }
+                    DmNoteSpec spec = ParseGraphSpec(pos);
+                    result.Add(spec);
+                    ExtendDmBounds(spec, ref minX, ref minY, ref maxX, ref maxY);
+                }
+            }
+
             if(float.IsPositiveInfinity(minX) || float.IsPositiveInfinity(minY)) {
                 return result;
             }
@@ -1077,6 +1122,37 @@ public static partial class KeyViewerOverlay {
         bottom = HexToColor(solid, opacityBottom);
     }
 
+    // A KPS-graph element from the graphPositions table. Mirrors DM Note's
+    // GraphPanel defaults (200x100, line, #86EFAC, dark bg, faint border).
+    private static DmNoteSpec ParseGraphSpec(JObject p) {
+        DmNoteSpec spec = new() {
+            IsGraph = true,
+            X = JFloat(p, "dx", 0f),
+            Y = JFloat(p, "dy", 0f),
+            W = Mathf.Max(1f, JFloat(p, "width", 200f)),
+            H = Mathf.Max(1f, JFloat(p, "height", 100f)),
+            GraphType = JStr(p, "graphType", "line"),
+            GraphStat = JStr(p, "statType", "kps"),
+            GraphSpeed = Mathf.Clamp(JFloat(p, "graphSpeed", 1000f), 500f, 5000f),
+            GraphColor = HexToColor(JStr(p, "graphColor", "#86EFAC"), 1f),
+            GraphShowAvg = JBool(p, "showAvgLine", true),
+            GraphAnim = JBool(p, "graphAnimationEnabled", true),
+            GraphBg = HexToColor(JStr(p, "backgroundColor", "rgba(17, 17, 20, 0.9)"), 0.9f),
+            GraphBorder = HexToColor(JStr(p, "borderColor", "rgba(255, 255, 255, 0.1)"), 0.1f),
+            GraphBorderWidth = Mathf.Clamp(JFloat(p, "borderWidth", 3f), 0f, 20f),
+            GraphBorderRadius = Mathf.Clamp(JFloat(p, "borderRadius", 8f), 0f, 100f),
+            GraphInlineStyles = JBool(p, "useInlineStyles", false),
+            ClassName = JOptionalString(p, "className") ?? "",
+            InactiveImage = JOptionalString(p, "inactiveImage") ?? "",
+            ActiveImage = JOptionalString(p, "activeImage") ?? "",
+            IdleImageFit = JStr(p, "idleImageFit", ""),
+            ImageFitDefault = JStr(p, "imageFit", ""),
+        };
+        spec.CountKey = "graph";
+        spec.DisplayText = "";
+        return spec;
+    }
+
     private static DmNoteSpec ParseDmNoteSpec(string keyName, JObject p, bool stat) {
         string fontHex = JStr(p, "fontColor", "rgba(121, 121, 121, 0.9)");
         string activeFontHex = JStr(p, "activeFontColor", "#FFFFFF");
@@ -1105,6 +1181,11 @@ public static partial class KeyViewerOverlay {
             spec.CountKey = spec.KeyName;
         }
         spec.ClassName = JOptionalString(p, "className") ?? "";
+        spec.InactiveImage = JOptionalString(p, "inactiveImage") ?? "";
+        spec.ActiveImage = JOptionalString(p, "activeImage") ?? "";
+        spec.IdleImageFit = JStr(p, "idleImageFit", "");
+        spec.ActiveImageFit = JStr(p, "activeImageFit", "");
+        spec.ImageFitDefault = JStr(p, "imageFit", "");
 
         spec.Bg = HexToColor(bgHex, 0.9f);
         spec.ActiveBg = HexToColor(activeBgHex, 0.9f);
@@ -1178,6 +1259,11 @@ public static partial class KeyViewerOverlay {
     }
 
     private static void AddDmNoteBox(int index, DmNoteSpec spec) {
+        if(spec.IsGraph) {
+            AddDmNoteGraph(index, spec);
+            return;
+        }
+
         (Image fill, Image border) = NewBoxVisual(
             "DmNote_" + index, root, spec.X, spec.Y, spec.W, spec.H,
             spec.BorderRadius, spec.BoxBorderWidth
@@ -2368,6 +2454,23 @@ public static partial class KeyViewerOverlay {
         return box.IsTotal ? totalCount : 0;
     }
 
+    // Current value of a named stat, for the KPS graph to plot.
+    internal static int GraphStatValue(string statType) {
+        if(string.IsNullOrEmpty(statType)) {
+            return pressLog.Count;
+        }
+        if(statType.Equals("kpsAvg", StringComparison.OrdinalIgnoreCase)) {
+            return kpsSamples > 0 ? Mathf.RoundToInt(kpsSum / (float)kpsSamples) : 0;
+        }
+        if(statType.Equals("kpsMax", StringComparison.OrdinalIgnoreCase)) {
+            return kpsMax;
+        }
+        if(statType.Equals("total", StringComparison.OrdinalIgnoreCase)) {
+            return totalCount;
+        }
+        return pressLog.Count; // kps (default)
+    }
+
     private static void UpdateDmNote(float now) {
         // dm* runtime caches are refreshed by Apply()/ParseDmNoteSpecs() on every
         // settings change, so re-deriving them (8 reads + 8 Mathf.Clamp) every
@@ -2483,9 +2586,11 @@ public static partial class KeyViewerOverlay {
         // Update and recolours after TMP has regenerated its mesh this frame. A
         // finished font download (background thread) triggers one rebuild here.
         private void LateUpdate() {
-            if(cssFontArrived) {
+            // A finished font/image download (background thread) → one rebuild.
+            if(cssFontArrived || cssImageArrived) {
                 cssFontArrived = false;
-                if(Conf != null && Conf.IsDmNoteMode && Conf.DmCssEnabled) {
+                cssImageArrived = false;
+                if(Conf != null && Conf.IsDmNoteMode) {
                     Rebuild();
                     return;
                 }
