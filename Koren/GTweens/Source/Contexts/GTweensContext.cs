@@ -79,9 +79,16 @@ public sealed class GTweensContext {
         foreach(GTween tween in _tweensToRemove) {
             tween.IsAlive = false;
 
-            _aliveTweens.Remove(tween);
             _tweensToAdd.Remove(tween);
         }
+
+        // Compact the alive list in one O(n) pass instead of an O(n) List.Remove
+        // per finished tween — when a group of same-duration UI tweens completes
+        // on the same frame, the per-tween Remove is O(M*n) and spikes the frame.
+        // IsAlive is true for every surviving tween (set in Play, cleared only in
+        // the loop just above), so this drops exactly the _tweensToRemove set. The
+        // static lambda captures nothing, so it allocates no per-frame closure.
+        _aliveTweens.RemoveAll(static tween => !tween.IsAlive);
 
         _tweensToRemove.Clear();
 
