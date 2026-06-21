@@ -72,6 +72,10 @@ public static class OttoIcon {
     private static Vector3 originalLocalScale;
     private static Color originalColor;
     private static Image trackedTransformImage;
+    // The embedded Otto sprite resolves once and never changes; memoize it so the
+    // per-frame postfix doesn't box the Asset enum into SpriteManager's
+    // object-keyed cache on every editor frame just to re-fetch the same instance.
+    private static Sprite resolvedReplacement;
 
     // ===== last applied state, so the per-frame postfixes are no-ops =====
     private static bool applyStateValid;
@@ -110,9 +114,13 @@ public static class OttoIcon {
             return;
         }
 
-        Sprite replacement = MainCore.Spr.Get(Asset.OttoAuto);
+        Sprite replacement = resolvedReplacement;
         if(replacement == null) {
-            return;
+            replacement = MainCore.Spr.Get(Asset.OttoAuto);
+            if(replacement == null) {
+                return;
+            }
+            resolvedReplacement = replacement;
         }
 
         bool autoState;
