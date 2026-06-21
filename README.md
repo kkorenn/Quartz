@@ -2,10 +2,10 @@
 
 # KorenResourcePack v2
 
-[![Latest Release](https://img.shields.io/github/v/release/kkorenn/KorenResourcePack_v2?include_prereleases&sort=semver&label=release&logo=github)](https://github.com/kkorenn/KorenResourcePack_v2/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/kkorenn/KorenResourcePack_v2?include_prereleases&sort=date&label=release&logo=github)](https://github.com/kkorenn/KorenResourcePack_v2/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/kkorenn/KorenResourcePack_v2/total?logo=github&label=downloads)](https://github.com/kkorenn/KorenResourcePack_v2/releases)
 [![Stars](https://img.shields.io/github/stars/kkorenn/KorenResourcePack_v2?logo=github)](https://github.com/kkorenn/KorenResourcePack_v2/stargazers)
-[![Discord](https://img.shields.io/discord/1499236885409566891?logo=discord&logoColor=white&label=Discord&color=5865F2)](INVITE_URL)
+[![Discord](https://img.shields.io/discord/1499236885409566891?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/mAzAghu5Xq)
 
 **MelonLoader** mod for **A Dance of Fire and Ice**. Does not work on UnityModManager.
 
