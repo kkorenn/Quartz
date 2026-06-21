@@ -1,0 +1,19 @@
+Koren/UI/Utility/ResizeHandle.cs
+  s_67a4078f144550::t_a0f47b65ae1f07 313-319,325-333
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.9",
+  "base_commit_sha": "3a32479172d1282b2e5f8f4ec1b9857b701b4235",
+  "prompts": {},
+  "sessions": {
+    "s_67a4078f144550": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6a3625e-b3cb-4857-a2c2-401a79b86a27",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
