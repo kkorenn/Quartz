@@ -2711,7 +2711,12 @@ public static partial class KeyViewerOverlay {
                         box.Count++;
                         totalCount++;
                         pressLog.Enqueue(now);
-                        box.KpsLog.Enqueue(now);
+                        // Only the per-key KPS readout drains box.KpsLog; when it's
+                        // off (the default) nothing ever dequeues, so an unconditional
+                        // enqueue grows the queue unbounded for the whole session.
+                        if(Conf.PerKeyKps) {
+                            box.KpsLog.Enqueue(now);
+                        }
                         countsDirty = true;
                     }
 
