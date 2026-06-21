@@ -4,6 +4,8 @@ using UnityEngine.UI;
 
 using TMPro;
 
+using Object = UnityEngine.Object;
+
 namespace Koren.UI.Utility;
 
 public static class TMPTextShadow {
@@ -82,6 +84,24 @@ public static class TMPTextShadow {
 
             SyncLayer(text, layer, layerColor, layerOffset);
         }
+    }
+
+    // Tear down the shadow root for a text. Call while the text is still alive
+    // (the root is keyed to it via ShadowLink). Needed by transient labels whose
+    // own GameObject is the shadow root's PARENT's sibling rather than its
+    // ancestor — destroying the text alone would orphan the root. Idempotent.
+    public static void Remove(TextMeshProUGUI text) {
+        if(text == null) {
+            return;
+        }
+        ShadowLink link = text.GetComponent<ShadowLink>();
+        if(link == null) {
+            return;
+        }
+        if(link.Root != null) {
+            Object.Destroy(link.Root.gameObject);
+        }
+        Object.Destroy(link);
     }
 
     // The shadow root used to be re-found every call via a foreach over the

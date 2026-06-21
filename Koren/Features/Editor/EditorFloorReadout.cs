@@ -4,6 +4,7 @@ using System.Text;
 using ADOFAI;
 using Koren.Features.GameOverlayFont;
 using Koren.Resource;
+using Koren.UI.Utility;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -60,6 +61,10 @@ public static partial class EditorFeature {
     private const string BeatsColor = "#52a9ff";
     private const string CountColor = "#8a8a8a";
     private const string DurationColor = "#ffffff";
+
+    // Shrink the readout below the game's own floor-number size — it's an
+    // auxiliary annotation, not the tile's number.
+    private const float ReadoutFontScale = 0.7f;
 
     private static void ReconcileFloorReadout() {
         bool want;
@@ -129,13 +134,43 @@ public static partial class EditorFeature {
             return;
         }
 
+        bool dirty = false;
         TMP_FontAsset want = FontManager.GameOverlayFontAsset ?? FontManager.Current;
         if(want != null && readoutTmp.font != want) {
             readoutTmp.font = want;
+            dirty = true;
         }
         if(readoutTmp.text != text) {
             readoutTmp.text = text; // TMP's setter re-tessellates, so guard on change.
+            dirty = true;
         }
+        // Resync the shadow only when the silhouette could have changed (fresh
+        // label sets text from "" → dirty). Position needs no per-frame sync: the
+        // shadow root is a sibling under the same tile and rides its transform.
+        if(dirty) {
+            ApplyReadoutShadow();
+        }
+    }
+
+    // A crisp drop shadow behind the readout via the mod's shared TMP shadow
+    // helper. Layered silhouette, not material underlay: the overlay font is
+    // multi-atlas, so a ♩/° glyph that lands on a second atlas page would miss a
+    // per-material underlay but is covered by the re-laid silhouette. Offset
+    // scales with the (shrunk) font so it stays proportional. Black at half alpha,
+    // crisp (softness 0 → a single layer), matching the HUD overlays' defaults.
+    private static void ApplyReadoutShadow() {
+        if(readoutTmp == null) {
+            return;
+        }
+        float offset = readoutTmp.fontSize * 0.12f;
+        TMPTextShadow.Apply(
+            readoutTmp,
+            true,
+            offset,
+            -offset,
+            0f,
+            new Color(0f, 0f, 0f, 0.5f)
+        );
     }
 
     // (Re)build the label on the host tile, reusing it while the host is unchanged.
@@ -189,8 +224,9 @@ public static partial class EditorFeature {
         tmp.richText = true;
         tmp.color = Color.white;
         // Same UI.Text→TMP point-size mapping the GameOverlayFont twins use, so the
-        // readout matches the size the tile number rendered at.
-        tmp.fontSize = Mathf.Max(1f, baseSize * GameFontMirror.SizeScale);
+        // readout matches the size the tile number rendered at, then ReadoutFontScale
+        // shrinks it below that.
+        tmp.fontSize = Mathf.Max(1f, baseSize * GameFontMirror.SizeScale * ReadoutFontScale);
 
         clone.SetActive(true);
 
@@ -349,6 +385,12 @@ public static partial class EditorFeature {
     }
 
     private static void ClearReadout() {
+        // Tear the shadow's sibling root down first, while the TMP it's keyed to is
+        // still alive — editorNumText's Text sits on the clone root, so the shadow
+        // root is a SIBLING of the clone, not a child, and wouldn't fall with it.
+        if(readoutTmp != null) {
+            TMPTextShadow.Remove(readoutTmp);
+        }
         if(readoutLabel != null) {
             Object.DestroyImmediate(readoutLabel);
         }
