@@ -31,6 +31,16 @@ public static class SongTitleOverlay {
     private static GameObject dragObj;
     private static Updater updater;
 
+    // BuildBody runs every frame but its formatted result is a pure function of
+    // (artist, title, fmt, reorganize); cache the last build so an unchanged title
+    // doesn't allocate two throwaway {artist}/{title} substitution strings per
+    // frame. Only the formatted path uses this; the raw-fallback path is untouched.
+    private static string bbArtist;
+    private static string bbTitle;
+    private static string bbFmt;
+    private static bool bbReorg;
+    private static string bbResult;
+
     public static void EnsureConf() {
         if(ConfMgr != null) {
             return;
@@ -203,7 +213,23 @@ public static class SongTitleOverlay {
         }
 
         string fmt = string.IsNullOrEmpty(Conf.Format) ? "{artist} - {title}" : Conf.Format;
-        return NormalizeColorTags(fmt.Replace("{artist}", artist).Replace("{title}", title));
+
+        // Reuse the last build when every input that feeds it is unchanged, so a
+        // static title doesn't re-run the two substituting Replace allocations
+        // every frame. (The raw-fallback path above returns before this and keeps
+        // recomputing from the live game string.)
+        if(bbResult != null && isReorganizing == bbReorg
+            && artist == bbArtist && title == bbTitle && fmt == bbFmt) {
+            return bbResult;
+        }
+
+        string result = NormalizeColorTags(fmt.Replace("{artist}", artist).Replace("{title}", title));
+        bbArtist = artist;
+        bbTitle = title;
+        bbFmt = fmt;
+        bbReorg = isReorganizing;
+        bbResult = result;
+        return result;
     }
 
     // The game draws its in-game title with a legacy UnityEngine.UI.Text, whose
