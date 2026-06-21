@@ -11,6 +11,7 @@ using Koren.Features.GameOverlayFont;
 using Koren.Features.Optimizer;
 using Koren.Features.Judgement;
 using Koren.Features.KeyViewer;
+using Koren.Features.Nostalgia;
 using Koren.Features.OttoIcon;
 using Koren.Features.Panels;
 using Koren.Features.PlanetColors;
@@ -244,6 +245,7 @@ public sealed class KorenRuntime {
             OttoIcon.Refresh();
             Optimizer.Apply();
             GameOverlayFont.Refresh();
+            Nostalgia.Refresh();
 
             OnModEnabledChanged?.Invoke(true, isDispose);
 
@@ -269,6 +271,7 @@ public sealed class KorenRuntime {
             Optimizer.Restore();
             GameOverlayFont.Restore();
             EditorFeature.Restore();
+            Nostalgia.Restore();
             Features.AutoDeafen.AutoDeafen.Stop();
 
             Logger.Msg("Mod Disabled");

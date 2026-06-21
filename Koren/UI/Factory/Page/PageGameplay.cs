@@ -78,6 +78,7 @@ internal static class PageGameplay {
         CreateJudgementRestriction(content.transform);
         CreateDeathLimit(content.transform);
         CreateAutoDeafen(content.transform);
+        NostalgiaUI.AddGameplaySection(content.transform);
     }
 
     // ===== Auto Deafen (Discord) =====

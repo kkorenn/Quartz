@@ -305,5 +305,7 @@ internal static class PageTweaks {
             "DESC_TW_RESULT_MAXKEYS",
             "Removes the Maximum Used Keys row from the detailed results screen."
         );
+
+        NostalgiaUI.AddTweaksSection(content.transform);
     }
 }
