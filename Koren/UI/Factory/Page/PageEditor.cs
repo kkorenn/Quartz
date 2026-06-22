@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace Koren.UI.Factory.Page;
 
 // Editor tab. Hosts tweaks that target A Dance of Fire and Ice's level editor.
-internal static class PageEditor {
+internal static partial class PageEditor {
     public static void Create(RectTransform parent) {
         EditorFeature.EnsureConf();
         EditorSettings conf = EditorFeature.Conf;
@@ -229,6 +229,9 @@ internal static class PageEditor {
             "DESC_EDITOR_BGA_HIDE_PLANET_DECO",
             "Also hides decorations attached to a planet while BGA Mod is hiding the level. Background and camera-anchored decorations are left visible."
         );
+
+        // === FFmpeg Renderer ===
+        CreateRendererSection(content.transform);
 
         NostalgiaUI.AddEditorSection(content.transform);
     }

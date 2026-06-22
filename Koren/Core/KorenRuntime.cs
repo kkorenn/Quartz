@@ -271,6 +271,7 @@ public sealed class KorenRuntime {
             Optimizer.Restore();
             GameOverlayFont.Restore();
             EditorFeature.Restore();
+            Features.Recorder.Recorder.Restore();
             Nostalgia.Restore();
             Features.AutoDeafen.AutoDeafen.Stop();
 

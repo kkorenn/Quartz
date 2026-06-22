@@ -4,6 +4,11 @@ obj/
 /dist/*.zip
 /dist/Koren/
 
+# Native encoder build artifacts (source + scripts are tracked; binaries are
+# produced by native/build.sh and bundled into the mod zip, not committed)
+/native/koren_encoder/build/
+/native/dist/
+
 # IDE / editor
 .vs/
 .vscode/
