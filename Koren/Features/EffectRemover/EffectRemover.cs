@@ -40,10 +40,12 @@ public static partial class EffectRemover {
         }
     }
 
-    // Neither mode touches the editor any more (Simple is runtime-only;
-    // Enhanced only strips while playing), so the editor always holds the
-    // original chart and saving is always safe.
-    public static bool EditorSaveEnabled => true;
+    // Enhanced strips effect events from the in-memory level on decode — in the
+    // editor too — so the editor holds the stripped copy. Saving would overwrite
+    // the original chart with the stripped version, so it's always blocked while
+    // Enhanced is active. Simple mode never touches the chart, so saving stays
+    // safe there.
+    public static bool EditorSaveEnabled => !EnhancedActive;
 
     // Enhanced mode is the chart-stripping behaviour; gates the Decode patch.
     private static bool EnhancedActive => Enabled && Conf.IsEnhanced;
@@ -366,10 +368,11 @@ public static partial class EffectRemover {
     [HarmonyPatch(typeof(LevelData), "Decode")]
     private static class LevelDataDecodePatch {
         private static void Postfix(LevelData __instance) {
-            // Only strip while actually playing — never in the editor, so the
-            // editor always holds the original (unstripped) chart and saving is
-            // always safe.
-            if(EnhancedActive && ADOBase.isScnGame) {
+            // Strip on every decode while Enhanced is active — including in the
+            // editor, so effects vanish live as the level loads. The stripped
+            // copy lives only in memory; the editor's Save is blocked (see
+            // EditorSaveEnabled) so the original chart on disk is never touched.
+            if(EnhancedActive) {
                 Remove(__instance);
             }
         }
