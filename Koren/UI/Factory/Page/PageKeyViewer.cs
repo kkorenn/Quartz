@@ -498,34 +498,6 @@ internal static class PageKeyViewer {
         UIColorPicker pkTextPressed = PerKeyColor("Text Pressed", "keyviewer_pk_textpressed", conf.PerKeyTextPressed, conf.GetTextPressed);
         UIColorPicker pkRain = PerKeyColor("Rain", "keyviewer_pk_rain", conf.PerKeyRain, conf.GetRain);
 
-        TextMeshProUGUI ghostKeyLabel = GenerateUI.AddText(GenerateUI.Row(colorsSec.Body, 30f));
-        ghostKeyLabel.fontSize = 17f;
-        ghostKeyLabel.color = new Color(1f, 1f, 1f, 0.6f);
-
-        GenerateUI.Button(
-            GenerateUI.Row(colorsSec.Body),
-            () => { if(SlotValid()) { ghostListening = true; listening = false; refreshPopup?.Invoke(); } },
-            "Set Ghost Key", "keyviewer_ghostset"
-        ).SetSecondary().Rect.AddToolTip(
-            "DESC_KEYVIEWER_GHOSTSET",
-            "Click, then press the secondary (ghost) key for this slot. Esc cancels."
-        );
-
-        GenerateUI.Button(
-            GenerateUI.Row(colorsSec.Body),
-            () => {
-                int[] ghost = GhostArray();
-                if(SlotValid() && selectedSlot < ghost.Length) {
-                    ghost[selectedSlot] = 0;
-                    Save();
-                    KeyViewerOverlay.Rebuild();
-                }
-                ghostListening = false;
-                refreshPopup?.Invoke();
-            },
-            "Clear Ghost Key", "keyviewer_ghostclear"
-        ).SetSecondary();
-
         // Fonts: a collapsible whose header dot IS the per-key font-size enable.
         var fontsSec = GenerateUI.Collapsible(
             popup, "Fonts", startExpanded: false,
@@ -558,6 +530,40 @@ internal static class PageKeyViewer {
         pkCounterFont.OnChanged = v => { if(SlotValid()) { conf.PerKeyCounterFont[selectedSlot] = v; } };
         pkCounterFont.OnComplete = v => { if(SlotValid()) { conf.PerKeyCounterFont[selectedSlot] = v; KeyViewerOverlay.Rebuild(); Save(); } };
 
+        // Ghost Key: an optional secondary key for this slot that emits its own
+        // ghost-coloured rain streak without touching the press counters. Its
+        // own section (not under Colors) since it's a binding, not a colour;
+        // active whenever a ghost key is set, so the header carries no toggle.
+        var ghostSec = GenerateUI.Collapsible(popup, "Ghost Key", startExpanded: false);
+
+        TextMeshProUGUI ghostKeyLabel = GenerateUI.AddText(GenerateUI.Row(ghostSec.Body, 30f));
+        ghostKeyLabel.fontSize = 17f;
+        ghostKeyLabel.color = new Color(1f, 1f, 1f, 0.6f);
+
+        GenerateUI.Button(
+            GenerateUI.Row(ghostSec.Body),
+            () => { if(SlotValid()) { ghostListening = true; listening = false; refreshPopup?.Invoke(); } },
+            "Set Ghost Key", "keyviewer_ghostset"
+        ).SetNeutral().Rect.AddToolTip(
+            "DESC_KEYVIEWER_GHOSTSET",
+            "Click, then press the secondary (ghost) key for this slot. Esc cancels."
+        );
+
+        GenerateUI.Button(
+            GenerateUI.Row(ghostSec.Body),
+            () => {
+                int[] ghost = GhostArray();
+                if(SlotValid() && selectedSlot < ghost.Length) {
+                    ghost[selectedSlot] = 0;
+                    Save();
+                    KeyViewerOverlay.Rebuild();
+                }
+                ghostListening = false;
+                refreshPopup?.Invoke();
+            },
+            "Clear Ghost Key", "keyviewer_ghostclear"
+        ).SetDanger();
+
         GenerateUI.Button(
             GenerateUI.Row(popup),
             () => {
@@ -570,7 +576,7 @@ internal static class PageKeyViewer {
                 refreshPopup?.Invoke();
             },
             "Copy Global to All Keys", "keyviewer_pk_copyglobal"
-        ).SetSecondary().Rect.AddToolTip(
+        ).SetNeutral().Rect.AddToolTip(
             "DESC_KEYVIEWER_PK_COPYGLOBAL",
             "Overwrite every key's per-key colours and font sizes with the current shared values."
         );
@@ -585,7 +591,7 @@ internal static class PageKeyViewer {
                 RefreshPreviewVisuals();
             },
             "Close", "keyviewer_pk_close"
-        ).SetSecondary();
+        ).SetDanger();
 
         refreshPopup = () => {
             bool valid = SlotValid();
@@ -1206,13 +1212,42 @@ internal static class PageKeyViewer {
 
         private static readonly KeyCode[] allKeys = (KeyCode[])Enum.GetValues(typeof(KeyCode));
 
+        // Previous-frame hook-held state for the keys Unity's legacy Input is
+        // blind to (Korean Hangul / Hanja, reported as Right Alt / Right
+        // Control). Tracked every frame — even while idle — so arming a listen
+        // never reads a stale rising edge from a key already held.
+        private bool prevHookRAlt;
+        private bool prevHookRCtrl;
+
         private void Update() {
+            bool hookRAlt = Features.KeyLimiter.KeyLimiter.HookKeyHeld(KeyCode.RightAlt);
+            bool hookRCtrl = Features.KeyLimiter.KeyLimiter.HookKeyHeld(KeyCode.RightControl);
+            bool rAltEdge = hookRAlt && !prevHookRAlt;
+            bool rCtrlEdge = hookRCtrl && !prevHookRCtrl;
+            prevHookRAlt = hookRAlt;
+            prevHookRCtrl = hookRCtrl;
+
             if(IsListening == null || !IsListening()) {
                 return;
             }
 
             if(Input.GetKeyDown(KeyCode.Escape) || (ShouldCancel?.Invoke() ?? false)) {
                 OnCancelled?.Invoke();
+                return;
+            }
+
+            // Hook fallback first: Hangul/Hanja (Right Alt / Right Control) never
+            // reach Unity's Input, so Input.anyKeyDown stays false and the loop
+            // below would never see them. The SkyHook-fed held state is the only
+            // path that does. A normal keyboard's Right Alt / Right Control still
+            // lands on the Unity path below (it fires GetKeyDown), so this only
+            // matters for the keys Unity genuinely can't report.
+            if(rCtrlEdge) {
+                OnCaptured?.Invoke(KeyCode.RightControl);
+                return;
+            }
+            if(rAltEdge) {
+                OnCaptured?.Invoke(KeyCode.RightAlt);
                 return;
             }
 
