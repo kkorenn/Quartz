@@ -18,6 +18,7 @@ public static class UmmInterop {
     private static Type ummType;        // UnityModManagerNet.UnityModManager
     private static MethodInfo findMod;  // static ModEntry FindMod(string)
     private static FieldInfo modEntries; // static List<ModEntry>
+    private static PropertyInfo modsPathProp; // static string modsPath { get; private set; }
 
     private static void Resolve() {
         if(resolved) {
@@ -32,6 +33,7 @@ public static class UmmInterop {
             }
             findMod = ummType.GetMethod("FindMod", BindingFlags.Public | BindingFlags.Static);
             modEntries = ummType.GetField("modEntries", BindingFlags.Public | BindingFlags.Static);
+            modsPathProp = ummType.GetProperty("modsPath", BindingFlags.Public | BindingFlags.Static);
         } catch {
             ummType = null;
         }
@@ -92,6 +94,42 @@ public static class UmmInterop {
                     if(ReadMember(entry, "Active") is not bool active || !active) {
                         continue;
                     }
+                    object info = ReadMember(entry, "Info");
+                    if(info != null && ReadMember(info, "Id") is string id && !string.IsNullOrEmpty(id)) {
+                        ids.Add(id);
+                    }
+                }
+            }
+        } catch {
+        }
+        return ids;
+    }
+
+    // The folder UMM scans for mods (the "UMMMods" directory). Lets callers walk
+    // the mods folder on disk directly — e.g. to find an installed-but-unparsed
+    // mod that never made it into modEntries. Null if UMM is absent.
+    public static string ModsPath() {
+        Resolve();
+        try {
+            return modsPathProp?.GetValue(null, null) as string;
+        } catch {
+            return null;
+        }
+    }
+
+    // Ids of every UMM mod INSTALLED (a folder under modsPath with an Info.json),
+    // whether or not it's currently enabled. UMM parses every such folder into
+    // modEntries up front and only flips Active on the enabled ones, so this is
+    // effectively the on-disk mods-folder scan — it surfaces a mod that's present
+    // but toggled off in UMM, which an active-only list would miss. Reading
+    // Info.Id/Path has no side effects (unlike the Active setter, which we never
+    // touch), so this won't load a disabled mod.
+    public static List<string> InstalledModIds() {
+        Resolve();
+        List<string> ids = [];
+        try {
+            if(modEntries?.GetValue(null) is IEnumerable entries) {
+                foreach(object entry in entries) {
                     object info = ReadMember(entry, "Info");
                     if(info != null && ReadMember(info, "Id") is string id && !string.IsNullOrEmpty(id)) {
                         ids.Add(id);

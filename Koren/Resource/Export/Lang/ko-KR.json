@@ -693,7 +693,7 @@
     "IMPORT": "가져오기",
     "IMPORT_HEADER": "다른 모드에서 가져오기",
     "IMPORT_HINT": "다른 ADOFAI 모드의 설정을 가져옵니다. KorenResourcePack이 Unity Mod Manager로 로드된 지원 모드를 읽어 옮길 수 있는 설정을 복사합니다. 나머지 설정은 그대로 유지됩니다.",
-    "IMPORT_NONE": "지원되는 모드가 없습니다. Unity Mod Manager로 JipperResourcePack, JipperKeyViewer, ADOFAI Tweaks, KeyboardChatterBlocker, Enhanced Effect Remover 중 하나를 로드한 뒤 다시 검색을 누르세요.",
+    "IMPORT_NONE": "지원되는 모드가 없습니다. Unity Mod Manager로 KorenResourcePack (v1), JipperResourcePack, JipperKeyViewer, ADOFAI Tweaks, KeyboardChatterBlocker, Enhanced Effect Remover 중 하나를 로드한 뒤 다시 검색을 누르세요.",
     "IMPORT_DO": "가져오기",
     "DESC_IMPORT_DO": "이 모드의 설정을 KorenResourcePack으로 복사합니다. 다루지 않는 설정은 그대로 유지됩니다.",
     "IMPORT_RESCAN": "다시 검색",

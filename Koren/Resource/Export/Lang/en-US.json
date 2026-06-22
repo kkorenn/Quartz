@@ -693,7 +693,7 @@
     "IMPORT": "Import",
     "IMPORT_HEADER": "Import from other mods",
     "IMPORT_HINT": "Pull your settings in from another ADOFAI mod. KorenResourcePack reads each supported mod loaded through Unity Mod Manager and copies over what it has a home for. Your other settings are left untouched.",
-    "IMPORT_NONE": "No supported mods detected. Load one through Unity Mod Manager — JipperResourcePack, JipperKeyViewer, ADOFAI Tweaks, KeyboardChatterBlocker, or Enhanced Effect Remover — then press Rescan.",
+    "IMPORT_NONE": "No supported mods detected. Load one through Unity Mod Manager — KorenResourcePack (v1), JipperResourcePack, JipperKeyViewer, ADOFAI Tweaks, KeyboardChatterBlocker, or Enhanced Effect Remover — then press Rescan.",
     "IMPORT_DO": "Import",
     "DESC_IMPORT_DO": "Copy this mod's settings into KorenResourcePack. Settings it doesn't cover are left as they are.",
     "IMPORT_RESCAN": "Rescan",

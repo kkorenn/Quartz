@@ -13,9 +13,9 @@ namespace Koren.UI.Factory.Page;
 
 // Import tab. Lists every supported ADOFAI mod currently loaded through Unity
 // Mod Manager and copies its settings into KorenResourcePack. Mods that ship a
-// KeyViewer (JipperResourcePack, JipperKeyViewer) get a replace mode + the
-// per-group toggles, mirroring v1's importer. The heavy lifting lives in
-// SettingsImporter; this page is just the surface.
+// KeyViewer (KorenResourcePack v1, JipperResourcePack, JipperKeyViewer) get a
+// replace mode + the per-group toggles, mirroring v1's importer. The heavy
+// lifting lives in SettingsImporter; this page is just the surface.
 internal static class PageImport {
     private static RectTransform listContainer;
     private static TextMeshProUGUI statusText;
@@ -170,8 +170,8 @@ internal static class PageImport {
             GenerateUI.Localize(
                 emptyText,
                 "IMPORT_NONE",
-                "No supported mods detected. Load one through Unity Mod Manager — JipperResourcePack, " +
-                "JipperKeyViewer, ADOFAI Tweaks, KeyboardChatterBlocker, or Enhanced Effect Remover — then press Rescan."
+                "No supported mods detected. Load one through Unity Mod Manager — KorenResourcePack (v1), " +
+                "JipperResourcePack, JipperKeyViewer, ADOFAI Tweaks, KeyboardChatterBlocker, or Enhanced Effect Remover — then press Rescan."
             );
             return;
         }
