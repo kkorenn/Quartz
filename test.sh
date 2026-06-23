@@ -2,4 +2,4 @@
 set -euo pipefail
 
 cd "$(dirname "$0")"
-dotnet run --project Koren.Tests/Koren.Tests.csproj -c Release
+dotnet run --project Quartz.Tests/Quartz.Tests.csproj -c Release

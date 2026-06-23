@@ -1,0 +1,178 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>netstandard2.1</TargetFramework>
+		<PlatformTarget>x64</PlatformTarget>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>warnings</Nullable>
+		<RootNamespace>Quartz</RootNamespace>
+		<AssemblyName>Quartz</AssemblyName>
+		<LangVersion>latest</LangVersion>
+		<IsPackable>false</IsPackable>
+		<AssemblyVersion>2.0.0.0</AssemblyVersion>
+		<FileVersion>2.0.0.0</FileVersion>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+		<GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<AnalysisLevel>latest</AnalysisLevel>
+		<EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+		<AutoInstall Condition="'$(AutoInstall)' == ''">false</AutoInstall>
+		<Configurations>Debug;Release;Release_IL2CPP;Debug_IL2CPP</Configurations>
+		<DistDir>$(MSBuildProjectDirectory)/../dist</DistDir>
+		<PackageStageRoot>$(BaseIntermediateOutputPath)dist-stage</PackageStageRoot>
+		<PackageStageModsDir>$(PackageStageRoot)/Mods</PackageStageModsDir>
+		<PackageStageDataDir>$(PackageStageRoot)/UserData/Quartz</PackageStageDataDir>
+		<DistZipPath>$(DistDir)/Quartz.zip</DistZipPath>
+	</PropertyGroup>
+
+	<!-- Game/runtime assemblies already exist beside the game executable. Keeping
+	     them compile-only avoids copying tens of megabytes into every bin folder. -->
+	<ItemDefinitionGroup>
+		<Reference>
+			<Private>false</Private>
+		</Reference>
+	</ItemDefinitionGroup>
+
+	<PropertyGroup Condition="$(Configuration.Contains('IL2CPP'))">
+		<DefineConstants>$(DefineConstants);IL2CPP</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Reference Include="Newtonsoft.Json"><HintPath>$(GamePath)/$(GameData)/Managed/Newtonsoft.Json.dll</HintPath></Reference>
+		<Reference Include="0Harmony"><HintPath>$(GamePath)/MelonLoader/net35/0Harmony.dll</HintPath></Reference>
+		<Reference Include="MelonLoader"><HintPath>$(GamePath)/MelonLoader/net35/MelonLoader.dll</HintPath></Reference>
+		<Reference Include="UnityFileDialog" Condition="Exists('$(GamePath)/$(GameData)/Managed/UnityFileDialog.dll')"><HintPath>$(GamePath)/$(GameData)/Managed/UnityFileDialog.dll</HintPath><Private>false</Private></Reference>
+	</ItemGroup>
+
+	<ItemGroup Condition="!$(Configuration.Contains('IL2CPP'))">
+		<Reference Include="Assembly-CSharp"><HintPath>$(GamePath)/$(GameData)/Managed/Assembly-CSharp.dll</HintPath></Reference>
+		<Reference Include="Assembly-CSharp-firstpass"><HintPath>$(GamePath)/$(GameData)/Managed/Assembly-CSharp-firstpass.dll</HintPath></Reference>
+		<Reference Include="DOTween" Condition="Exists('$(GamePath)/$(GameData)/Managed/DOTween.dll')"><HintPath>$(GamePath)/$(GameData)/Managed/DOTween.dll</HintPath><Private>false</Private></Reference>
+		<Reference Include="RDTools"><HintPath>$(GamePath)/$(GameData)/Managed/RDTools.dll</HintPath></Reference>
+		<Reference Include="SkyHook.Unity"><HintPath>$(GamePath)/$(GameData)/Managed/SkyHook.Unity.dll</HintPath></Reference>
+		<Reference Include="Unity.TextMeshPro"><HintPath>$(GamePath)/$(GameData)/Managed/Unity.TextMeshPro.dll</HintPath></Reference>
+		<Reference Include="UnityEngine"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.CoreModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.CoreModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.AnimationModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.AnimationModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.AssetBundleModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.AssetBundleModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.AudioModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.AudioModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.IMGUIModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.IMGUIModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.ImageConversionModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.ScreenCaptureModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.ScreenCaptureModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.ParticleSystemModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.ParticleSystemModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.PhysicsModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.PhysicsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.Physics2DModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.Physics2DModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.SharedInternalsModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.SharedInternalsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextCoreFontEngineModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.TextCoreFontEngineModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextCoreTextEngineModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.TextCoreTextEngineModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.TextRenderingModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UI"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.UI.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UIElementsModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.UIElementsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UIModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.UIModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.PropertiesModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.PropertiesModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.JSONSerializeModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.JSONSerializeModule.dll</HintPath></Reference>
+	</ItemGroup>
+
+	<ItemGroup Condition="$(Configuration.Contains('IL2CPP'))">
+		<Reference Include="Assembly-CSharp"><HintPath>$(Il2CppPath)/Assembly-CSharp.dll</HintPath></Reference>
+		<Reference Include="RDTools"><HintPath>$(Il2CppPath)/RDTools.dll</HintPath></Reference>
+		<Reference Include="SkyHook.Unity"><HintPath>$(Il2CppPath)/SkyHook.Unity.dll</HintPath></Reference>
+		<Reference Include="Unity.TextMeshPro"><HintPath>$(Il2CppPath)/Unity.TextMeshPro.dll</HintPath></Reference>
+		<Reference Include="UnityEngine"><HintPath>$(Il2CppPath)/UnityEngine.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.CoreModule"><HintPath>$(Il2CppPath)/UnityEngine.CoreModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.AnimationModule"><HintPath>$(Il2CppPath)/UnityEngine.AnimationModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.AudioModule"><HintPath>$(Il2CppPath)/UnityEngine.AudioModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.IMGUIModule"><HintPath>$(Il2CppPath)/UnityEngine.IMGUIModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(Il2CppPath)/UnityEngine.ImageConversionModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.ScreenCaptureModule"><HintPath>$(Il2CppPath)/UnityEngine.ScreenCaptureModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(Il2CppPath)/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.ParticleSystemModule"><HintPath>$(Il2CppPath)/UnityEngine.ParticleSystemModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.PhysicsModule"><HintPath>$(Il2CppPath)/UnityEngine.PhysicsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.Physics2DModule"><HintPath>$(Il2CppPath)/UnityEngine.Physics2DModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.SharedInternalsModule"><HintPath>$(Il2CppPath)/UnityEngine.SharedInternalsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextCoreFontEngineModule"><HintPath>$(Il2CppPath)/UnityEngine.TextCoreFontEngineModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextCoreTextEngineModule"><HintPath>$(Il2CppPath)/UnityEngine.TextCoreTextEngineModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(Il2CppPath)/UnityEngine.TextRenderingModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UI"><HintPath>$(Il2CppPath)/UnityEngine.UI.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UIElementsModule"><HintPath>$(Il2CppPath)/UnityEngine.UIElementsModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.UIModule"><HintPath>$(Il2CppPath)/UnityEngine.UIModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.PropertiesModule"><HintPath>$(Il2CppPath)/UnityEngine.PropertiesModule.dll</HintPath></Reference>
+		<Reference Include="UnityEngine.JSONSerializeModule"><HintPath>$(Il2CppPath)/UnityEngine.JSONSerializeModule.dll</HintPath></Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Resource\Embedded\**\*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
+	</ItemGroup>
+
+	<!-- Build number comes from build.json (repo root), keyed by the Version and
+	     Channel consts in Core/Info.cs. tools/release.sh bumps build.json; this
+	     target reads it back at compile time and generates BuildInfo.Number, so
+	     the value lives in exactly one place and is never hand-edited. -->
+	<Target Name="GenerateBuildInfo" BeforeTargets="CoreCompile">
+		<PropertyGroup>
+			<_InfoText>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/Core/Info.cs'))</_InfoText>
+			<_Version>$([System.Text.RegularExpressions.Regex]::Match($(_InfoText), '\bVersion\s*=\s*"([^"]+)"').Groups[1].Value)</_Version>
+			<_Channel>$([System.Text.RegularExpressions.Regex]::Match($(_InfoText), '\bChannel\s*=\s*"([^"]+)"').Groups[1].Value)</_Channel>
+
+			<_BuildsPath>$(MSBuildProjectDirectory)/../build.json</_BuildsPath>
+			<_BuildsText Condition="Exists('$(_BuildsPath)')">$([System.IO.File]::ReadAllText('$(_BuildsPath)'))</_BuildsText>
+
+			<!-- Match  "&lt;version&gt;": { ... "&lt;channel&gt;": &lt;n&gt; ...  (lazy across whitespace / other channels). -->
+			<_VerEsc>$([System.Text.RegularExpressions.Regex]::Escape($(_Version)))</_VerEsc>
+			<_Pattern>"$(_VerEsc)"\s*:\s*\{[^}]*?"$(_Channel)"\s*:\s*(\d+)</_Pattern>
+			<_Build>$([System.Text.RegularExpressions.Regex]::Match('$(_BuildsText)', '$(_Pattern)').Groups[1].Value)</_Build>
+			<_Build Condition="'$(_Build)' == ''">0</_Build>
+
+			<_BuildInfoFile>$(IntermediateOutputPath)BuildInfo.g.cs</_BuildInfoFile>
+			<_BuildInfoBody>namespace Quartz.Core { internal static class BuildInfo { public const int Number = $(_Build)%3B } }</_BuildInfoBody>
+		</PropertyGroup>
+
+		<MakeDir Directories="$(IntermediateOutputPath)" />
+		<WriteLinesToFile File="$(_BuildInfoFile)" Lines="$(_BuildInfoBody)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+
+		<ItemGroup>
+			<Compile Include="$(_BuildInfoFile)" />
+		</ItemGroup>
+
+		<Message Importance="high" Text="BuildInfo: $(_Version) $(_Channel) build $(_Build)" />
+	</Target>
+
+	<!-- Auto-install: drop Quartz.dll into Mods, export language files to UserData/Quartz,
+	     and package the same install layout into dist/Quartz.zip.
+	     Also removes the pre-merge two-DLL layout (Mods/Quartz.Loader.ML.dll + UserLibs/Quartz.dll)
+	     so MelonLoader doesn't load the mod twice. -->
+	<Target Name="PostBuild" AfterTargets="Build">
+		<MakeDir Directories="$(GamePath)/Mods" Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != ''" />
+		<Copy Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != ''" SourceFiles="$(TargetPath)" DestinationFolder="$(GamePath)/Mods" SkipUnchangedFiles="true" />
+		<!-- Remove the old single-DLL (pre-rename KorenResourcePack v2) and the
+		     pre-merge two-DLL layout so MelonLoader doesn't load the mod twice. -->
+		<Delete Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != ''" Files="$(GamePath)/Mods/Koren.dll;$(GamePath)/Mods/Quartz.Loader.ML.dll;$(GamePath)/UserLibs/Quartz.dll" TreatErrorsAsWarnings="true" />
+
+		<ItemGroup>
+			<ExportFiles Include="Resource/Export/**/*.*" />
+			<!-- Native FFmpeg encoder built by native/build.sh (per-platform under
+			     native/dist/<os>/). Absent on a C#-only checkout, in which case the
+			     renderer is simply unavailable at runtime. -->
+			<NativeFiles Include="$(MSBuildProjectDirectory)/../native/dist/**/*" />
+		</ItemGroup>
+
+		<MakeDir Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != ''" Directories="$(GamePath)/UserData/Quartz" />
+		<Copy Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != ''" SourceFiles="@(ExportFiles)" DestinationFiles="@(ExportFiles->'$(GamePath)/UserData/Quartz/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+		<Copy Condition="'$(AutoInstall)' == 'true' And '$(TargetPath)' != '' And '@(NativeFiles)' != ''" SourceFiles="@(NativeFiles)" DestinationFiles="@(NativeFiles->'$(GamePath)/UserData/Quartz/native/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+
+		<RemoveDir Directories="$(PackageStageRoot)" Condition="'$(TargetPath)' != ''" />
+		<MakeDir Directories="$(DistDir);$(PackageStageModsDir);$(PackageStageDataDir)" Condition="'$(TargetPath)' != ''" />
+		<Copy Condition="'$(TargetPath)' != ''" SourceFiles="$(TargetPath)" DestinationFolder="$(PackageStageModsDir)" />
+		<Copy Condition="'$(TargetPath)' != ''" SourceFiles="@(ExportFiles)" DestinationFiles="@(ExportFiles->'$(PackageStageDataDir)/%(RecursiveDir)%(Filename)%(Extension)')" />
+		<Copy Condition="'$(TargetPath)' != '' And '@(NativeFiles)' != ''" SourceFiles="@(NativeFiles)" DestinationFiles="@(NativeFiles->'$(PackageStageDataDir)/native/%(RecursiveDir)%(Filename)%(Extension)')" />
+		<Delete Files="$(DistZipPath)" Condition="'$(TargetPath)' != ''" TreatErrorsAsWarnings="true" />
+		<ZipDirectory SourceDirectory="$(PackageStageRoot)" DestinationFile="$(DistZipPath)" Condition="'$(TargetPath)' != ''" />
+		<Message Importance="high" Text="Zip: $(DistZipPath)" Condition="'$(TargetPath)' != ''" />
+	</Target>
+</Project>

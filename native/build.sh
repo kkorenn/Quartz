@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the koren_encoder native library and stage it (self-contained) under
-# native/dist/<platform>/ for the Koren csproj to bundle into the mod.
+# native/dist/<platform>/ for the Quartz csproj to bundle into the mod.
 #
 #   usage: ./build.sh [--no-bundle] [--no-test]
 #

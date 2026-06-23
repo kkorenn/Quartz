@@ -17,7 +17,7 @@ Old releases shipped boilerplate bodies (`alpha build 27 of 2.0.0.`). A full rel
 
 ## The script is the engine — you supply the words
 
-`tools/release.sh` owns identity + mechanics; you own the prose. Identity (Version, Channel) is read from `Koren/Core/Info.cs`; the per-(version, channel) build number lives in `build.json` and is auto-incremented. **Never edit `Info.cs` or `build.json` by hand for a release** — the script and csproj handle them.
+`tools/release.sh` owns identity + mechanics; you own the prose. Identity (Version, Channel) is read from `Quartz/Core/Info.cs`; the per-(version, channel) build number lives in `build.json` and is auto-incremented. **Never edit `Info.cs` or `build.json` by hand for a release** — the script and csproj handle them.
 
 ```
 tools/release.sh [flags]
@@ -68,7 +68,7 @@ So `git log <prev-tag>..HEAD` — what `--dry-run` shows as `range:` — will re
    - Write it to a scratch file (`/tmp/notes.md`); don't commit it.
 6. **Pick the name.** Short codename = the build's headline. Past-style examples: *KeyViewer CSS Engine*, *Nostalgia Tab*, *Settings Importer*, *Editor Readout & BGA*. One feature stands out → name it after that; a grab-bag → name the biggest piece.
 7. **Preview.** `./tools/release.sh -n "Name" -F /tmp/notes.md --dry-run`. Show the user the `title` and `body`. Publishing is outward-facing and hard to undo — **get a go-ahead before the real run.**
-8. **Publish.** Same command, drop `--dry-run`. The script bumps `build.json`, builds Release, and uploads `Koren.zip` + `Koren.dll`. (Re-running an existing tag refreshes title + notes and re-uploads assets.)
+8. **Publish.** Same command, drop `--dry-run`. The script bumps `build.json`, builds Release, and uploads `Quartz.zip` + `Quartz.dll`. (Re-running an existing tag refreshes title + notes and re-uploads assets.)
 9. **Commit the bump.** The build-number bump leaves `build.json` dirty. Commit it per [`agents/commits.md`](commits.md): `build: bump <chan> to <next>`. **Push only if asked.**
 
 ## Don'ts

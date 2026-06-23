@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Build a Release and publish it to GitHub with Koren.zip + Koren.dll attached.
+# Build a Release and publish it to GitHub with Quartz.zip + Quartz.dll attached.
 # Pre-release channels (alpha/beta/rc) are flagged as pre-releases.
 #
-# Release identity (Version + Channel) comes from Koren/Core/Info.cs — set those
+# Release identity (Version + Channel) comes from Quartz/Core/Info.cs — set those
 # there first. The per-(version, channel) build number is auto-incremented and
 # tracked in build.json (repo root, source-only — never shipped). build.json is
 # the only source of truth: the csproj's GenerateBuildInfo target reads it at
@@ -53,7 +53,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-INFO="Koren/Core/Info.cs"
+INFO="Quartz/Core/Info.cs"
 BUILDS="build.json"
 [ -f "$BUILDS" ] || echo '{}' > "$BUILDS"
 
@@ -152,15 +152,15 @@ if [ "$bumped" -eq 1 ]; then
 fi
 
 echo "Building ${tag} ..."
-dotnet build Koren/Koren.csproj -c Release
+dotnet build Quartz/Quartz.csproj -c Release
 
-# Koren.zip is the full install (DLL + lang + fonts), built by the csproj
+# Quartz.zip is the full install (DLL + lang + fonts), built by the csproj
 # PostBuild target. Ship the bare DLL alongside it too, so anyone still running
-# an old updater (which only looks for a "Koren.dll" asset) can still update.
-koren_dll="Koren/bin/Release/netstandard2.1/Koren.dll"
-koren_zip="dist/Koren.zip"
-[ -f "$koren_dll" ] || { echo "build output missing — aborting" >&2; exit 1; }
-[ -f "$koren_zip" ] || { echo "dist/Koren.zip missing — aborting" >&2; exit 1; }
+# an old updater (which only looks for a "Quartz.dll" asset) can still update.
+quartz_dll="Quartz/bin/Release/netstandard2.1/Quartz.dll"
+quartz_zip="dist/Quartz.zip"
+[ -f "$quartz_dll" ] || { echo "build output missing — aborting" >&2; exit 1; }
+[ -f "$quartz_zip" ] || { echo "dist/Quartz.zip missing — aborting" >&2; exit 1; }
 
 # gh wants the body from a file (preserves markdown + newlines).
 notes_tmp=$(mktemp)
@@ -171,10 +171,10 @@ echo "Publishing ${title} ..."
 if gh release view "$tag" >/dev/null 2>&1; then
   # Re-publish: refresh title + notes, then replace the assets.
   gh release edit "$tag" --title "$title" --notes-file "$notes_tmp"
-  gh release upload "$tag" "$koren_zip" "$koren_dll" --clobber
+  gh release upload "$tag" "$quartz_zip" "$quartz_dll" --clobber
 else
   # shellcheck disable=SC2086
-  gh release create "$tag" "$koren_zip" "$koren_dll" --title "$title" --notes-file "$notes_tmp" $flags
+  gh release create "$tag" "$quartz_zip" "$quartz_dll" --title "$title" --notes-file "$notes_tmp" $flags
 fi
 
 echo "Done: ${title}"

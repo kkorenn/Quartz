@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# KorenResourcePack v2 build script.
+# Quartz build script.
 # Usage: ./build.sh [Config]
 #   Config: Debug (default) | Release | Debug_IL2CPP | Release_IL2CPP
-# Builds Koren.dll, auto-installs into the game (Mods + UserData/Koren),
-# and writes dist/Koren.zip.
+# Builds Quartz.dll, auto-installs into the game (Mods + UserData/Quartz),
+# and writes dist/Quartz.zip.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -62,8 +62,8 @@ if [[ ! -f "$GP_CHECK/MelonLoader/net35/MelonLoader.dll" ]]; then
 fi
 
 # --- Build (PostBuild targets auto-install into the game) ---
-echo ">> building Koren/Koren.csproj ($CONFIG)..."
-dotnet build Koren/Koren.csproj -c "$CONFIG" -p:AutoInstall=true
+echo ">> building Quartz/Quartz.csproj ($CONFIG)..."
+dotnet build Quartz/Quartz.csproj -c "$CONFIG" -p:AutoInstall=true
 
-echo ">> done. Installed: Mods/Koren.dll, UserData/Koren/*"
-echo ">> packaged: dist/Koren.zip"
+echo ">> done. Installed: Mods/Quartz.dll, UserData/Quartz/*"
+echo ">> packaged: dist/Quartz.zip"

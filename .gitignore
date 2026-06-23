@@ -2,7 +2,7 @@
 bin/
 obj/
 /dist/*.zip
-/dist/Koren/
+/dist/Quartz/
 
 # Native encoder build artifacts (source + scripts are tracked; binaries are
 # produced by native/build.sh and bundled into the mod zip, not committed)
