@@ -143,7 +143,7 @@ public static class UpdateService {
         Set(UpdateStatus.Checking);
 
         try {
-            UpdateInfo found = await Task.Run(FetchLatest);
+            UpdateInfo found = await Task.Run(() => FetchLatest());
             Available = found;
             Set(found == null ? UpdateStatus.UpToDate : UpdateStatus.Available);
         } catch(System.Exception ex) {
@@ -160,7 +160,7 @@ public static class UpdateService {
         _ => UpdateFailure.CheckError,
     };
 
-    private static async Task<UpdateInfo> FetchLatest() {
+    private static async Task<UpdateInfo> FetchLatest(bool forceLatest = false) {
         string url = $"https://api.github.com/repos/{Info.RepoOwner}/{Info.RepoName}/releases?per_page=30";
 
         string json;
@@ -187,15 +187,18 @@ public static class UpdateService {
             }
 
             string tag = (string)rel["tag_name"];
-            if(string.IsNullOrEmpty(tag) || tag == skipped) {
+            if(string.IsNullOrEmpty(tag) || (!forceLatest && tag == skipped)) {
                 continue;
             }
             if(!SemVer.TryParse(tag, out SemVer v)) {
                 continue;
             }
             // Only builds on the chosen channel (or more stable) and strictly
-            // newer than what's running.
-            if(!MainCore.Conf.AcceptsChannel(v.Channel) || v.CompareTo(current) <= 0) {
+            // newer than what's running. The legacy-rename path (forceLatest)
+            // drops the "strictly newer" gate: the running build may already BE
+            // the newest version, and its job is the filename/layout fix, not a
+            // version bump.
+            if(!MainCore.Conf.AcceptsChannel(v.Channel) || (!forceLatest && v.CompareTo(current) <= 0)) {
                 continue;
             }
 
@@ -267,6 +270,41 @@ public static class UpdateService {
         } catch(System.Exception ex) {
             Fail(UpdateFailure.InstallError, ex.Message);
             MainCore.Log.Wrn($"[Update] install failed: {ex.Message}");
+        }
+    }
+
+    // A legacy install whose mod file is still named Koren.dll (the pre-rename
+    // name) can't fix its own filename in place. We pull the current Quartz
+    // release — which lays down Mods/Quartz.dll plus the shipped UserData/Quartz
+    // files — then retire the stale Koren.dll so the next launch loads
+    // Quartz.dll and this never fires again. Auto-triggered from startup; runs
+    // through the same Installing/Installed states the manual update uses, so
+    // the Settings page shows progress and the "restart to finish" prompt.
+    public static async void InstallLegacyRename(string legacyDllPath) {
+        if(Status == UpdateStatus.Installing) {
+            return;
+        }
+
+        lastPercent = -1;
+        Progress = 0f;
+        Set(UpdateStatus.Installing);
+
+        try {
+            UpdateInfo info = await Task.Run(() => FetchLatest(forceLatest: true));
+            if(info == null) {
+                throw new System.Exception("no installable Quartz release found");
+            }
+
+            await Task.Run(() => Download(info));
+            RetireLegacyDll(legacyDllPath);
+
+            Available = null;
+            installedVersion = info.Version;
+            Set(UpdateStatus.Installed);
+            MainCore.Log.Msg($"[Update] migrated Koren.dll install to Quartz {info.Tag} — restart to finish");
+        } catch(System.Exception ex) {
+            Fail(UpdateFailure.InstallError, ex.Message);
+            MainCore.Log.Wrn($"[Update] legacy rename install failed: {ex.Message}");
         }
     }
 
@@ -370,6 +408,32 @@ public static class UpdateService {
         }
 
         File.Move(src, dest);
+    }
+
+    // Removes the old Mods/Koren.dll after the Quartz release is laid down. It's
+    // the running image, so on Windows it's memory-mapped and can't be deleted;
+    // rename it aside instead (cleaned up next launch by QuartzRuntime, same as
+    // Quartz.dll.old). On macOS/Linux the delete just succeeds.
+    private static void RetireLegacyDll(string path) {
+        if(string.IsNullOrEmpty(path) || !File.Exists(path)) {
+            return;
+        }
+        try {
+            File.Delete(path);
+        } catch {
+            string old = path + ".old";
+            try {
+                if(File.Exists(old)) {
+                    File.Delete(old);
+                }
+            } catch {
+            }
+            try {
+                File.Move(path, old);
+            } catch(System.Exception ex) {
+                MainCore.Log.Wrn($"[Update] couldn't retire {path}: {ex.Message}");
+            }
+        }
     }
 
     private static void DeleteIfExists(string path) {

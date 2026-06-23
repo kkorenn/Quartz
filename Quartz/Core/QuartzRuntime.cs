@@ -130,6 +130,38 @@ public sealed class QuartzRuntime {
         }
     }
 
+    // Self-heal for installs still carrying the pre-rename Mods/Koren.dll: the
+    // mod can't rename its own loaded file in place, so it pulls the current
+    // Quartz release (lays down Mods/Quartz.dll + shipped UserData/Quartz) and
+    // retires Koren.dll. The download is async and applies next launch; the
+    // UserData/Koren -> UserData/Quartz move already ran in MigrateLegacyData.
+    // One-shot by nature: once Koren.dll is gone this no longer matches.
+    private void TryLegacyRenameUpgrade() {
+        try {
+            // Assembly.Location is the path MelonLoader loaded us from
+            // (.../Mods/Koren.dll when renamed). Fall back to probing Mods/ if a
+            // loader handed us a byte[] image with no backing path.
+            string dllPath = Assembly.Location;
+            if(string.IsNullOrEmpty(dllPath) ||
+               !string.Equals(Path.GetFileName(dllPath), "Koren.dll", StringComparison.OrdinalIgnoreCase)) {
+                string probe = Path.Combine(Host.ModsPath, "Koren.dll");
+                bool quartzPresent = File.Exists(Path.Combine(Host.ModsPath, "Quartz.dll"));
+                // Only treat a stray Koren.dll as ours when there's no separate
+                // Quartz.dll already loaded alongside it.
+                if(string.IsNullOrEmpty(dllPath) && File.Exists(probe) && !quartzPresent) {
+                    dllPath = probe;
+                } else {
+                    return;
+                }
+            }
+
+            Logger.Msg("[Startup] running as Koren.dll — fetching Quartz release to migrate install");
+            UpdateService.InstallLegacyRename(dllPath);
+        } catch(Exception e) {
+            Logger.Wrn($"[Startup] legacy rename upgrade failed: {e.Message}");
+        }
+    }
+
     public void Initialize() {
         // Per-phase timing so "the game took forever to start" reports can be
         // pinned to a phase from the log instead of guessed at.
@@ -141,16 +173,19 @@ public sealed class QuartzRuntime {
 
         Paths.Initialize();
 
-        // The updater renames the running Quartz.dll to Quartz.dll.old when it
-        // can't overwrite the mapped file; this session loaded the new one, so
-        // the leftover is safe to delete now.
-        try {
-            string oldDll = Path.Combine(Host.ModsPath, "Quartz.dll.old");
-            if(File.Exists(oldDll)) {
-                File.Delete(oldDll);
+        // The updater renames a running, mapped DLL aside as <name>.dll.old when
+        // it can't overwrite it in place; this session loaded the new one, so the
+        // leftovers are safe to delete now. Koren.dll.old comes from the
+        // legacy-rename migration below (a pre-rename Koren.dll being retired).
+        foreach(string stale in new[] { "Quartz.dll.old", "Koren.dll.old" }) {
+            try {
+                string oldDll = Path.Combine(Host.ModsPath, stale);
+                if(File.Exists(oldDll)) {
+                    File.Delete(oldDll);
+                }
+            } catch(Exception e) {
+                Logger.Wrn($"[Startup] couldn't remove {stale}: {e.Message}");
             }
-        } catch(Exception e) {
-            Logger.Wrn($"[Startup] couldn't remove Quartz.dll.old: {e.Message}");
         }
 
         CreateRootObject();
@@ -211,6 +246,14 @@ public sealed class QuartzRuntime {
         sw.Restart();
         SetModEnabled(Config.Data.Active, false);
         Logger.Msg($"[Startup] SetModEnabled took {sw.ElapsedMilliseconds} ms");
+
+        // A pre-rename install whose mod file is still Mods/Koren.dll self-heals
+        // to the proper Quartz layout (fetches the release, retires Koren.dll).
+        // Runs here, after Config.Load, because the fetch reads the update
+        // channel + skipped-version from config. It sets the updater to
+        // Installing, so the Check() below no-ops in that case (intended — the
+        // migration is the update). Skipped on the common Quartz.dll install.
+        TryLegacyRenameUpgrade();
 
         // Background check so the Settings page can show any available update.
         UpdateService.Check();
