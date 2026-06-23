@@ -130,8 +130,9 @@ static int open_video(KorenEncoder* e, const KorenEncoderConfig* cfg) {
         snprintf(crf, sizeof(crf), "%d", cfg->crf > 0 ? cfg->crf : 18);
         av_opt_set(e->vc->priv_data, "crf", crf, 0);
     }
-    /* favour latency-free, broadly decodable output */
-    av_opt_set(e->vc->priv_data, "preset", "veryfast", 0);
+    /* offline render: bias hard toward encode speed (x264/x265 understand this;
+       hardware encoders ignore it). Quality is carried by the bitrate. */
+    av_opt_set(e->vc->priv_data, "preset", "ultrafast", 0);
 
     if (e->fmt->oformat->flags & AVFMT_GLOBALHEADER)
         e->vc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -372,6 +373,114 @@ KOREN_API void koren_enc_free(KorenEncoder* e) {
 KOREN_API const char* koren_enc_last_error(KorenEncoder* e) {
     if (!e) return "null encoder";
     return e->err[0] ? e->err : "ok";
+}
+
+/* ------------------------------------------------------- audio file decode -- */
+
+KOREN_API float* koren_decode_audio(const char* path, int* out_sr,
+                                    int* out_channels, long long* out_frames,
+                                    char* err, int err_len) {
+    #define FAIL(...) do { if(err && err_len > 0) snprintf(err, err_len, __VA_ARGS__); goto fail; } while(0)
+
+    AVFormatContext* fmt = NULL;
+    AVCodecContext* dc = NULL;
+    SwrContext* swr = NULL;
+    AVPacket* pkt = NULL;
+    AVFrame* frame = NULL;
+    float* buf = NULL;
+    size_t cap = 0, len = 0; /* in floats */
+    AVChannelLayout outlay; memset(&outlay, 0, sizeof(outlay));
+
+    if(!path) { if(err && err_len > 0) snprintf(err, err_len, "null path"); return NULL; }
+
+    int ret = avformat_open_input(&fmt, path, NULL, NULL);
+    if(ret < 0) FAIL("open '%s' failed", path);
+    if(avformat_find_stream_info(fmt, NULL) < 0) FAIL("no stream info");
+
+    int sidx = av_find_best_stream(fmt, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+    if(sidx < 0) FAIL("no audio stream");
+    AVStream* st = fmt->streams[sidx];
+
+    const AVCodec* dec = avcodec_find_decoder(st->codecpar->codec_id);
+    if(!dec) FAIL("no decoder");
+    dc = avcodec_alloc_context3(dec);
+    if(!dc) FAIL("alloc decoder ctx");
+    if(avcodec_parameters_to_context(dc, st->codecpar) < 0) FAIL("copy params");
+    if(avcodec_open2(dc, dec, NULL) < 0) FAIL("open decoder");
+
+    int sr = dc->sample_rate;
+    int ch = dc->ch_layout.nb_channels > 0 ? dc->ch_layout.nb_channels : 2;
+    av_channel_layout_default(&outlay, ch);
+
+    ret = swr_alloc_set_opts2(&swr, &outlay, AV_SAMPLE_FMT_FLT, sr,
+                              &dc->ch_layout, dc->sample_fmt, dc->sample_rate, 0, NULL);
+    if(ret < 0 || swr_init(swr) < 0) FAIL("resampler init");
+
+    pkt = av_packet_alloc();
+    frame = av_frame_alloc();
+    if(!pkt || !frame) FAIL("alloc pkt/frame");
+
+    cap = (size_t)sr * ch * 8; /* ~8s seed */
+    buf = (float*)malloc(cap * sizeof(float));
+    if(!buf) FAIL("out of memory");
+
+    /* Pull a converted block into buf, growing as needed. */
+    #define DRAIN_FRAME(FR, NSAMP) do { \
+        int outn = swr_get_out_samples(swr, (NSAMP)); \
+        size_t need = len + (size_t)outn * ch; \
+        if(need > cap) { while(need > cap) cap *= 2; \
+            float* nb = (float*)realloc(buf, cap * sizeof(float)); \
+            if(!nb) FAIL("out of memory"); buf = nb; } \
+        uint8_t* outp = (uint8_t*)(buf + len); \
+        const uint8_t** in = (FR) ? (const uint8_t**)((FR)->extended_data) : NULL; \
+        int got = swr_convert(swr, &outp, outn, in, (NSAMP)); \
+        if(got > 0) len += (size_t)got * ch; \
+    } while(0)
+
+    while(av_read_frame(fmt, pkt) >= 0) {
+        if(pkt->stream_index == sidx && avcodec_send_packet(dc, pkt) >= 0) {
+            while(avcodec_receive_frame(dc, frame) >= 0) {
+                DRAIN_FRAME(frame, frame->nb_samples);
+            }
+        }
+        av_packet_unref(pkt);
+    }
+    /* flush decoder */
+    avcodec_send_packet(dc, NULL);
+    while(avcodec_receive_frame(dc, frame) >= 0) {
+        DRAIN_FRAME(frame, frame->nb_samples);
+    }
+    /* flush resampler */
+    DRAIN_FRAME((AVFrame*)NULL, 0);
+
+    #undef DRAIN_FRAME
+
+    *out_sr = sr;
+    *out_channels = ch;
+    *out_frames = (long long)(len / ch);
+
+    av_channel_layout_uninit(&outlay);
+    av_frame_free(&frame);
+    av_packet_free(&pkt);
+    swr_free(&swr);
+    avcodec_free_context(&dc);
+    avformat_close_input(&fmt);
+    return buf;
+
+fail:
+    av_channel_layout_uninit(&outlay);
+    if(buf) free(buf);
+    if(frame) av_frame_free(&frame);
+    if(pkt) av_packet_free(&pkt);
+    if(swr) swr_free(&swr);
+    if(dc) avcodec_free_context(&dc);
+    if(fmt) avformat_close_input(&fmt);
+    return NULL;
+    #undef FAIL
+}
+
+KOREN_API void koren_free_audio(float* pcm) {
+    free(pcm);
 }
 
 KOREN_API const char* koren_enc_version(void) {

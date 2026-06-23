@@ -76,6 +76,22 @@ KOREN_API const char* koren_enc_last_error(KorenEncoder* e);
 /* "koren_encoder N / libavcodec X.Y.Z" — for logging which build is loaded. */
 KOREN_API const char* koren_enc_version(void);
 
+/*
+ * Decode an entire audio file (any format libav supports — mp3/ogg/wav/flac…)
+ * to interleaved 32-bit float PCM at the file's native sample rate. Returns a
+ * malloc'd buffer the caller must release with koren_free_audio, and writes the
+ * sample rate, channel count and per-channel frame count through the out params.
+ * Returns NULL on failure, writing a message into err (capacity err_len).
+ *
+ * Used by the renderer to mux a level's song into the video: Unity can't always
+ * read a streamed AudioClip's samples, but the song is a file on disk.
+ */
+KOREN_API float* koren_decode_audio(const char* path, int* out_sample_rate,
+                                    int* out_channels, long long* out_frames,
+                                    char* err, int err_len);
+
+KOREN_API void koren_free_audio(float* pcm);
+
 /* ABI revision; bump on any incompatible signature/struct change. */
 #define KOREN_ENC_ABI 1
 KOREN_API int koren_enc_abi(void);
