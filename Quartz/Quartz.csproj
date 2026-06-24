@@ -57,6 +57,13 @@
 		<UmmInstallRoot Condition="'$(UmmInstallRoot)' == ''">$(GamePath)/Mods</UmmInstallRoot>
 		<UmmModDir>$(UmmInstallRoot)/$(UmmModFolderName)</UmmModDir>
 		<UmmStageModDir>$(PackageStageRoot)/$(UmmModFolderName)</UmmStageModDir>
+		<!-- Only auto-install the UMM build locally when MelonLoader is NOT present.
+		     On a MelonLoader machine (incl. the ummcompat bridge) the ML build is
+		     already installed under Mods/, and dropping the UMM build into UMMMods/
+		     too would load the mod twice. The QuartzUmm.zip is still built either
+		     way — this gate is purely about the local test install. -->
+		<MelonLoaderPresent Condition="Exists('$(GamePath)/MelonLoader/net35/MelonLoader.dll')">true</MelonLoaderPresent>
+		<UmmAutoInstall Condition="'$(AutoInstall)' == 'true' And '$(MelonLoaderPresent)' != 'true'">true</UmmAutoInstall>
 	</PropertyGroup>
 
 	<!-- Game/runtime assemblies already exist beside the game executable. Keeping
@@ -267,12 +274,14 @@
 		<ZipDirectory SourceDirectory="$(PackageStageRoot)" DestinationFile="$(DistZipPath)" />
 		<Message Importance="high" Text="Zip: $(DistZipPath)" />
 
-		<!-- Local install for testing: UMMMods/Quartz (or Mods/Quartz). -->
-		<MakeDir Directories="$(UmmModDir)" Condition="'$(AutoInstall)' == 'true'" />
-		<Copy Condition="'$(AutoInstall)' == 'true'" SourceFiles="$(TargetPath)" DestinationFolder="$(UmmModDir)" SkipUnchangedFiles="true" />
-		<WriteLinesToFile File="$(UmmModDir)/Info.json" Lines="$(_InfoJson)" Overwrite="true" Condition="'$(AutoInstall)' == 'true'" />
-		<Copy Condition="'$(AutoInstall)' == 'true'" SourceFiles="@(ExportFiles)" DestinationFiles="@(ExportFiles->'$(UmmModDir)/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
-		<Copy Condition="'$(AutoInstall)' == 'true' And '@(NativeFiles)' != ''" SourceFiles="@(NativeFiles)" DestinationFiles="@(NativeFiles->'$(UmmModDir)/native/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
-		<Message Importance="high" Text="UMM installed: $(UmmModDir)" Condition="'$(AutoInstall)' == 'true'" />
+		<!-- Local install for testing: UMMMods/Quartz (or Mods/Quartz). Skipped when
+		     MelonLoader is present (the ML build already covers this game). -->
+		<MakeDir Directories="$(UmmModDir)" Condition="'$(UmmAutoInstall)' == 'true'" />
+		<Copy Condition="'$(UmmAutoInstall)' == 'true'" SourceFiles="$(TargetPath)" DestinationFolder="$(UmmModDir)" SkipUnchangedFiles="true" />
+		<WriteLinesToFile File="$(UmmModDir)/Info.json" Lines="$(_InfoJson)" Overwrite="true" Condition="'$(UmmAutoInstall)' == 'true'" />
+		<Copy Condition="'$(UmmAutoInstall)' == 'true'" SourceFiles="@(ExportFiles)" DestinationFiles="@(ExportFiles->'$(UmmModDir)/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+		<Copy Condition="'$(UmmAutoInstall)' == 'true' And '@(NativeFiles)' != ''" SourceFiles="@(NativeFiles)" DestinationFiles="@(NativeFiles->'$(UmmModDir)/native/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+		<Message Importance="high" Text="UMM installed: $(UmmModDir)" Condition="'$(UmmAutoInstall)' == 'true'" />
+		<Message Importance="high" Text="UMM build NOT auto-installed (MelonLoader present); QuartzUmm.zip still written to $(DistDir)." Condition="'$(AutoInstall)' == 'true' And '$(MelonLoaderPresent)' == 'true'" />
 	</Target>
 </Project>
