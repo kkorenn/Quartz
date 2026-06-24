@@ -1,4 +1,5 @@
 using HarmonyLib;
+using System.Reflection;
 using UnityEngine;
 
 namespace Quartz.Features.UiHider;
@@ -6,7 +7,11 @@ namespace Quartz.Features.UiHider;
 // Harmony patches for the UI-hiding flags that must intercept the game
 // mid-call (the rest is reasserted per frame from the ticker). Ported from
 // v1's UiHiderPatches; string-named targets are types that have moved or
-// been renamed across game versions.
+// been renamed across game versions — resolved at runtime via
+// AccessTools.TypeByName (TargetMethod + Prepare) rather than the HarmonyX-only
+// [HarmonyPatch(string, string)] attribute ctor, which doesn't exist in the
+// plain Harmony 2.x that vanilla UnityModManager ships (it threw
+// MissingMethodException and stopped the whole mod from loading there).
 public static partial class UiHider {
     [HarmonyPatch(typeof(scrHitTextMesh), "Show")]
     private static class JudgmentTextShowPatch {
@@ -17,8 +22,11 @@ public static partial class UiHider {
         }
     }
 
-    [HarmonyPatch("scrMissIndicator", "Awake")]
+    [HarmonyPatch]
     private static class MissIndicatorPatch {
+        private static bool Prepare() => AccessTools.TypeByName("scrMissIndicator") != null;
+        private static MethodBase TargetMethod() => AccessTools.Method(AccessTools.TypeByName("scrMissIndicator"), "Awake");
+
         private static void Postfix(object __instance) {
             if(!ShouldHideMissIndicators()) {
                 return;
@@ -78,8 +86,11 @@ public static partial class UiHider {
 
         // The portal-landing white flash is identified by its exact color so
         // other flashes (death, checkpoints) stay untouched.
-        [HarmonyPatch("scrFlash", "Flash")]
+        [HarmonyPatch]
         private static class HideLastFloorFlashPatch {
+            private static bool Prepare() => AccessTools.TypeByName("scrFlash") != null;
+            private static MethodBase TargetMethod() => AccessTools.Method(AccessTools.TypeByName("scrFlash"), "Flash");
+
             private static bool Prefix(object[] __args) {
                 if(!shouldIgnoreFlashOnce || !TryGetFlashColor(__args, out Color colorStart) || !IsLastFloorFlashColor(colorStart)) {
                     return true;
@@ -118,8 +129,11 @@ public static partial class UiHider {
             private static void Postfix() => HideErrorMeter();
         }
 
-        [HarmonyPatch("TaroCutsceneScript", "DisplayText")]
+        [HarmonyPatch]
         private static class TaroCutscenePatch {
+            private static bool Prepare() => AccessTools.TypeByName("TaroCutsceneScript") != null;
+            private static MethodBase TargetMethod() => AccessTools.Method(AccessTools.TypeByName("TaroCutsceneScript"), "DisplayText");
+
             private static void Postfix() => HideErrorMeter();
         }
     }
