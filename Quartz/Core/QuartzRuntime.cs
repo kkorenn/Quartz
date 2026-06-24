@@ -65,6 +65,11 @@ public sealed class QuartzRuntime {
     private HarmonyService harmonyService;
     private PlayCount playCount;
 
+    // Kept so Dispose can unsubscribe — otherwise a UnityModManager in-process
+    // reload (Initialize → Dispose → Initialize) stacks a new live handler each
+    // time, leaving stale copies firing on every scene load for the process life.
+    private UnityEngine.Events.UnityAction<UnityEngine.SceneManagement.Scene, UnityEngine.SceneManagement.LoadSceneMode> xperfectGuardHandler;
+
     public QuartzRuntime(IQuartzHost host) {
         Host = host;
 
@@ -74,12 +79,10 @@ public sealed class QuartzRuntime {
             host.QuartzLogger
         );
         State = new ModState();
-        Paths = new PathService(
-            Path.Combine(
-                host.QuartzFilePath,
-                "Quartz"
-            )
-        );
+        // QuartzFilePath is the data root verbatim (the host appends any
+        // loader-specific suffix): <UserData>/Quartz on MelonLoader, the mod's
+        // own self-contained folder on UnityModManager.
+        Paths = new PathService(host.QuartzFilePath);
         Config = new SettingsFile<CoreSettings>(Paths.ConfigPath);
         Resource = new ResourceManager(
             Assembly,
@@ -94,12 +97,17 @@ public sealed class QuartzRuntime {
     // One-time migration for the KorenResourcePack v2 -> Quartz rename: bring the
     // user's settings over from the old UserData/Koren folder into UserData/Quartz.
     // Done per-entry so it never clobbers the freshly-installed shipped files
-    // (Lang, native/) already sitting in the new folder.
+    // (Lang, native/) already sitting in the new folder. The legacy Koren folder
+    // sits beside the new data root (both under UserData on MelonLoader); on
+    // UnityModManager the sibling never exists, so this no-ops harmlessly.
     private void MigrateLegacyData() {
         try {
-            string ud = Host.QuartzFilePath;
-            string oldRoot = Path.Combine(ud, "Koren");
-            string newRoot = Path.Combine(ud, "Quartz");
+            string newRoot = Host.QuartzFilePath;          // <UserData>/Quartz (ML)
+            string parent = Path.GetDirectoryName(newRoot); // <UserData>
+            if(string.IsNullOrEmpty(parent)) {
+                return;
+            }
+            string oldRoot = Path.Combine(parent, "Koren"); // <UserData>/Koren
             if(!Directory.Exists(oldRoot) ||
                string.Equals(Path.GetFullPath(oldRoot), Path.GetFullPath(newRoot), StringComparison.OrdinalIgnoreCase)) {
                 return;
@@ -240,8 +248,8 @@ public sealed class QuartzRuntime {
         // Install the XPerfect reentry guard if XPerfect is already loaded, and
         // retry on each scene load in case it loads after us (load-order safe).
         Quartz.Features.Interop.XPerfectRecursionGuard.TryApply(harmonyService.Harmony);
-        UnityEngine.SceneManagement.SceneManager.sceneLoaded +=
-            (_, _) => Quartz.Features.Interop.XPerfectRecursionGuard.TryApply(harmonyService.Harmony);
+        xperfectGuardHandler = (_, _) => Quartz.Features.Interop.XPerfectRecursionGuard.TryApply(harmonyService.Harmony);
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += xperfectGuardHandler;
 
         sw.Restart();
         SetModEnabled(Config.Data.Active, false);
@@ -253,10 +261,17 @@ public sealed class QuartzRuntime {
         // channel + skipped-version from config. It sets the updater to
         // Installing, so the Check() below no-ops in that case (intended — the
         // migration is the update). Skipped on the common Quartz.dll install.
-        TryLegacyRenameUpgrade();
+        // Gated on a host that self-updates. Both loaders do (each pulls its own
+        // asset — Quartz.zip / QuartzUmm.zip — via Host.UpdateAssetName). The
+        // Koren.dll legacy rename is MelonLoader-only history; it self-no-ops on
+        // UnityModManager (no Koren.dll under the mod folder), so it's safe to
+        // run on both.
+        if(Host.SupportsSelfUpdate) {
+            TryLegacyRenameUpgrade();
 
-        // Background check so the Settings page can show any available update.
-        UpdateService.Check();
+            // Background check so the Settings page can show any available update.
+            UpdateService.Check();
+        }
 
         Logger.Msg($"[Startup] total {total.ElapsedMilliseconds} ms");
 
@@ -275,6 +290,15 @@ public sealed class QuartzRuntime {
 
     public void Dispose() {
         SetModEnabled(false, true);
+
+        // Drop the persistent subscriptions this runtime added in Initialize.
+        // Their targets are static, so without this a UnityModManager reload
+        // would leave every prior session's handler live (see field comment).
+        FontManager.OnFontChanged -= GameOverlayFont.ApplyFontChange;
+        if(xperfectGuardHandler != null) {
+            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= xperfectGuardHandler;
+            xperfectGuardHandler = null;
+        }
 
         Config.Save();
 

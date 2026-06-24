@@ -121,6 +121,13 @@ public static class UpdateService {
 
     // Kicks off a background check. Safe to call from the main thread.
     public static async void Check() {
+        // On hosts that don't self-update (UnityModManager owns updates via its
+        // Repository mechanism), never check or offer in-mod updates — the UI
+        // hides the update surface, and a stray call here stays a no-op.
+        if(!MainCore.Host.SupportsSelfUpdate) {
+            return;
+        }
+
         if(Status is UpdateStatus.Checking or UpdateStatus.Installing) {
             return;
         }
@@ -202,16 +209,20 @@ public static class UpdateService {
                 continue;
             }
 
-            // Prefer the full Quartz.zip (DLL + lang + fonts); fall back to a
-            // bare Quartz.dll for older releases that shipped only that.
+            // Prefer the loader's full zip (Quartz.zip on MelonLoader,
+            // QuartzUmm.zip on UnityModManager — DLL + lang + fonts). The bare
+            // Quartz.dll fallback only fits the MelonLoader layout, so it's
+            // offered only when that's the loader's asset.
+            string zipName = MainCore.Host.UpdateAssetName;
+            bool allowDllFallback = zipName == "Quartz.zip";
             string zipUrl = null;
             string dllUrl = null;
             if(rel["assets"] is JArray assets) {
                 foreach(JToken a in assets) {
                     string name = (string)a["name"];
-                    if(name == "Quartz.zip") {
+                    if(name == zipName) {
                         zipUrl = (string)a["browser_download_url"];
-                    } else if(name == "Quartz.dll") {
+                    } else if(allowDllFallback && name == "Quartz.dll") {
                         dllUrl = (string)a["browser_download_url"];
                     }
                 }
@@ -238,6 +249,13 @@ public static class UpdateService {
 
     // Downloads the given release and writes it over the installed DLLs.
     public static async void Install(UpdateInfo info) {
+        // The in-mod installer assumes the MelonLoader file layout (Mods/Quartz.dll
+        // + UserData/Quartz). On UnityModManager it would corrupt the self-contained
+        // mod folder, so refuse — UMM updates through its own Repository mechanism.
+        if(!MainCore.Host.SupportsSelfUpdate) {
+            return;
+        }
+
         if(info == null || Status == UpdateStatus.Installing) {
             return;
         }
@@ -335,16 +353,17 @@ public static class UpdateService {
         DeleteIfExists(Path.Combine(MainCore.Host.UserLibsPath, "Quartz.dll"));
     }
 
-    // Extracts the release zip over the live install. Entry paths are
-    // game-root-relative (Mods/Quartz.dll, UserData/Quartz/Lang/*,
-    // UserData/Quartz/Fonts/*), so they land exactly where the build's
-    // dist/Quartz.zip placed them. Shipped files are overwritten; the user's
-    // settings (Settings.json, profiles) and their own custom fonts aren't in
-    // the zip, so they're left untouched.
+    // Extracts the release zip over the live install. Entry paths are relative to
+    // the loader's extract root:
+    //   MelonLoader: the game root (Mods/Quartz.dll, UserData/Quartz/Lang/*, ...).
+    //   UnityModManager: the UMM mods dir (Quartz/Quartz.dll, Quartz/Info.json, ...).
+    // Either way they land exactly where that loader's dist zip placed them.
+    // Shipped files are overwritten; the user's settings (Settings.json, profiles)
+    // and their own custom fonts aren't in the zip, so they're left untouched.
     private static void ExtractOverInstall(string zipPath) {
-        string gameRoot = Directory.GetParent(MainCore.Host.ModsPath)?.FullName;
+        string gameRoot = MainCore.Host.UpdateExtractRoot;
         if(string.IsNullOrEmpty(gameRoot)) {
-            throw new System.Exception("couldn't resolve game root from ModsPath");
+            throw new System.Exception("couldn't resolve update extract root");
         }
 
         string rootFull = Path.GetFullPath(gameRoot);

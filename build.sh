@@ -62,8 +62,22 @@ if [[ ! -f "$GP_CHECK/MelonLoader/net35/MelonLoader.dll" ]]; then
 fi
 
 # --- Build (PostBuild targets auto-install into the game) ---
-echo ">> building Quartz/Quartz.csproj ($CONFIG)..."
-dotnet build Quartz/Quartz.csproj -c "$CONFIG" -p:AutoInstall=true
+# Second arg picks the loader target(s): ML | UMM | both (default both).
+TARGET="${2:-both}"
 
-echo ">> done. Installed: Mods/Quartz.dll, UserData/Quartz/*"
-echo ">> packaged: dist/Quartz.zip"
+build_one() {
+    local loader="$1"
+    echo ">> building Quartz/Quartz.csproj ($CONFIG, LoaderTarget=$loader)..."
+    dotnet build Quartz/Quartz.csproj -c "$CONFIG" -p:AutoInstall=true -p:LoaderTarget="$loader"
+}
+
+case "$TARGET" in
+    ML)   build_one ML ;;
+    UMM)  build_one UMM ;;
+    both) build_one ML; build_one UMM ;;
+    *)    echo "ERROR: unknown target '$TARGET' (use ML | UMM | both)"; exit 1 ;;
+esac
+
+echo ">> done."
+[[ "$TARGET" == "ML"  || "$TARGET" == "both" ]] && echo ">> MelonLoader:     Mods/Quartz.dll + UserData/Quartz/* — dist/Quartz.zip"
+[[ "$TARGET" == "UMM" || "$TARGET" == "both" ]] && echo ">> UnityModManager: UMMMods/Quartz (or Mods/Quartz) — dist/QuartzUmm.zip"

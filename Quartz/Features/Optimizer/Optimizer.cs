@@ -59,6 +59,10 @@ public static class Optimizer {
     public static void Initialize() {
         EnsureConf();
         CaptureDefaults();
+        // Idempotent: a UnityModManager in-process reload runs Initialize again
+        // on this static feature, so drop any prior subscription first to avoid
+        // stacking duplicate per-scene handlers.
+        SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
         Apply();
     }
