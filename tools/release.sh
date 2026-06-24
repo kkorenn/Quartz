@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build a Release and publish it to GitHub with Quartz.zip + Quartz.dll attached.
+# Build a Release and publish it to GitHub with Quartz.zip + Quartz.dll +
+# QuartzUmm.zip (the UnityModManager build) attached.
 # Pre-release channels (alpha/beta/rc) are flagged as pre-releases.
 #
 # Release identity (Version + Channel) comes from Quartz/Core/Info.cs — set those
@@ -151,16 +152,22 @@ if [ "$bumped" -eq 1 ]; then
   echo "Build number: ${cur} -> ${next}  (${ver} ${chan})"
 fi
 
-echo "Building ${tag} ..."
+echo "Building ${tag} (MelonLoader) ..."
 dotnet build Quartz/Quartz.csproj -c Release
+echo "Building ${tag} (UnityModManager) ..."
+dotnet build Quartz/Quartz.csproj -c Release -p:LoaderTarget=UMM
 
-# Quartz.zip is the full install (DLL + lang + fonts), built by the csproj
-# PostBuild target. Ship the bare DLL alongside it too, so anyone still running
-# an old updater (which only looks for a "Quartz.dll" asset) can still update.
+# Quartz.zip is the full MelonLoader install (DLL + lang + fonts), built by the
+# csproj PostBuild target. Ship the bare DLL alongside it too, so anyone still
+# running an old updater (which only looks for a "Quartz.dll" asset) can update.
+# QuartzUmm.zip is the self-contained UnityModManager mod folder — the UMM build's
+# updater downloads THIS asset (UpdateAssetName), so it must ship every release.
 quartz_dll="Quartz/bin/Release/netstandard2.1/Quartz.dll"
 quartz_zip="dist/Quartz.zip"
+quartz_umm_zip="dist/QuartzUmm.zip"
 [ -f "$quartz_dll" ] || { echo "build output missing — aborting" >&2; exit 1; }
 [ -f "$quartz_zip" ] || { echo "dist/Quartz.zip missing — aborting" >&2; exit 1; }
+[ -f "$quartz_umm_zip" ] || { echo "dist/QuartzUmm.zip missing — aborting" >&2; exit 1; }
 
 # gh wants the body from a file (preserves markdown + newlines).
 notes_tmp=$(mktemp)
@@ -171,10 +178,10 @@ echo "Publishing ${title} ..."
 if gh release view "$tag" >/dev/null 2>&1; then
   # Re-publish: refresh title + notes, then replace the assets.
   gh release edit "$tag" --title "$title" --notes-file "$notes_tmp"
-  gh release upload "$tag" "$quartz_zip" "$quartz_dll" --clobber
+  gh release upload "$tag" "$quartz_zip" "$quartz_dll" "$quartz_umm_zip" --clobber
 else
   # shellcheck disable=SC2086
-  gh release create "$tag" "$quartz_zip" "$quartz_dll" --title "$title" --notes-file "$notes_tmp" $flags
+  gh release create "$tag" "$quartz_zip" "$quartz_dll" "$quartz_umm_zip" --title "$title" --notes-file "$notes_tmp" $flags
 fi
 
 echo "Done: ${title}"
