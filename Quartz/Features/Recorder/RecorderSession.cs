@@ -44,6 +44,8 @@ internal sealed class RecorderSession : MonoBehaviour {
     private int prevScreenW, prevScreenH;
     private FullScreenMode prevFullscreen;
     private bool resolutionForced;
+    private bool prevRunInBackground;
+    private bool runInBackgroundForced;
     private bool calibNeutralized;
     private int prevInputOffset, prevVisualOffset;
 
@@ -158,6 +160,7 @@ internal sealed class RecorderSession : MonoBehaviour {
 
         prevCaptureFramerate = Time.captureFramerate;
         Time.captureFramerate = fps;     // step Time-based visuals deterministically too
+        ForceRunInBackground();          // keep the player loop ticking if the window is minimized/unfocused mid-render
         ForceAutoPlay();
         DisableAsyncInput();             // route auto-play hits through the frame loop (sync path)
         MatchGameResolution();           // size the game window to the output so the framing matches (no crop/letterbox)
@@ -568,6 +571,25 @@ internal sealed class RecorderSession : MonoBehaviour {
 
     // --- state save/restore -------------------------------------------------
 
+    // The capture loop advances on WaitForEndOfFrame. Minimizing or unfocusing the
+    // window pauses Unity's player loop (default Application.runInBackground == false),
+    // which freezes the coroutine: no frames are stepped, AudioRenderer never gets
+    // pumped (so the captured mix goes silent) and the conductor stalls — the render
+    // comes out slowed/garbled with no sound. Force background execution for the run
+    // so the engine keeps ticking at full rate regardless of window focus; the live
+    // audio mix is rendered offline in software and doesn't depend on the OS audio
+    // device, so it's captured whether or not the window is visible. Restored in
+    // RestoreState.
+    private void ForceRunInBackground() {
+        try {
+            prevRunInBackground = Application.runInBackground;
+            Application.runInBackground = true;
+            runInBackgroundForced = true;
+        } catch(Exception e) {
+            MainCore.Log.Wrn($"[Recorder] couldn't force run-in-background: {e.Message}");
+        }
+    }
+
     private void ForceAutoPlay() {
         try {
             prevAuto = RDC.auto;
@@ -666,6 +688,10 @@ internal sealed class RecorderSession : MonoBehaviour {
         if(resolutionForced) {
             try { Screen.SetResolution(prevScreenW, prevScreenH, prevFullscreen); } catch { }
             resolutionForced = false;
+        }
+        if(runInBackgroundForced) {
+            try { Application.runInBackground = prevRunInBackground; } catch { }
+            runInBackgroundForced = false;
         }
         if(calibNeutralized) {
             try {
