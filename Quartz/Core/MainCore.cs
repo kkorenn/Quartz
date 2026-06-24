@@ -31,7 +31,12 @@ public static class MainCore {
     public static UnityEngine.GameObject Root => Runtime.RootObject;
     public static GTweensContext TC => Runtime.TweensContext;
     //public static V8ScriptEngine V8 => Runtime.V8Engine;
-    public static bool IsModEnabled => Runtime.State.IsEnabled;
+    // Null-guarded like Tick/Dispose/SetModEnabled: a torn-down or never-built
+    // runtime reads as "disabled" instead of NRE-ing. Without this, any patch or
+    // ticker that survives a failed/partial init (Harmony patches stay applied;
+    // MonoBehaviour tickers on a leaked root keep running) would throw every
+    // frame off Runtime being null.
+    public static bool IsModEnabled => Runtime?.State.IsEnabled ?? false;
 
     public static void Initialize(IQuartzHost host) {
         if(Runtime != null) {

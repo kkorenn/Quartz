@@ -289,35 +289,53 @@ public sealed class QuartzRuntime {
     public void Tick() => ticks.Tick();
 
     public void Dispose() {
-        SetModEnabled(false, true);
+        // Every step is best-effort: this also runs from MainCore.Initialize's
+        // catch on a FAILED/partial init, where any single step may throw on a
+        // half-built runtime. A throw must never skip the two steps that matter
+        // most — services.Dispose() (Harmony UnpatchSelf) and destroying the root
+        // (kills the MonoBehaviour tickers). Skipping either is exactly what left
+        // applied patches + orphaned tickers NRE-ing every frame after a failed
+        // init on vanilla UnityModManager.
+        static void Safe(Action step) {
+            try {
+                step();
+            } catch {
+                // best-effort teardown; keep going so the rest still runs
+            }
+        }
+
+        Safe(() => SetModEnabled(false, true));
 
         // Drop the persistent subscriptions this runtime added in Initialize.
         // Their targets are static, so without this a UnityModManager reload
         // would leave every prior session's handler live (see field comment).
-        FontManager.OnFontChanged -= GameOverlayFont.ApplyFontChange;
-        if(xperfectGuardHandler != null) {
-            UnityEngine.SceneManagement.SceneManager.sceneLoaded -= xperfectGuardHandler;
-            xperfectGuardHandler = null;
-        }
+        Safe(() => FontManager.OnFontChanged -= GameOverlayFont.ApplyFontChange);
+        Safe(() => {
+            if(xperfectGuardHandler != null) {
+                UnityEngine.SceneManagement.SceneManager.sceneLoaded -= xperfectGuardHandler;
+                xperfectGuardHandler = null;
+            }
+        });
 
-        Config.Save();
+        Safe(() => Config.Save());
 
         // Keep the active profile in sync with the final on-disk settings so
         // switching profiles next session starts from what the user last saw.
-        ProfileManager.CaptureActive();
+        Safe(() => ProfileManager.CaptureActive());
 
-        services.Dispose();
+        // Harmony UnpatchSelf — must run so applied patches don't keep firing
+        // against a torn-down runtime.
+        Safe(() => services.Dispose());
 
-        Sprite.Dispose();
+        Safe(() => Sprite.Dispose());
         // Destroy the dynamically-built font assets (atlas + material + source
         // Font) before ResourceManager tears down the default font they fall
         // back to.
-        Quartz.Resource.FontManager.Dispose();
-        Resource.Dispose();
+        Safe(() => Quartz.Resource.FontManager.Dispose());
+        Safe(() => Resource.Dispose());
 
         if(RootObject != null) {
-            Object.Destroy(RootObject);
-
+            Safe(() => Object.Destroy(RootObject));
             RootObject = null;
         }
 
