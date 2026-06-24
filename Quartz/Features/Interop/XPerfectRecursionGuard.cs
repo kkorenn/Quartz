@@ -43,15 +43,47 @@ internal static class XPerfectRecursionGuard {
             MethodInfo finalizer = typeof(XPerfectRecursionGuard).GetMethod(
                 nameof(GuardFinalizer), BindingFlags.Static | BindingFlags.NonPublic);
 
-            harmony.Patch(target,
-                prefix: new HarmonyMethod(prefix),
-                finalizer: new HarmonyMethod(finalizer));
+            PatchCompat(harmony, target, new HarmonyMethod(prefix), new HarmonyMethod(finalizer));
 
             applied = true;
             MainCore.Log.Msg("[XPerfectGuard] Installed reentry guard on XPerfect.HitMarginPatch.Postfix.");
         } catch (Exception ex) {
             MainCore.Log.Msg("[XPerfectGuard] Install failed: " + ex.Message);
         }
+    }
+
+    // Calls Harmony.Patch by reflection instead of a direct call. HarmonyX
+    // (MelonLoader) and plain Harmony 2.x (vanilla UnityModManager) have
+    // DIFFERENT Patch signatures — HarmonyX's takes a 6th HarmonyMethod
+    // (ilmanipulator), vanilla's has only 5 params. A compiled direct call binds
+    // to whichever we built against (HarmonyX) and throws MissingMethodException
+    // when JIT'd on the other, aborting the whole mod. Reflection picks the
+    // overload that actually exists at runtime and fills the trailing param(s)
+    // with null. Param order after the target is prefix, postfix, transpiler,
+    // finalizer, [ilmanipulator].
+    private static void PatchCompat(HarmonyLib.Harmony harmony, MethodBase target,
+                                    HarmonyMethod prefix, HarmonyMethod finalizer) {
+        MethodInfo patch = null;
+        foreach(MethodInfo m in harmony.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)) {
+            ParameterInfo[] p = m.Name == "Patch" ? m.GetParameters() : null;
+            if(p != null && p.Length >= 5 && typeof(MethodBase).IsAssignableFrom(p[0].ParameterType)) {
+                patch = m;
+                break;
+            }
+        }
+        if(patch == null) {
+            throw new MissingMethodException("HarmonyLib.Harmony.Patch not found");
+        }
+
+        ParameterInfo[] ps = patch.GetParameters();
+        object[] args = new object[ps.Length];
+        args[0] = target;
+        // prefix, postfix, transpiler, finalizer, [ilmanipulator]
+        HarmonyMethod[] ordered = { prefix, null, null, finalizer, null };
+        for(int i = 1; i < ps.Length; i++) {
+            args[i] = i - 1 < ordered.Length ? ordered[i - 1] : null;
+        }
+        patch.Invoke(harmony, args);
     }
 
     private static bool GuardPrefix(ref bool __state) {

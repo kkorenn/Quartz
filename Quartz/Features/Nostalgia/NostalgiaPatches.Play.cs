@@ -27,12 +27,16 @@ public static partial class Nostalgia {
     // --- Hide Difficulty: re-hide whenever the editor/UI rebuilds it ---
     [HarmonyPatch]
     private static class HideDifficultyApplyPatch {
-        private static IEnumerable<MethodBase> TargetMethods() {
-            yield return AccessTools.Method(typeof(scnEditor), "Start");
-            yield return AccessTools.Method(typeof(scnEditor), "SwitchToEditMode");
-            yield return AccessTools.Method(typeof(scrUIController), "ShowDifficultyContainer");
-            yield return AccessTools.Method(typeof(EditorDifficultySelector), "SetChangeable");
-        }
+        // Null-filtered: a missing target (game drift) yields null, and on plain
+        // Harmony 2.x (vanilla UMM) a null in TargetMethods aborts the ENTIRE
+        // PatchAll, not just this class. Drop nulls so one drifted method can't
+        // take down every patch.
+        private static IEnumerable<MethodBase> TargetMethods() => new[] {
+            AccessTools.Method(typeof(scnEditor), "Start"),
+            AccessTools.Method(typeof(scnEditor), "SwitchToEditMode"),
+            AccessTools.Method(typeof(scrUIController), "ShowDifficultyContainer"),
+            AccessTools.Method(typeof(EditorDifficultySelector), "SetChangeable"),
+        }.Where(m => m != null);
         private static void Postfix() {
             if(ShouldHideDifficulty) {
                 ToggleDifficulty(false);
@@ -42,20 +46,20 @@ public static partial class Nostalgia {
 
     [HarmonyPatch]
     private static class HideDifficultyCancelPatch {
-        private static IEnumerable<MethodBase> TargetMethods() {
-            yield return AccessTools.Method(typeof(EditorDifficultySelector), "ToggleDifficulty");
-            yield return AccessTools.Method(typeof(scrUIController), "DifficultyArrowPressed");
-        }
+        private static IEnumerable<MethodBase> TargetMethods() => new[] {
+            AccessTools.Method(typeof(EditorDifficultySelector), "ToggleDifficulty"),
+            AccessTools.Method(typeof(scrUIController), "DifficultyArrowPressed"),
+        }.Where(m => m != null);
         private static bool Prefix() => !ShouldHideDifficulty;
     }
 
     // --- Hide No-Fail: re-hide on editor build, block toggling it on ---
     [HarmonyPatch]
     private static class HideNoFailApplyPatch {
-        private static IEnumerable<MethodBase> TargetMethods() {
-            yield return AccessTools.Method(typeof(scnEditor), "SwitchToEditMode");
-            yield return AccessTools.Method(typeof(scnEditor), "Start");
-        }
+        private static IEnumerable<MethodBase> TargetMethods() => new[] {
+            AccessTools.Method(typeof(scnEditor), "SwitchToEditMode"),
+            AccessTools.Method(typeof(scnEditor), "Start"),
+        }.Where(m => m != null);
         private static void Postfix() {
             if(ShouldHideNoFail) {
                 ToggleNoFail(false);
