@@ -7,8 +7,7 @@
 [![Stars](https://img.shields.io/github/stars/kkorenn/Quartz?logo=github)](https://github.com/kkorenn/Quartz/stargazers)
 [![Discord](https://img.shields.io/discord/1499236885409566891?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/mAzAghu5Xq)
 
-An all-in-one mod for **A Dance of Fire and Ice**. Built mainly for **MelonLoader**, with a separate **UnityModManager** build for users already on UMM.
-
+An all-in-one mod for **A Dance of Fire and Ice**.
 </div>
 
 > [!NOTE]
