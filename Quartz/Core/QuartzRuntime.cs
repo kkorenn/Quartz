@@ -185,7 +185,7 @@ public sealed class QuartzRuntime {
         // it can't overwrite it in place; this session loaded the new one, so the
         // leftovers are safe to delete now. Koren.dll.old comes from the
         // legacy-rename migration below (a pre-rename Koren.dll being retired).
-        foreach(string stale in new[] { "Quartz.dll.old", "Koren.dll.old" }) {
+        foreach(string stale in new[] { "Quartz.dll.old", "QuartzUmm.dll.old", "Koren.dll.old" }) {
             try {
                 string oldDll = Path.Combine(Host.ModsPath, stale);
                 if(File.Exists(oldDll)) {

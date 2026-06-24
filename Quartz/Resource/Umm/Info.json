@@ -3,6 +3,6 @@
   "DisplayName": "Quartz",
   "Author": "koren",
   "Version": "__VERSION__",
-  "AssemblyName": "Quartz.dll",
+  "AssemblyName": "QuartzUmm.dll",
   "EntryMethod": "Quartz.LoaderUmm.Load"
 }

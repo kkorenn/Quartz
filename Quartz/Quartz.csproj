@@ -37,6 +37,13 @@
 	     outputs, the QUARTZ_UMM compile constant, and its own dist zip + stage. -->
 	<PropertyGroup Condition="'$(LoaderTarget)' == 'UMM'">
 		<DefineConstants>$(DefineConstants);QUARTZ_UMM</DefineConstants>
+		<!-- Distinct assembly identity so the UMM build can coexist with the ML
+		     build (both named "Quartz, 2.0.0.0" would otherwise collide: under a
+		     MelonLoader->UMM bridge the CLR returns the already-loaded ML assembly
+		     when UMM asks for its own, and LoaderUmm isn't in that one -> "class
+		     not found"). RootNamespace stays "Quartz", so the type is still
+		     Quartz.LoaderUmm and embedded resources keep their Quartz.* names. -->
+		<AssemblyName>QuartzUmm</AssemblyName>
 		<IntermediateOutputPath>obj/umm/$(Configuration)/</IntermediateOutputPath>
 		<OutputPath>bin/umm/$(Configuration)/</OutputPath>
 		<PackageStageRoot>$(IntermediateOutputPath)dist-stage</PackageStageRoot>
