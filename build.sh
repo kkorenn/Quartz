@@ -61,6 +61,24 @@ if [[ ! -f "$GP_CHECK/MelonLoader/net35/MelonLoader.dll" ]]; then
     echo "WARNING: MelonLoader not found at $GP_CHECK/MelonLoader — install MelonLoader first."
 fi
 
+# --- Native Windows encoder (cross-compiled, idempotent) ---
+# The csproj bundles native/dist/** into the zips, so produce the Windows encoder
+# here too (one zip serves every OS). Cross-compiling needs mingw-w64 and a ~75MB
+# FFmpeg download, so it only runs when the output is missing (or FORCE_NATIVE_WIN=1)
+# and degrades to a warning when mingw isn't installed.
+WIN_DLL="native/dist/win/koren_encoder.dll"
+if [[ "${FORCE_NATIVE_WIN:-0}" == "1" || ! -f "$WIN_DLL" ]]; then
+    if command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1; then
+        echo ">> building Windows native encoder (native/build_win.sh)..."
+        ./native/build_win.sh
+    else
+        echo "WARNING: mingw-w64 not found — skipping Windows native encoder."
+        echo "         install it (brew install mingw-w64); Windows render needs native/dist/win/."
+    fi
+else
+    echo ">> Windows native encoder present ($WIN_DLL) — skipping (FORCE_NATIVE_WIN=1 to rebuild)."
+fi
+
 # --- Build (PostBuild targets auto-install into the game) ---
 # Second arg picks the loader target(s): ML | UMM | both (default both).
 TARGET="${2:-both}"
