@@ -10,20 +10,23 @@ namespace Quartz.Features.Recorder;
 // Drives one offline render of a level run. Created by Recorder.BeginSession when
 // a level starts while armed.
 //
-// Timing model — this is the important part. ADOFAI's gameplay reads its clock
-// from the audio hardware (scrConductor.songposition), which does not advance in
-// lockstep with offline capture, so a naive capture comes out slow / freezes on a
-// pause. Instead we OWN the clock: Recorder.RenderClock is the song position, the
-// conductor's getters are patched to return it (RecorderPatches), and we advance
-// it by exactly 1/fps after every captured frame. Gameplay therefore moves one
-// frame per frame, deterministically, no matter how long a frame takes to draw or
-// whether the audio engine stalls. The run ends by the clock reaching the level's
-// duration (not by waiting for the end portal, which a stall would never reach).
+// Two capture modes, picked in Begin:
 //
-// Video is captured by re-rendering the game cameras into an off-screen texture
-// (so the white overlay and HUD aren't in the frame). Audio is muxed straight
-// from the song clip, indexed by the same RenderClock, so picture and sound can't
-// drift. Hit sounds are not included (they aren't in the song clip).
+// 1. Live-audio mode (default, at 1x speed). Unity's AudioRenderer runs the audio
+//    engine offline and advances AudioSettings.dspTime one captured frame at a time,
+//    so the conductor runs on the REAL clock (we don't patch it) and we pull the
+//    game's master mix — music AND hit sounds — a frame at a time. The game owns the
+//    timing, so there's no per-level offset to guess and picture/sound can't drift.
+//
+// 2. Owned-clock mode (fallback: non-1x speed, audio off, or AudioRenderer refused).
+//    ADOFAI's clock normally comes from the audio hardware, which doesn't advance
+//    under offline capture, so here we OWN it: Recorder.RenderClock is the song
+//    position, the conductor's dspTime reads are patched to it (RecorderPatches), and
+//    we step it 1/fps per frame. Audio, if any, is muxed from the decoded song file
+//    indexed by RenderClock — hit sounds are not included.
+//
+// Video (both modes) is captured by re-rendering the game cameras into an off-screen
+// texture, so the white progress overlay and HUD aren't in the frame.
 internal sealed class RecorderSession : MonoBehaviour {
     private NativeEncoder encoder;
     private bool running;
@@ -38,6 +41,11 @@ internal sealed class RecorderSession : MonoBehaviour {
     private bool asyncToggled;
     private float prevListenerVolume;
     private bool listenerMuted;
+    private int prevScreenW, prevScreenH;
+    private FullScreenMode prevFullscreen;
+    private bool resolutionForced;
+    private bool calibNeutralized;
+    private int prevInputOffset, prevVisualOffset;
 
     private RenderTexture targetRT;
     private Texture2D readTex;
@@ -62,6 +70,14 @@ internal sealed class RecorderSession : MonoBehaviour {
     private int clipFrames;         // samples per channel
     private long audioCursor;       // next clip sample index (per channel) to emit
     private float[] audioFrameBuf;
+
+    // Live-audio capture: the game's real master mix (music + hit sounds) pulled from
+    // Unity's AudioRenderer a frame at a time. Used instead of clip muxing at 1x speed
+    // — see the mode note at the top of the file.
+    private bool audioCaptureLive;
+    private int liveChannels, liveSampleRate;
+    private NativeArray<float> liveNative;
+    private float[] liveManaged;
     // clip_time = song_position + audioOffsetSec (the level's audio offset; see
     // ADOFAI's songposition = clip_time - offset), plus the user fine-tune.
     private double audioOffsetSec;
@@ -92,7 +108,15 @@ internal sealed class RecorderSession : MonoBehaviour {
             endClock = startClock + Mathf.Max(1, c.SampleSeconds); // short test clip
         }
 
-        if(c.CaptureAudio) {
+        // Prefer capturing the game's real mix (music + hit sounds) via AudioRenderer.
+        // It plays at 1x only, so non-1x renders fall back to muxing the song file.
+        bool wantLiveAudio = c.CaptureAudio && Mathf.Approximately(speed, 1f);
+        if(wantLiveAudio && AudioRenderer.Start()) {
+            audioCaptureLive = true;
+            liveSampleRate = AudioSettings.outputSampleRate;
+            liveChannels = SpeakerChannels(AudioSettings.GetConfiguration().speakerMode);
+            MainCore.Log.Msg($"[Recorder] capturing game audio via AudioRenderer: {liveSampleRate}Hz {liveChannels}ch");
+        } else if(c.CaptureAudio) {
             LoadAudio(startClock);
         }
 
@@ -108,8 +132,8 @@ internal sealed class RecorderSession : MonoBehaviour {
                 Crf = c.Crf,
                 Gop = 0,
                 FlipVertical = c.FlipVertical,
-                AudioChannels = clipData != null ? clipChannels : 0,
-                AudioSampleRate = clipData != null ? clipSampleRate : 0,
+                AudioChannels = audioCaptureLive ? liveChannels : (clipData != null ? clipChannels : 0),
+                AudioSampleRate = audioCaptureLive ? liveSampleRate : (clipData != null ? clipSampleRate : 0),
                 AudioBitrate = (long)c.AudioBitrateKbps * 1000,
                 AudioCodec = "aac",
             });
@@ -135,19 +159,31 @@ internal sealed class RecorderSession : MonoBehaviour {
         prevCaptureFramerate = Time.captureFramerate;
         Time.captureFramerate = fps;     // step Time-based visuals deterministically too
         ForceAutoPlay();
-        DisableAsyncInput();             // route auto-play hits through the frame loop, in sync with our clock
-        MuteLiveAudio();                 // the live mix plays at the offline rate; silence it
-
-        // Take ownership of the conductor's clock. Anchor to the conductor's song
-        // reference (dspTimeSong) rather than the live dsp time, so the render
-        // always starts at the same song position no matter when the audio began —
-        // otherwise the start drifts and sample mode ends instantly. Then step by
-        // 1/fps per captured frame (see the transpiler in RecorderPatches).
-        dspTimeSong = scrConductor.instance != null ? scrConductor.instance.dspTimeSong : 0.0;
+        DisableAsyncInput();             // route auto-play hits through the frame loop (sync path)
+        MatchGameResolution();           // size the game window to the output so the framing matches (no crop/letterbox)
+        NeutralizeCalibration();         // an auto render has no input lag to compensate; the planet must land on the beat
         renderStart = startClock;
-        Recorder.ControlledDsp = dspTimeSong + startClock;
         Recorder.RenderClock = startClock;
-        Recorder.DrivingClock = true;
+
+        if(audioCaptureLive) {
+            // AudioRenderer advances AudioSettings.dspTime one captured frame at a
+            // time, so the conductor runs on the real clock — we DON'T own it, and we
+            // must NOT mute (that mix is what we're recording). The run stops at the
+            // end portal (ExtendToEnding); endClock is padded as a safety net because
+            // RenderClock here only approximates the conductor's song position.
+            Recorder.DrivingClock = false;
+            if(!c.SampleMode) {
+                endClock += 60.0; // portal (ExtendToEnding) is the real stop; this just guards against RenderClock drift
+            }
+        } else {
+            // Own the conductor's clock. Anchor to its song reference (dspTimeSong)
+            // rather than live dsp time so the render always starts at the same song
+            // position. Then step 1/fps per frame (see the RecorderPatches transpiler).
+            MuteLiveAudio();             // the live mix plays at the offline rate; silence it
+            dspTimeSong = scrConductor.instance != null ? scrConductor.instance.dspTimeSong : 0.0;
+            Recorder.ControlledDsp = dspTimeSong + startClock;
+            Recorder.DrivingClock = true;
+        }
 
         Recorder.Current = Recorder.State.Recording;
         running = true;
@@ -197,6 +233,14 @@ internal sealed class RecorderSession : MonoBehaviour {
 
     private IEnumerator CaptureLoop() {
         var endOfFrame = new WaitForEndOfFrame();
+        // Screen.SetResolution applies on the NEXT frame, and the game rebuilds its
+        // camera RT / display quad to the new size in its own Update. Let that settle
+        // before the first capture so frame zero isn't shot at the old aspect (which
+        // is exactly the crop the user sees). Bounded so a clamped fullscreen mode
+        // that never reaches the exact size doesn't hang the render.
+        for(int i = 0; resolutionForced && i < 10 && (Screen.width != width || Screen.height != height); i++) {
+            yield return endOfFrame;
+        }
         while(running) {
             yield return endOfFrame;
             if(!running) {
@@ -254,8 +298,43 @@ internal sealed class RecorderSession : MonoBehaviour {
             return false;
         }
 
-        return WriteAudioForFrame();
+        return audioCaptureLive ? CaptureLiveAudio() : WriteAudioForFrame();
     }
+
+    // Pull one capture-frame of the game's master mix (music + hit sounds) from
+    // AudioRenderer and hand it to the encoder. The buffer holds
+    // GetSampleCountForCaptureFrame() sample-frames across liveChannels (interleaved),
+    // sized to the frame rate so audio and picture advance together.
+    private bool CaptureLiveAudio() {
+        int frames = AudioRenderer.GetSampleCountForCaptureFrame();
+        if(frames <= 0) {
+            return true;
+        }
+        int need = frames * liveChannels;
+        if(!liveNative.IsCreated || liveNative.Length != need) {
+            if(liveNative.IsCreated) {
+                liveNative.Dispose();
+            }
+            liveNative = new NativeArray<float>(need, Allocator.Persistent);
+            liveManaged = new float[need];
+        }
+        if(AudioRenderer.Render(liveNative)) {
+            NativeArray<float>.Copy(liveNative, liveManaged, need);
+        } else {
+            Array.Clear(liveManaged, 0, need); // engine not ready yet — silence keeps a/v aligned
+        }
+        return encoder.WriteAudio(liveManaged, frames);
+    }
+
+    private static int SpeakerChannels(AudioSpeakerMode mode) => mode switch {
+        AudioSpeakerMode.Mono => 1,
+        AudioSpeakerMode.Stereo => 2,
+        AudioSpeakerMode.Quad => 4,
+        AudioSpeakerMode.Surround => 5,
+        AudioSpeakerMode.Mode5point1 => 6,
+        AudioSpeakerMode.Mode7point1 => 8,
+        _ => 2,
+    };
 
     // Emit the clip samples spanning this frame, keyed off RenderClock so audio
     // stays sample-accurate with the picture. Out-of-range (count-in / past the
@@ -522,6 +601,53 @@ internal sealed class RecorderSession : MonoBehaviour {
         } catch { /* ignore */ }
     }
 
+    // Drive the game's Screen resolution to the output size for the duration of the
+    // render. Everything the game frames off Screen.width/height — the orthographic
+    // camera aspect, scrCamera's camRT, the display quad scale — then matches the
+    // captured texture, so the video isn't cropped or letterboxed when the output
+    // aspect differs from the player's window. Restored in RestoreState. No-op (and
+    // nothing to restore) when the window already matches.
+    private void MatchGameResolution() {
+        try {
+            if(Screen.width == width && Screen.height == height) {
+                return;
+            }
+            prevScreenW = Screen.width;
+            prevScreenH = Screen.height;
+            prevFullscreen = Screen.fullScreenMode;
+            Screen.SetResolution(width, height, prevFullscreen);
+            resolutionForced = true;
+            MainCore.Log.Msg($"[Recorder] game resolution {prevScreenW}x{prevScreenH} -> {width}x{height} for render");
+        } catch(Exception e) {
+            MainCore.Log.Wrn($"[Recorder] couldn't set game resolution: {e.Message}");
+        }
+    }
+
+    // Zero the conductor's calibration for the render. ADOFAI shifts song position by
+    // the player's input-offset calibration (currentPreset.inputOffset — a default
+    // preset can be ~100ms) so that manual hits line up with their hardware latency;
+    // the auto planet's angle is driven from that same shifted song position
+    // (songposition_minusi). In an offline auto render there is no input to compensate
+    // for, and the muxed track is the raw song, so a nonzero input offset just makes
+    // the planet reach each tile late — invisible on slow tiles, obvious on fast ones.
+    // Neutralize input + visual offset for the run so the planet lands exactly on the
+    // beat. currentPreset is a struct field, so this writes only the static copy, not
+    // the saved presets list. Restored in RestoreState.
+    private void NeutralizeCalibration() {
+        try {
+            prevInputOffset = scrConductor.currentPreset.inputOffset;
+            prevVisualOffset = scrConductor.visualOffset;
+            scrConductor.currentPreset.inputOffset = 0;
+            scrConductor.visualOffset = 0;
+            calibNeutralized = true;
+            if(prevInputOffset != 0 || prevVisualOffset != 0) {
+                MainCore.Log.Msg($"[Recorder] neutralized calibration for render (input {prevInputOffset}ms, visual {prevVisualOffset}ms -> 0)");
+            }
+        } catch(Exception e) {
+            MainCore.Log.Wrn($"[Recorder] couldn't neutralize calibration: {e.Message}");
+        }
+    }
+
     private void RestoreState() {
         Recorder.DrivingClock = false;
         Time.captureFramerate = prevCaptureFramerate;
@@ -537,6 +663,21 @@ internal sealed class RecorderSession : MonoBehaviour {
             try { AudioListener.volume = prevListenerVolume; } catch { }
             listenerMuted = false;
         }
+        if(resolutionForced) {
+            try { Screen.SetResolution(prevScreenW, prevScreenH, prevFullscreen); } catch { }
+            resolutionForced = false;
+        }
+        if(calibNeutralized) {
+            try {
+                scrConductor.currentPreset.inputOffset = prevInputOffset;
+                scrConductor.visualOffset = prevVisualOffset;
+            } catch { }
+            calibNeutralized = false;
+        }
+        if(audioCaptureLive) {
+            try { AudioRenderer.Stop(); } catch { }
+            audioCaptureLive = false;
+        }
     }
 
     private void ReleaseBuffers() {
@@ -545,6 +686,8 @@ internal sealed class RecorderSession : MonoBehaviour {
         videoBuf = null;
         audioFrameBuf = null;
         clipData = null;
+        if(liveNative.IsCreated) { liveNative.Dispose(); }
+        liveManaged = null;
     }
 
     private void OnDestroy() {
@@ -554,6 +697,7 @@ internal sealed class RecorderSession : MonoBehaviour {
             encoder = null;
             RecorderOverlay.Hide();
         }
+        if(liveNative.IsCreated) { liveNative.Dispose(); } // Persistent alloc isn't auto-freed
     }
 
     private string BuildOutputPath() {
