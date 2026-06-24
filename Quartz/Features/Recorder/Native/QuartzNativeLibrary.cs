@@ -25,8 +25,14 @@ internal static class QuartzNativeLibrary {
     private static extern IntPtr dlerror();
 
     // --- Windows (kernel32) ---
-    [DllImport("kernel32", EntryPoint = "LoadLibraryW", CharSet = CharSet.Unicode, SetLastError = true)]
-    private static extern IntPtr LoadLibraryW(string path);
+    // LOAD_WITH_ALTERED_SEARCH_PATH: resolve the dll's OWN dependencies (the
+    // bundled FFmpeg dlls) from its own directory (native/win/) instead of only
+    // the game exe dir + system paths. Without this a self-contained native/win/
+    // folder still fails with win32 error 126 (dependent dll not found).
+    private const uint LOAD_WITH_ALTERED_SEARCH_PATH = 0x00000008;
+
+    [DllImport("kernel32", EntryPoint = "LoadLibraryExW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr LoadLibraryExW(string path, IntPtr hFile, uint flags);
 
     [DllImport("kernel32", EntryPoint = "GetProcAddress", CharSet = CharSet.Ansi, SetLastError = true)]
     private static extern IntPtr GetProcAddress(IntPtr module, string name);
@@ -60,7 +66,7 @@ internal static class QuartzNativeLibrary {
 
     public static IntPtr Open(string absolutePath) {
         if(IsWindows) {
-            IntPtr h = LoadLibraryW(absolutePath);
+            IntPtr h = LoadLibraryExW(absolutePath, IntPtr.Zero, LOAD_WITH_ALTERED_SEARCH_PATH);
             if(h == IntPtr.Zero) {
                 throw new DllNotFoundException(
                     $"LoadLibrary failed for '{absolutePath}' (win32 error {Marshal.GetLastWin32Error()})");
