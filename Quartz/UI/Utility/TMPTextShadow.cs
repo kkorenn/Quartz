@@ -241,7 +241,7 @@ public static class TMPTextShadow {
         // Must mirror wrap state — a fresh TMP defaults word-wrap ON, so without
         // this the shadow of a no-wrap title wrapped to one word per line inside
         // the narrow layer rect while the title itself stayed on one line.
-        layer.enableWordWrapping = source.enableWordWrapping;
+        layer.textWrappingMode = source.textWrappingMode;
         layer.overflowMode = source.overflowMode;
         layer.enableAutoSizing = source.enableAutoSizing;
         layer.fontSizeMin = source.fontSizeMin;

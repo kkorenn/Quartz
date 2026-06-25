@@ -103,7 +103,7 @@ internal static class PageDeveloper {
 
         statusText = GenerateUI.AddText(GenerateUI.Row(content.transform, 320f));
         statusText.alignment = TextAlignmentOptions.TopLeft;
-        statusText.enableWordWrapping = true;
+        statusText.textWrappingMode = TextWrappingModes.Normal;
 
         if(!hooked) {
             UpdateService.OnChanged += RefreshStatus;

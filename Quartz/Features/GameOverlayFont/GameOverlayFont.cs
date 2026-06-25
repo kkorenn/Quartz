@@ -36,7 +36,7 @@ public static class GameOverlayFont {
         public TMP_FontAsset Original;
         public float OriginalSize;
         public bool OriginalAutoSize;
-        public bool OriginalWrap;
+        public TextWrappingModes OriginalWrap;
     }
 
     // Native-TMP game labels we re-fonted, kept so the font can be put back.
@@ -125,7 +125,7 @@ public static class GameOverlayFont {
                 cap.Tmp.font = cap.Original;
             }
             cap.Tmp.enableAutoSizing = cap.OriginalAutoSize;
-            cap.Tmp.enableWordWrapping = cap.OriginalWrap;
+            cap.Tmp.textWrappingMode = cap.OriginalWrap;
             cap.Tmp.fontSize = cap.OriginalSize;
         }
         tmpCaptures.Clear();
@@ -173,7 +173,7 @@ public static class GameOverlayFont {
                 Original = tmp.font,
                 OriginalSize = gameSize,
                 OriginalAutoSize = true,
-                OriginalWrap = tmp.enableWordWrapping,
+                OriginalWrap = tmp.textWrappingMode,
             };
             return;
         }
@@ -191,7 +191,7 @@ public static class GameOverlayFont {
             Original = tmp.font,
             OriginalSize = gameSize,
             OriginalAutoSize = false,
-            OriginalWrap = tmp.enableWordWrapping,
+            OriginalWrap = tmp.textWrappingMode,
         };
 
         tmp.font = want;
@@ -204,10 +204,10 @@ public static class GameOverlayFont {
     // wider mod font overflows the box horizontally. Re-runnable on font change.
     private static void ApplySize(TMP_Text tmp, float gameSize) {
         if(AllowsWrap(tmp.rectTransform, gameSize)) {
-            tmp.enableWordWrapping = true;
+            tmp.textWrappingMode = TextWrappingModes.Normal;
             tmp.fontSize = gameSize * ParagraphScale;
         } else {
-            tmp.enableWordWrapping = false;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.fontSize = gameSize;
             float boxW = tmp.rectTransform.rect.width;
             float wantW = tmp.GetPreferredValues(tmp.text).x;

@@ -154,7 +154,7 @@ public static partial class Nostalgia {
 
     // === Hide Announce Sign (lobby news sign) ===
     public static void ToggleSign(bool show) {
-        NewsSign[] newsSigns = Object.FindObjectsOfType<NewsSign>();
+        NewsSign[] newsSigns = Object.FindObjectsByType<NewsSign>(FindObjectsSortMode.None);
         foreach(NewsSign newsSign in newsSigns) {
             if(!newsSign) {
                 continue;

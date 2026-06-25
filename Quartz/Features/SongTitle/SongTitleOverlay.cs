@@ -112,7 +112,7 @@ public static class SongTitleOverlay {
         text.font = FontManager.Current;
         text.alignment = TextAlignmentOptions.Top;
         text.raycastTarget = false;
-        text.enableWordWrapping = false;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
         text.text = "";
 
         GameObject drag = new("Drag");

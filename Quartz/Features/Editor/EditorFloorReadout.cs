@@ -222,7 +222,7 @@ public static partial class EditorFeature {
         textGo.AddComponent<GameFontExclude>();
         tmp.font = FontManager.GameOverlayFontAsset ?? FontManager.Current;
         tmp.alignment = TextAlignmentOptions.Center;
-        tmp.enableWordWrapping = false;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
         tmp.overflowMode = TextOverflowModes.Overflow;
         tmp.raycastTarget = false;
         tmp.richText = true;
