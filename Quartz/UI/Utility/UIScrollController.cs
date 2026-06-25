@@ -17,7 +17,6 @@ public class UIScrollController : MonoBehaviour {
     public Easing scrollEase = Easing.OutCirc;
 
     private bool rightDragging;
-    private Vector2 lastMousePos;
 
     private float targetY;
     private GTween scrollTween;
