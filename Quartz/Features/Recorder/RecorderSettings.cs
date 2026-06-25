@@ -46,6 +46,21 @@ public sealed class RecorderSettings : ISettingsFile {
     public bool CaptureAudio = true;
     public int AudioBitrateKbps = 192;
 
+    // Realtime (macOS live-audio) capture only: run the GAME at Fps * Oversample so the
+    // conductor steps and hit detection are finer, while still encoding the video at Fps
+    // (every Oversample-th frame). 1 = off (planet timing is instead corrected by the
+    // per-frame tile snap, which is exact and doesn't strain the machine). Clamped 1..8.
+    public int Oversample = 1;
+
+    // Realtime (macOS live-audio) capture only: at end-of-frame, advance any auto-play
+    // hit whose orbit angle reached its tile this frame, so the captured frame shows the
+    // planet ON the tile instead of one frame past it (a frame-quantization slip from the
+    // undefined Update order between the planet's angle refresh and the auto-hit pass).
+    // Routes through the game's own gated auto-hit loop, so it never double-hits and is a
+    // no-op when nothing is due. Hitsounds are scheduled by song clock and are unaffected.
+    // On by default; an escape hatch if a specific level interacts badly with it.
+    public bool SnapPlanetToBeat = true;
+
     // Audio sync offset in milliseconds (clip_time = song_position + this).
     // -2000 lines the song up with the deterministic render start; kept as a
     // setting (JSON-editable) but no longer exposed as a slider.
@@ -74,6 +89,8 @@ public sealed class RecorderSettings : ISettingsFile {
             [nameof(Codec)] = (int)Codec,
             [nameof(CaptureAudio)] = CaptureAudio,
             [nameof(AudioBitrateKbps)] = AudioBitrateKbps,
+            [nameof(Oversample)] = Oversample,
+            [nameof(SnapPlanetToBeat)] = SnapPlanetToBeat,
             [nameof(AudioOffsetMs)] = AudioOffsetMs,
             [nameof(FlipVertical)] = FlipVertical,
             [nameof(OutputDirectory)] = OutputDirectory,
@@ -95,6 +112,8 @@ public sealed class RecorderSettings : ISettingsFile {
         Codec = (RecorderCodec)IOUtils.Read(token, nameof(Codec), (int)Codec);
         CaptureAudio = IOUtils.Read(token, nameof(CaptureAudio), CaptureAudio);
         AudioBitrateKbps = IOUtils.Read(token, nameof(AudioBitrateKbps), AudioBitrateKbps);
+        Oversample = IOUtils.Read(token, nameof(Oversample), Oversample);
+        SnapPlanetToBeat = IOUtils.Read(token, nameof(SnapPlanetToBeat), SnapPlanetToBeat);
         AudioOffsetMs = IOUtils.Read(token, nameof(AudioOffsetMs), AudioOffsetMs);
         FlipVertical = IOUtils.Read(token, nameof(FlipVertical), FlipVertical);
         OutputDirectory = IOUtils.Read(token, nameof(OutputDirectory), OutputDirectory);

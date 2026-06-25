@@ -176,6 +176,7 @@ public static class Recorder {
             Object.Destroy(session.gameObject);
             session = null;
         }
+        ClearPrepass();
         Current = State.Idle;
     }
 
@@ -186,9 +187,46 @@ public static class Recorder {
             Object.Destroy(session.gameObject);
             session = null;
         }
+        ClearPrepass();
         RecorderOverlay.Hide();
         Current = State.Idle;
     }
 
     internal static void OnSessionEnded() => session = null;
+
+    // --- two-pass live audio (macOS) ----------------------------------------
+    // Buffer captured by the realtime audio pass; the video pass reads it as its audio
+    // source, then clears it. Non-null only between the two passes.
+    internal static float[] PrepassAudio;
+    internal static int PrepassRate;
+    internal static int PrepassChannels;
+    internal static double PrepassStartSongPos;
+
+    internal static void ClearPrepass() {
+        PrepassAudio = null;
+        PrepassRate = 0;
+        PrepassChannels = 0;
+        PrepassStartSongPos = 0;
+    }
+
+    // Called by the audio-pass session when it finishes capturing. Stores the buffer,
+    // re-arms, and restarts the level — the restart's scnGame.Play fires BeginSession
+    // again, which (seeing PrepassAudio set) runs the offline VIDEO pass and muxes it.
+    internal static void OnAudioPrepassComplete(float[] pcm, int rate, int channels, double startSongPos) {
+        PrepassAudio = pcm;
+        PrepassRate = rate;
+        PrepassChannels = channels;
+        PrepassStartSongPos = startSongPos;
+        session = null;
+        Current = State.Armed;
+        try {
+            if(ADOBase.controller != null) {
+                ADOBase.controller.Restart(false);
+            }
+        } catch(Exception e) {
+            MainCore.Log.Wrn($"[Recorder] couldn't restart for the video pass: {e.Message}");
+            ClearPrepass();
+            Current = State.Idle;
+        }
+    }
 }
