@@ -57,7 +57,7 @@ public static class ChatterBlocker {
     // Per-blocked-key diagnostic logging. Off by default: the $"..." interpolation
     // plus a synchronous console write on every blocked key is measurable on macOS,
     // and chatter fires bursts of blocks. Flip to true only when debugging.
-    private const bool DebugLog = false;
+    private static readonly bool DebugLog = false;
 
     private static bool AcceptNormalKey(KeyCode key, long now, long thresholdMs, bool active) {
         if(!active) {
