@@ -1,0 +1,45 @@
+Quartz/UI/Factory/Page/PageOverlay.cs
+  s_cf50ce232d5419::t_42605602bb14d7 287-291
+  s_cf50ce232d5419::t_1d4d38d16ec0fa 510-512
+  s_cf50ce232d5419::t_cca1e49d30c6e8 361-364
+  s_cf50ce232d5419::t_21e22ec83de888 463-465
+Quartz/Features/Combo/ComboOverlay.cs
+  s_cf50ce232d5419::t_38f5bedd71f009 404
+Quartz/Features/UiHider/UiHider.cs
+  s_cf50ce232d5419::t_669edaea04b650 81-86
+Quartz/UI/Factory/Page/PageVisuals.cs
+  s_cf50ce232d5419::t_abb6420e156759 166-168
+  s_cf50ce232d5419::t_1a0ea535a51cf0 199-201
+Quartz/Features/Editor/EditorFloorReadout.cs
+  s_cf50ce232d5419::t_469fe722d20d92 87-90
+Quartz/UI/Factory/Page/PageGameplay.cs
+  s_cf50ce232d5419::t_faca1f1d4d8aa3 223-225
+Quartz/UI/Factory/Page/PageProgressBar.cs
+  s_cf50ce232d5419::t_25d77e0038e128 165,176,192,199
+Quartz/UI/Factory/Page/PageSettings.cs
+  s_cf50ce232d5419::t_597f02a13c565c 1070
+Quartz/UI/UICore.cs
+  s_cf50ce232d5419::t_a8507d910d6338 813
+  s_cf50ce232d5419::t_b7cedad87204e8 806-808
+Quartz/Resource/FontManager.cs
+  s_cf50ce232d5419::t_c70a13c0ca6ff9 339,342-343,350-351
+  s_cf50ce232d5419::t_9eda273aef7496 294,296-297,303-304
+Quartz/UI/Factory/Page/PageProfiles.cs
+  s_cf50ce232d5419::t_2e1e3f3c52c4e9 485-487
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "5b7b966a5a42b74782980af70096c95188c82072",
+  "prompts": {},
+  "sessions": {
+    "s_cf50ce232d5419": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f7a7af13-c87f-47ca-8868-33a32289fb08",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
