@@ -401,7 +401,7 @@ public static class ComboOverlay {
             }
 
             float blockH = valueText.rectTransform.sizeDelta.y;
-            if(captionShown) {
+            if(captionShown && captionText != null) {
                 blockH += CaptionGap + captionText.rectTransform.sizeDelta.y + Conf.CaptionOffsetY;
             }
             if(blockH != lastBlockH) {

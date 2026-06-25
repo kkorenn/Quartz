@@ -284,6 +284,11 @@ internal static class PageOverlay {
         void AnimatePicker(bool open, Action onClosed = null) {
             pickerSeq?.Kill();
 
+            if(picker == null || pickerLayout == null || pickerFitter == null
+                || pickerLE == null || pickerRect == null || pickerCg == null) {
+                return;
+            }
+
             pickerLayout.enabled = true;
             pickerFitter.enabled = true;
             pickerLE.preferredHeight = -1f;
@@ -353,8 +358,10 @@ internal static class PageOverlay {
                 AnimatePicker(false);
             } else {
                 pickerSeq?.Kill();
-                ClearChildren(picker.transform);
-                pickerLE.preferredHeight = 0f;
+                if(picker != null && pickerLE != null) {
+                    ClearChildren(picker.transform);
+                    pickerLE.preferredHeight = 0f;
+                }
             }
         }
 
@@ -453,6 +460,9 @@ internal static class PageOverlay {
         }
 
         void RebuildRows() {
+            if(rows == null) {
+                return;
+            }
             ClearChildren(rows.transform);
             colorBodies.Clear();
 
@@ -497,6 +507,9 @@ internal static class PageOverlay {
         }
 
         void BuildPicker() {
+            if(picker == null) {
+                return;
+            }
             ClearChildren(picker.transform);
 
             bool any = false;

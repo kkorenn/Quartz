@@ -220,7 +220,9 @@ internal static class PageGameplay {
                     return;
                 }
 
-                captureBtn.Label.text = MainCore.Tr.Get("PRESS_A_KEY", "Press a key...");
+                if(captureBtn?.Label != null) {
+                    captureBtn.Label.text = MainCore.Tr.Get("PRESS_A_KEY", "Press a key...");
+                }
                 KeyLimiter.StartCapture(
                     key => KeyLimiter.ToggleAllowedKey(key),
                     () => {

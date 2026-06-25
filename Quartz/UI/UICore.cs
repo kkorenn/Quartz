@@ -803,13 +803,14 @@ public static class UICore {
         if(isOpen) {
             return;
         }
+        if(Panel == null) {
+            return;
+        }
 
         isOpen = true;
 
         // Make sure a previous reorganize session left the panel fully visible.
-        if(Panel != null) {
-            Panel.gameObject.SetActive(true);
-        }
+        Panel.gameObject.SetActive(true);
         if(panelCanvasGroup != null) {
             panelCanvasGroup.alpha = Mathf.Clamp01(MainCore.Conf.PanelOpacity);
             panelCanvasGroup.interactable = true;

@@ -1067,7 +1067,7 @@ internal static class PageSettings {
         updateInstallButton?.Rect.gameObject.SetActive(available);
         updateUndoButton?.Rect.gameObject.SetActive(skipped);
 
-        if(available) {
+        if(available && info != null) {
             // SUIT has the arrow glyph, but a user-supplied font might not.
             string arrow = HasGlyph('→') ? "→" : ">";
             string simulated = UpdateService.DevSimulate

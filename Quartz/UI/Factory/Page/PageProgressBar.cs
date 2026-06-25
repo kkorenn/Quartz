@@ -162,7 +162,7 @@ internal static class PageProgressBar {
                     grad.SortPoints();
                     ProgressBarOverlay.Apply();
                     Save();
-                    rebuildFill();
+                    rebuildFill?.Invoke();
                 };
 
                 if(grad.Points.Count > 1) {
@@ -173,7 +173,7 @@ internal static class PageProgressBar {
                             grad.SortPoints();
                             ProgressBarOverlay.Apply();
                             Save();
-                            rebuildFill();
+                            rebuildFill?.Invoke();
                         },
                         string.Format(MainCore.Tr.Get("PROGRESSBAR_STOP_REMOVE", "Remove Stop {0}"), index),
                         "progressbar_stopremove_" + i
@@ -189,14 +189,14 @@ internal static class PageProgressBar {
                         grad.SortPoints();
                         ProgressBarOverlay.Apply();
                         Save();
-                        rebuildFill();
+                        rebuildFill?.Invoke();
                     },
                     "Add Stop",
                     "progressbar_stopadd"
                 ).SetSecondary();
             }
         };
-        rebuildFill();
+        rebuildFill?.Invoke();
 
         GenerateUI.ColorPicker(
             GenerateUI.Row(sec.Body),

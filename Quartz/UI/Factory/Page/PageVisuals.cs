@@ -163,6 +163,9 @@ internal static class PageVisuals {
             GenerateUI.Button(
                 GenerateUI.Row(planet.Body),
                 () => {
+                    if(orbit == null || scale == null || radius == null) {
+                        return;
+                    }
                     // v1 semantics: if none are on, turn all on; else all off.
                     bool value = !conf.PlanetOrbit && !conf.PlanetScale && !conf.PlanetRadius;
                     orbit.Set(value);
@@ -193,6 +196,9 @@ internal static class PageVisuals {
             GenerateUI.Button(
                 GenerateUI.Row(track.Body),
                 () => {
+                    if(anims == null || moves == null || positions == null || colors == null) {
+                        return;
+                    }
                     bool value = !conf.TrackAnimations && !conf.TrackPositions
                         && !conf.TrackMoves && !conf.TrackColors;
                     anims.Set(value);

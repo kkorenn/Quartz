@@ -482,6 +482,9 @@ internal static class PageProfiles {
             deleteBtn = GenerateUI.Button(
                 row,
                 () => {
+                    if(deleteBtn == null) {
+                        return;
+                    }
                     if(!armed) {
                         armed = true;
                         deleteBtn.Label.text = Tr("PROFILE_DELETE_CONFIRM", "Sure?");

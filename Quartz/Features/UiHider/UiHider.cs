@@ -78,12 +78,12 @@ public static partial class UiHider {
         bool tweakEnabled = !forceDisabled && IsFeatureActive();
         UiHiderProfile profile = tweakEnabled ? SelectedProfile : null;
 
-        bool hideEverything = tweakEnabled && profile.HideEverything;
-        bool hideOtto = tweakEnabled && (hideEverything || profile.HideOtto);
-        bool hideTimingTarget = tweakEnabled && (hideEverything || profile.HideTimingTarget);
-        bool hideNoFail = tweakEnabled && (hideEverything || profile.HideNoFailIcon);
-        bool hideBeta = tweakEnabled && (hideEverything || profile.HideBeta);
-        bool hideTitle = tweakEnabled && (hideEverything || profile.HideTitle);
+        bool hideEverything = profile != null && profile.HideEverything;
+        bool hideOtto = profile != null && (hideEverything || profile.HideOtto);
+        bool hideTimingTarget = profile != null && (hideEverything || profile.HideTimingTarget);
+        bool hideNoFail = profile != null && (hideEverything || profile.HideNoFailIcon);
+        bool hideBeta = profile != null && (hideEverything || profile.HideBeta);
+        bool hideTitle = profile != null && (hideEverything || profile.HideTitle);
 
         try { RDC.noHud = hideEverything; } catch { }
 

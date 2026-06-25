@@ -84,6 +84,10 @@ public static partial class EditorFeature {
 
         try {
             scnEditor editor = scnEditor.instance;
+            if(editor == null) {
+                ClearReadout();
+                return;
+            }
 
             // No selection, or the editor's own floor numbers are showing — hide
             // the readout and let the game's numbers be.

@@ -291,21 +291,17 @@ public static class FontManager {
         if(wasCurrent) {
             SetFont(clean, true);
         }
+        var conf = MainCore.Conf;
         // Keep a settings-window override that pointed at this font in step.
-        if(string.Equals(MainCore.Conf?.SettingsFontName, oldName, StringComparison.OrdinalIgnoreCase)) {
-            MainCore.Conf.SettingsFontName = clean;
+        if(conf != null && string.Equals(conf.SettingsFontName, oldName, StringComparison.OrdinalIgnoreCase)) {
+            conf.SettingsFontName = clean;
             MainCore.ConfMgr.RequestSave();
             ApplyMenuFont();
         }
 
         // Keep the in-game overlay override pointing at the renamed file too.
-        bool gameFontRenamed = string.Equals(
-            MainCore.Conf?.GameOverlayFontName,
-            oldName,
-            StringComparison.OrdinalIgnoreCase
-        );
-        if(gameFontRenamed) {
-            MainCore.Conf.GameOverlayFontName = clean;
+        if(conf != null && string.Equals(conf.GameOverlayFontName, oldName, StringComparison.OrdinalIgnoreCase)) {
+            conf.GameOverlayFontName = clean;
             MainCore.ConfMgr.RequestSave();
             OnFontChanged?.Invoke();
         }
@@ -340,23 +336,19 @@ public static class FontManager {
         if(wasCurrent) {
             SetFont(DefaultName, true);
         }
+        var conf = MainCore.Conf;
         // A settings-window override that pointed at this font reverts to
         // following the overlay font.
-        if(string.Equals(MainCore.Conf?.SettingsFontName, name, StringComparison.OrdinalIgnoreCase)) {
-            MainCore.Conf.SettingsFontName = "";
+        if(conf != null && string.Equals(conf.SettingsFontName, name, StringComparison.OrdinalIgnoreCase)) {
+            conf.SettingsFontName = "";
             MainCore.ConfMgr.RequestSave();
             ApplyMenuFont();
         }
 
         // A game-overlay override that pointed at this file also falls back to
         // following the overlay font, then immediately refreshes live labels.
-        bool gameFontDeleted = string.Equals(
-            MainCore.Conf?.GameOverlayFontName,
-            name,
-            StringComparison.OrdinalIgnoreCase
-        );
-        if(gameFontDeleted) {
-            MainCore.Conf.GameOverlayFontName = "";
+        if(conf != null && string.Equals(conf.GameOverlayFontName, name, StringComparison.OrdinalIgnoreCase)) {
+            conf.GameOverlayFontName = "";
             MainCore.ConfMgr.RequestSave();
             OnFontChanged?.Invoke();
         }
