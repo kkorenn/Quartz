@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using HarmonyLib;
 using Quartz.Core;
@@ -40,6 +41,7 @@ public static class SongTitleOverlay {
     private static string bbFmt;
     private static bool bbReorg;
     private static string bbResult;
+    private static readonly Dictionary<int, Graphic> hiddenTitleGraphics = [];
 
     public static void EnsureConf() {
         if(ConfMgr != null) {
@@ -194,6 +196,7 @@ public static class SongTitleOverlay {
         text = null;
         dragObj = null;
         updater = null;
+        hiddenTitleGraphics.Clear();
     }
 
     // Builds the displayed string from the current level's artist/title and the
@@ -327,7 +330,11 @@ public static class SongTitleOverlay {
                 if(!TakesOverTitle || !GameStats.InGame) {
                     return;
                 }
-                Graphic g = __instance.GetComponent<Graphic>();
+                int id = __instance.GetInstanceID();
+                if(!hiddenTitleGraphics.TryGetValue(id, out Graphic g) || g == null) {
+                    g = __instance.GetComponent<Graphic>();
+                    hiddenTitleGraphics[id] = g;
+                }
                 if(g != null && g.enabled) {
                     g.enabled = false;
                 }
