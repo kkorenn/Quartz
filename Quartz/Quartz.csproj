@@ -1,7 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>netstandard2.1</TargetFramework>
-		<PlatformTarget>x64</PlatformTarget>
+		<!-- A managed MelonLoader/UMM mod is loaded as IL regardless of PE arch, so
+		     AnyCPU is correct and avoids a processor-mismatch warning against the
+		     loader's per-platform native build (e.g. ARM64 MelonLoader on Apple
+		     Silicon vs an x64 target). -->
+		<PlatformTarget>AnyCPU</PlatformTarget>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>warnings</Nullable>
 		<RootNamespace>Quartz</RootNamespace>
