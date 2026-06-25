@@ -64,4 +64,69 @@ public static class OptimizerPatches {
             return false;
         }
     }
+
+    // VideoBloom.OnRenderImage does the expensive bloom post-process. ADOFAI's
+    // component has a HighQuality switch; forcing it off while the render method
+    // runs removes work from every bloom frame instead of merely limiting FPS.
+    // The original value is restored after each call so turning Quartz off (or
+    // disabling Fast Bloom) hands full control back to the game immediately.
+    [HarmonyPatch(typeof(VideoBloom), "OnRenderImage")]
+    private static class FastBloomPatch {
+        private static bool Prepare() => AccessTools.Method(typeof(VideoBloom), "OnRenderImage") != null;
+
+        private static void Prefix(VideoBloom __instance, out bool __state) {
+            __state = __instance.HighQuality;
+            if(Optimizer.FastBloomActive) {
+                __instance.HighQuality = false;
+            }
+        }
+
+        private static void Postfix(VideoBloom __instance, bool __state) {
+            __instance.HighQuality = __state;
+        }
+    }
+
+    // Some ADOFAI screen effects stay attached and still run their full-screen
+    // shader even when their current public values are visually identity. In
+    // those states, replace the shader pass with a plain source->destination copy.
+    // This is not a settings wrapper: it removes actual per-frame render work only
+    // when the component would draw the same frame anyway.
+    [HarmonyPatch(typeof(ScreenTile), "OnRenderImage")]
+    private static class NoOpScreenTilePatch {
+        private static bool Prepare() => AccessTools.Method(typeof(ScreenTile), "OnRenderImage") != null;
+
+        private static bool Prefix(ScreenTile __instance, RenderTexture sourceTexture, RenderTexture destTexture) {
+            if(!Optimizer.SkipNoOpScreenFiltersActive) {
+                return true;
+            }
+
+            if(IsOne(__instance.tileX) && IsOne(__instance.tileY)) {
+                Graphics.Blit(sourceTexture, destTexture);
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(ScreenScroll), "OnRenderImage")]
+    private static class NoOpScreenScrollPatch {
+        private static bool Prepare() => AccessTools.Method(typeof(ScreenScroll), "OnRenderImage") != null;
+
+        private static bool Prefix(ScreenScroll __instance, RenderTexture sourceTexture, RenderTexture destTexture) {
+            if(!Optimizer.SkipNoOpScreenFiltersActive) {
+                return true;
+            }
+
+            if(IsZero(__instance.scrollOffset) && IsZero(__instance.scrollSpeed)) {
+                Graphics.Blit(sourceTexture, destTexture);
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    private static bool IsOne(float value) => Mathf.Abs(value - 1f) <= 0.0001f;
+    private static bool IsZero(Vector2 value) => value.sqrMagnitude <= 0.00000001f;
 }

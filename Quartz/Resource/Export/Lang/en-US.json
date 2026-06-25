@@ -829,6 +829,10 @@
     "FXRM_S_SHAKE": "Disable Screen Shake",
     "DESC_FXRM_S_SHAKE": "Skips screen-shake effects.",
     "FXRM_S_MOVEMAX": "Max Tile Movements",
-    "DESC_FXRM_S_MOVEMAX": "Caps how many tiles a single Move Track event can move. The maximum value means unlimited."
+    "DESC_FXRM_S_MOVEMAX": "Caps how many tiles a single Move Track event can move. The maximum value means unlimited.",
+    "OPT_FASTBLOOM": "Fast Bloom",
+    "DESC_OPT_FASTBLOOM": "Forces ADOFAI's bloom post-process to use its cheaper low-quality render path while bloom is active. This targets real GPU work and can improve FPS on bloom-heavy levels, with softer/less precise bloom.",
+    "OPT_SKIPNOOPFILTERS": "Skip No-Op Screen Filters",
+    "DESC_OPT_SKIPNOOPFILTERS": "Skips ADOFAI full-screen screen-tile/screen-scroll shader passes when their current values are visually identity, replacing the shader pass with a plain copy. This removes real render work without wrapping an existing game setting."
   }
 }

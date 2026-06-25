@@ -37,6 +37,17 @@ public sealed class OptimizerSettings : ISettingsFile {
     // loaded custom textures; internal-level and bundle assets are untouched.
     public bool LossyTextureCompression = false;
 
+    // Force ADOFAI's VideoBloom post-process down the cheaper low-quality path.
+    // This targets real GPU work in VideoBloom.OnRenderImage on bloom-heavy
+    // levels. It changes bloom softness/quality, so it defaults off.
+    public bool FastBloom = false;
+
+    // Skip ADOFAI full-screen post-process components when their public state is
+    // visually identity (e.g. screen tile 1x1, screen scroll offset/speed 0). The
+    // original shader blit is replaced by a plain copy only in those no-op states,
+    // so this should not change visuals and defaults on.
+    public bool SkipNoOpScreenFilters = true;
+
     public JToken Serialize() {
         return new JObject {
             [nameof(SmoothGC)] = SmoothGC,
@@ -44,6 +55,8 @@ public sealed class OptimizerSettings : ISettingsFile {
             [nameof(BoostProcessPriority)] = BoostProcessPriority,
             [nameof(RunInBackground)] = RunInBackground,
             [nameof(LossyTextureCompression)] = LossyTextureCompression,
+            [nameof(FastBloom)] = FastBloom,
+            [nameof(SkipNoOpScreenFilters)] = SkipNoOpScreenFilters,
         };
     }
 
@@ -53,5 +66,7 @@ public sealed class OptimizerSettings : ISettingsFile {
         BoostProcessPriority = IOUtils.Read(token, nameof(BoostProcessPriority), BoostProcessPriority);
         RunInBackground = IOUtils.Read(token, nameof(RunInBackground), RunInBackground);
         LossyTextureCompression = IOUtils.Read(token, nameof(LossyTextureCompression), LossyTextureCompression);
+        FastBloom = IOUtils.Read(token, nameof(FastBloom), FastBloom);
+        SkipNoOpScreenFilters = IOUtils.Read(token, nameof(SkipNoOpScreenFilters), SkipNoOpScreenFilters);
     }
 }

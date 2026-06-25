@@ -188,6 +188,38 @@ internal static class PageTweaks {
             "Compresses custom textures loaded from disk (DXT) to cut their memory use ~4-8x, with a small visual quality cost. Applies to textures loaded after it's turned on."
         );
 
+        var fastBloom = GenerateUI.Toggle(
+            GenerateUI.Row(optimizerSec.Body),
+            optDef.FastBloom,
+            opt.FastBloom,
+            v => {
+                opt.FastBloom = v;
+                Optimizer.Save();
+            },
+            "Fast Bloom",
+            "opt_fastbloom"
+        );
+        fastBloom.Rect.AddToolTip(
+            "DESC_OPT_FASTBLOOM",
+            "Forces ADOFAI's bloom post-process to use its cheaper low-quality render path while bloom is active. This targets real GPU work and can improve FPS on bloom-heavy levels, with softer/less precise bloom."
+        );
+
+        var skipNoOpFilters = GenerateUI.Toggle(
+            GenerateUI.Row(optimizerSec.Body),
+            optDef.SkipNoOpScreenFilters,
+            opt.SkipNoOpScreenFilters,
+            v => {
+                opt.SkipNoOpScreenFilters = v;
+                Optimizer.Save();
+            },
+            "Skip No-Op Screen Filters",
+            "opt_skipnoopfilters"
+        );
+        skipNoOpFilters.Rect.AddToolTip(
+            "DESC_OPT_SKIPNOOPFILTERS",
+            "Skips ADOFAI full-screen screen-tile/screen-scroll shader passes when their current values are visually identity, replacing the shader pass with a plain copy. This removes real render work without wrapping an existing game setting."
+        );
+
         var mainMenuSec = GenerateUI.Collapsible(content.transform, "Main Menu", startExpanded: false);
 
         var menuMusic = GenerateUI.Toggle(

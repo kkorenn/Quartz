@@ -112,6 +112,20 @@ public static class Optimizer {
         SetPriority(defaultPriority);
     }
 
+    internal static bool FastBloomActive {
+        get {
+            EnsureConf();
+            return MainCore.IsModEnabled && Conf != null && Conf.FastBloom;
+        }
+    }
+
+    internal static bool SkipNoOpScreenFiltersActive {
+        get {
+            EnsureConf();
+            return MainCore.IsModEnabled && Conf != null && Conf.SkipNoOpScreenFilters;
+        }
+    }
+
     private static void SetPriority(ProcessPriorityClass priority) {
         try {
             Process proc = Process.GetCurrentProcess();

@@ -829,6 +829,10 @@
     "FXRM_S_SHAKE": "화면 흔들림 끄기",
     "DESC_FXRM_S_SHAKE": "화면 흔들림 효과를 건너뜁니다.",
     "FXRM_S_MOVEMAX": "최대 타일 이동 수",
-    "DESC_FXRM_S_MOVEMAX": "단일 트랙 이동 이벤트가 움직일 수 있는 타일 수를 제한합니다. 최댓값은 무제한을 의미합니다."
+    "DESC_FXRM_S_MOVEMAX": "단일 트랙 이동 이벤트가 움직일 수 있는 타일 수를 제한합니다. 최댓값은 무제한을 의미합니다.",
+    "OPT_FASTBLOOM": "빠른 블룸",
+    "DESC_OPT_FASTBLOOM": "블룸이 활성화된 동안 ADOFAI의 블룸 후처리를 더 저렴한 저품질 렌더 경로로 강제합니다. 실제 GPU 작업을 줄여 블룸이 많은 레벨에서 FPS를 높일 수 있으며, 블룸이 더 부드럽고 덜 정밀해집니다.",
+    "OPT_SKIPNOOPFILTERS": "효과 없는 화면 필터 건너뛰기",
+    "DESC_OPT_SKIPNOOPFILTERS": "ADOFAI의 전체 화면 screen-tile/screen-scroll 셰이더 패스가 현재 값에서 시각적으로 동일할 때(아무 효과가 없을 때) 해당 패스를 단순 복사로 대체해 건너뜁니다. 기존 게임 설정을 감싸지 않고 실제 렌더 작업을 줄입니다."
   }
 }
