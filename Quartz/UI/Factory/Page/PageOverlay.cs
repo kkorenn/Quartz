@@ -694,6 +694,20 @@ internal static class PageOverlay {
             idp + "_background"
         );
 
+        // Background fill color; the picker's A channel is the panel's opacity.
+        GenerateUI.ColorPicker(
+            GenerateUI.Row(sec.Body),
+            def.GetBackgroundColor(),
+            panel.GetBackgroundColor(),
+            c => { panel.SetBackgroundColor(c); PanelsOverlay.Apply(); },
+            c => { panel.SetBackgroundColor(c); PanelsOverlay.Apply(); Save(); },
+            "Background Color",
+            idp + "_bgcolor"
+        ).Rect.AddToolTip(
+            "DESC_PANEL_BGCOLOR",
+            "Fill color of the panel background. The A (alpha) slider sets its opacity. Needs Background Panel on."
+        );
+
         GenerateUI.Toggle(
             GenerateUI.Row(sec.Body),
             def.LocalizeStatLabels,

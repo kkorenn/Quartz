@@ -123,6 +123,14 @@ public sealed class PanelConfig {
     public float LineSpacing = 0f;
     public bool BackgroundEnabled = true;
 
+    // Panel background fill color + opacity (BgA). Defaults match the themed
+    // UIColors.PanelBG so enabling a background looks identical to before it
+    // was user-tunable.
+    public float BgR = 0.165f;
+    public float BgG = 0.161f;
+    public float BgB = 0.196f;
+    public float BgA = 1f;
+
     // Stat labels on this panel stay English by default; on = follow the UI
     // language. The settings UI always shows localized labels regardless.
     public bool LocalizeStatLabels = false;
@@ -153,6 +161,20 @@ public sealed class PanelConfig {
         TextG = Mathf.Clamp01(c.g);
         TextB = Mathf.Clamp01(c.b);
         TextA = Mathf.Clamp01(c.a);
+    }
+
+    public Color GetBackgroundColor() => new(
+        Mathf.Clamp01(BgR),
+        Mathf.Clamp01(BgG),
+        Mathf.Clamp01(BgB),
+        Mathf.Clamp01(BgA)
+    );
+
+    public void SetBackgroundColor(Color c) {
+        BgR = Mathf.Clamp01(c.r);
+        BgG = Mathf.Clamp01(c.g);
+        BgB = Mathf.Clamp01(c.b);
+        BgA = Mathf.Clamp01(c.a);
     }
 
     public Color GetTextShadowColor() => new(
@@ -187,6 +209,10 @@ public sealed class PanelConfig {
             [nameof(LabelSeparator)] = LabelSeparator,
             [nameof(LineSpacing)] = LineSpacing,
             [nameof(BackgroundEnabled)] = BackgroundEnabled,
+            [nameof(BgR)] = BgR,
+            [nameof(BgG)] = BgG,
+            [nameof(BgB)] = BgB,
+            [nameof(BgA)] = BgA,
             [nameof(LocalizeStatLabels)] = LocalizeStatLabels,
             [nameof(TextR)] = TextR,
             [nameof(TextG)] = TextG,
@@ -228,6 +254,10 @@ public sealed class PanelConfig {
         p.LabelSeparator = IOUtils.Read(token, nameof(LabelSeparator), p.LabelSeparator);
         p.LineSpacing = IOUtils.Read(token, nameof(LineSpacing), p.LineSpacing);
         p.BackgroundEnabled = IOUtils.Read(token, nameof(BackgroundEnabled), p.BackgroundEnabled);
+        p.BgR = IOUtils.Read(token, nameof(BgR), p.BgR);
+        p.BgG = IOUtils.Read(token, nameof(BgG), p.BgG);
+        p.BgB = IOUtils.Read(token, nameof(BgB), p.BgB);
+        p.BgA = IOUtils.Read(token, nameof(BgA), p.BgA);
         p.LocalizeStatLabels = IOUtils.Read(token, nameof(LocalizeStatLabels), p.LocalizeStatLabels);
         p.TextR = IOUtils.Read(token, nameof(TextR), p.TextR);
         p.TextG = IOUtils.Read(token, nameof(TextG), p.TextG);

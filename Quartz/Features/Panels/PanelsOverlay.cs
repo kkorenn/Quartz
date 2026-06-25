@@ -325,6 +325,7 @@ public static class PanelsOverlay {
 
         if(p.Background != null) {
             p.Background.enabled = p.Config.BackgroundEnabled;
+            p.Background.color = p.Config.GetBackgroundColor();
         }
     }
 
@@ -367,7 +368,7 @@ public static class PanelsOverlay {
         Image bg = panelObj.AddComponent<Image>();
         bg.sprite = MainCore.Spr.Get(UISliceSprite.Circle256P1024);
         bg.type = Image.Type.Sliced;
-        bg.color = UIColors.PanelBG;
+        bg.color = config.GetBackgroundColor();
         bg.raycastTarget = false;
 
         GameObject drag = new("Drag");
