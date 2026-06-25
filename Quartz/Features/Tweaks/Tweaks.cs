@@ -532,6 +532,18 @@ public static partial class Tweaks {
             if(floor.floorRenderer == null) {
                 return;
             }
+            // Floors with a dynamic track colour drive floorRenderer.color from their OWN
+            // scrFloor.Update every frame. Overwriting it here fights that effect — and for
+            // Rainbow it is PERMANENT: the rainbow update reads the colour's saturation
+            // back, so forcing the (white, saturation-0) deselectedColor makes
+            // HSVToRGB(hue, 0, V) stay white forever ("rainbow tile turns white on step").
+            // For those floors the hit glow is the glow objects (already hidden above),
+            // not floorRenderer.color, so leave the colour to the game. Only the static
+            // types (Single/Stripes) need their hit-brighten reverted here.
+            if(floor.specialColorType != TrackColorType.Single
+            && floor.specialColorType != TrackColorType.Stripes) {
+                return;
+            }
             Color color = floor.floorRenderer.deselectedColor;
             if(color.a <= 0.001f && floor.floorRenderer.cachedColor.a > 0.001f) {
                 color = floor.floorRenderer.cachedColor;
