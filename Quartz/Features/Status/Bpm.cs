@@ -15,13 +15,24 @@ internal static class Bpm {
     // autoplay, so a key-based KPS reads 0 — this counts the tiles the game
     // plays for you instead.
     private static readonly Queue<float> autoTileTimes = new();
+    private static int autoKpsFrame = -1;
+    private static int autoKpsValue;
+    private static int bpmFrame = -1;
+    private static float cachedTileBpm;
+    private static float cachedActualBpm;
 
     internal static int GetAutoKps() {
+        int frame = Time.frameCount;
+        if(autoKpsFrame == frame) {
+            return autoKpsValue;
+        }
+        autoKpsFrame = frame;
+
         float now = Time.time;
         while(autoTileTimes.Count > 0 && now - autoTileTimes.Peek() > 1f) {
             autoTileTimes.Dequeue();
         }
-        return autoTileTimes.Count;
+        return autoKpsValue = autoTileTimes.Count;
     }
 
     // One tile-hit per MoveToNextFloor, counted only while autoplay is on —
@@ -36,6 +47,7 @@ internal static class Bpm {
             try {
                 if(RDC.auto) {
                     autoTileTimes.Enqueue(Time.time);
+                    autoKpsFrame = -1;
                 }
             } catch {
             }
@@ -43,6 +55,14 @@ internal static class Bpm {
     }
 
     internal static void GetBpmValues(out float tileBpm, out float actualBpm) {
+        int frame = Time.frameCount;
+        if(bpmFrame == frame) {
+            tileBpm = cachedTileBpm;
+            actualBpm = cachedActualBpm;
+            return;
+        }
+        bpmFrame = frame;
+
         tileBpm = 0f;
         actualBpm = 0f;
 
@@ -67,5 +87,8 @@ internal static class Bpm {
             tileBpm = 0f;
             actualBpm = 0f;
         }
+
+        cachedTileBpm = tileBpm;
+        cachedActualBpm = actualBpm;
     }
 }

@@ -9,54 +9,97 @@ namespace Quartz.Features.Status;
 // KorenResourcePack. Game types (scrController, scrMistakesManager) live in the
 // global namespace inside Assembly-CSharp.
 public static class GameStats {
+    private static int inGameFrame = -1;
+    private static bool inGameValue;
+    private static int progressFrame = -1;
+    private static float progressValue;
+    private static int accuracyFrame = -1;
+    private static float accuracyValue = 1f;
+    private static int xAccuracyFrame = -1;
+    private static float xAccuracyValue = 1f;
+    private static int maxAccuracyFrame = -1;
+    private static float maxAccuracyValue = 1f;
+    private static int maxXAccuracyFrame = -1;
+    private static float maxXAccuracyValue = 1f;
+    private static int checkpointFrame = -1;
+    private static int checkpointValue;
+    private static int pitchFrame = -1;
+    private static float pitchValue = 1f;
+    private static int musicRatioFrame = -1;
+    private static float musicRatioValue;
+    private static int mapRatioFrame = -1;
+    private static float mapRatioValue;
+    private static int mapTotalFrame = -1;
+    private static float mapTotalValue;
+
     // True only while actually playing a level (the dance-floor world is live).
     public static bool InGame {
         get {
+            int frame = Time.frameCount;
+            if(inGameFrame == frame) {
+                return inGameValue;
+            }
+            inGameFrame = frame;
             try {
                 scrController c = scrController.instance;
-                if (c == null || !c.gameworld || c.paused) return false;
+                if (c == null || !c.gameworld || c.paused) return inGameValue = false;
 
                 if (ADOBase.isLevelEditor) {
                     scnEditor ed = scnEditor.instance;
-                    if (ed != null && ed.inStrictlyEditingMode) return false;
+                    if (ed != null && ed.inStrictlyEditingMode) return inGameValue = false;
                 }
 
-                return true;
+                return inGameValue = true;
             } catch {
-                return false;
+                return inGameValue = false;
             }
         }
     }
 
     public static float Progress {
         get {
+            int frame = Time.frameCount;
+            if(progressFrame == frame) {
+                return progressValue;
+            }
+            progressFrame = frame;
             try {
                 scrController c = scrController.instance;
-                if (c == null) return 0f;
-                if (c.currentSeqID == 0) return 0f;
-                return c.percentComplete;
+                if (c == null) return progressValue = 0f;
+                if (c.currentSeqID == 0) return progressValue = 0f;
+                return progressValue = c.percentComplete;
             } catch {
-                return 0f;
+                return progressValue = 0f;
             }
         }
     }
 
     public static float Accuracy {
         get {
+            int frame = Time.frameCount;
+            if(accuracyFrame == frame) {
+                return accuracyValue;
+            }
+            accuracyFrame = frame;
             try {
-                return MistakesAccess.PercentAcc(MistakesAccess.Get());
+                return accuracyValue = MistakesAccess.PercentAcc(MistakesAccess.Get());
             } catch {
-                return 1f;
+                return accuracyValue = 1f;
             }
         }
     }
 
     public static float XAccuracy {
         get {
+            int frame = Time.frameCount;
+            if(xAccuracyFrame == frame) {
+                return xAccuracyValue;
+            }
+            xAccuracyFrame = frame;
             try {
-                return MistakesAccess.PercentXAcc(MistakesAccess.Get());
+                return xAccuracyValue = MistakesAccess.PercentXAcc(MistakesAccess.Get());
             } catch {
-                return 1f;
+                return xAccuracyValue = 1f;
             }
         }
     }
@@ -65,38 +108,53 @@ public static class GameStats {
     // as still-recoverable to 100%, so this is the ceiling, not the current run.
     public static float MaxAccuracy {
         get {
+            int frame = Time.frameCount;
+            if(maxAccuracyFrame == frame) {
+                return maxAccuracyValue;
+            }
+            maxAccuracyFrame = frame;
             try {
                 scrMistakesManager m = MistakesAccess.Get();
                 float acc = MistakesAccess.PercentAcc(m);
                 float prog = MistakesAccess.PercentComplete(m);
                 float r = acc * prog + (1f - prog);
                 if(float.IsNaN(r) || float.IsInfinity(r)) {
-                    return 1f;
+                    return maxAccuracyValue = 1f;
                 }
 
-                return Mathf.Clamp01(r);
+                return maxAccuracyValue = Mathf.Clamp01(r);
             } catch {
-                return 1f;
+                return maxAccuracyValue = 1f;
             }
         }
     }
 
     public static float MaxXAccuracy {
         get {
+            int frame = Time.frameCount;
+            if(maxXAccuracyFrame == frame) {
+                return maxXAccuracyValue;
+            }
+            maxXAccuracyFrame = frame;
             try {
-                return XAccuracyCalc.MaxRatio();
+                return maxXAccuracyValue = XAccuracyCalc.MaxRatio();
             } catch {
-                return 1f;
+                return maxXAccuracyValue = 1f;
             }
         }
     }
 
     public static int CheckpointCount {
         get {
+            int frame = Time.frameCount;
+            if(checkpointFrame == frame) {
+                return checkpointValue;
+            }
+            checkpointFrame = frame;
             try {
-                return scnGame.instance != null ? scnGame.instance.checkpointsUsed : 0;
+                return checkpointValue = scnGame.instance != null ? scnGame.instance.checkpointsUsed : 0;
             } catch {
-                return 0;
+                return checkpointValue = 0;
             }
         }
     }
@@ -120,11 +178,16 @@ public static class GameStats {
     // pitch-change events). Defaults to 1 off the floor / before the song loads.
     public static float Pitch {
         get {
+            int frame = Time.frameCount;
+            if(pitchFrame == frame) {
+                return pitchValue;
+            }
+            pitchFrame = frame;
             try {
                 scrConductor c = scrConductor.instance;
-                return c != null && c.song != null ? c.song.pitch : 1f;
+                return pitchValue = c != null && c.song != null ? c.song.pitch : 1f;
             } catch {
-                return 1f;
+                return pitchValue = 1f;
             }
         }
     }
@@ -225,34 +288,44 @@ public static class GameStats {
     // gradients for the time stats (v1 GetPrimaryTimeRatio / GetMapTimeRatio).
     public static float MusicTimeRatio {
         get {
+            int frame = Time.frameCount;
+            if(musicRatioFrame == frame) {
+                return musicRatioValue;
+            }
+            musicRatioFrame = frame;
             try {
                 AudioSource song = scrConductor.instance != null ? scrConductor.instance.song : null;
                 if(song == null || song.clip == null || song.clip.length <= 0f) {
-                    return 0f;
+                    return musicRatioValue = 0f;
                 }
-                return Mathf.Clamp01(song.time / song.clip.length);
+                return musicRatioValue = Mathf.Clamp01(song.time / song.clip.length);
             } catch {
-                return 0f;
+                return musicRatioValue = 0f;
             }
         }
     }
 
     public static float MapTimeRatio {
         get {
+            int frame = Time.frameCount;
+            if(mapRatioFrame == frame) {
+                return mapRatioValue;
+            }
+            mapRatioFrame = frame;
             try {
                 scrConductor cd = scrConductor.instance;
                 if(cd == null) {
-                    return 0f;
+                    return mapRatioValue = 0f;
                 }
 
                 float time = (float)(cd.addoffset + cd.songposition_minusi);
                 float total = MapTotalSeconds();
                 if(total <= 0f) {
-                    return 0f;
+                    return mapRatioValue = 0f;
                 }
-                return Mathf.Clamp01(time / total);
+                return mapRatioValue = Mathf.Clamp01(time / total);
             } catch {
-                return 0f;
+                return mapRatioValue = 0f;
             }
         }
     }
@@ -337,16 +410,21 @@ public static class GameStats {
     private const float fpsSensitivity = 0.08f;
 
     private static float MapTotalSeconds() {
+        int frame = Time.frameCount;
+        if(mapTotalFrame == frame) {
+            return mapTotalValue;
+        }
+        mapTotalFrame = frame;
         try {
             scrLevelMaker lm = scrLevelMaker.instance;
             if(lm == null || lm.listFloors == null || lm.listFloors.Count == 0) {
-                return 0f;
+                return mapTotalValue = 0f;
             }
 
             scrFloor last = lm.listFloors[lm.listFloors.Count - 1];
-            return last != null ? (float)last.entryTime : 0f;
+            return mapTotalValue = last != null ? (float)last.entryTime : 0f;
         } catch {
-            return 0f;
+            return mapTotalValue = 0f;
         }
     }
 
