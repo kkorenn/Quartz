@@ -537,23 +537,39 @@ public sealed class GameFontMirror : MonoBehaviour {
             pair.LastRaw = source.text;
             twin.text = SanitizeMarkup(source.text);
         }
-        twin.color = source.color;
-        twin.fontStyle = MapStyle(source.fontStyle);
-        twin.alignment = MapAnchor(source.alignment);
-        twin.richText = source.supportRichText;
+        if(twin.color != source.color) {
+            twin.color = source.color;
+        }
+        FontStyles style = MapStyle(source.fontStyle);
+        if(twin.fontStyle != style) {
+            twin.fontStyle = style;
+        }
+        TextAlignmentOptions alignment = MapAnchor(source.alignment);
+        if(twin.alignment != alignment) {
+            twin.alignment = alignment;
+        }
+        if(twin.richText != source.supportRichText) {
+            twin.richText = source.supportRichText;
+        }
         // Wrapping mirrors the source: best-fit is orthogonal to wrap (the game
         // best-fits BOTH single-line titles AND wrapped paragraphs like the
         // difficulty blurb), so the line count must come from the source's own
         // wrap setting, not from whether it best-fits.
-        twin.enableWordWrapping = source.horizontalOverflow == HorizontalWrapMode.Wrap
+        bool wrap = source.horizontalOverflow == HorizontalWrapMode.Wrap
             && GameOverlayFont.AllowsWrap(source.rectTransform, source.fontSize);
+        TextWrappingModes wrapMode = wrap ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+        if(twin.textWrappingMode != wrapMode) {
+            twin.textWrappingMode = wrapMode;
+        }
         // Always Overflow, never Truncate. Truncate CULLS any glyph geometry that
         // extends past the rect — and the drop-shadow underlay is part of that same
         // mesh, so a down-right shadow gets sliced off at the rect edge, leaving the
         // text sitting in a hard shadow box. The twin's size already matches the
         // game's, so the text itself never needs clipping; Overflow just lets the
         // shadow bleed out as it should.
-        twin.overflowMode = TextOverflowModes.Overflow;
+        if(twin.overflowMode != TextOverflowModes.Overflow) {
+            twin.overflowMode = TextOverflowModes.Overflow;
+        }
 
         if(pair.IsSettingRow) {
             // Settings rows (PauseSettingButton label + value) are best-fit UI.Text
@@ -570,10 +586,19 @@ public sealed class GameFontMirror : MonoBehaviour {
             float anchor = source.resizeTextMaxSize > 0 ? source.resizeTextMaxSize
                 : source.fontSize > 0 ? source.fontSize
                 : 24f;
-            twin.enableAutoSizing = true;
-            twin.enableWordWrapping = false;
-            twin.fontSizeMin = 1f;
-            twin.fontSizeMax = Mathf.Max(1f, anchor * SizeScale);
+            if(!twin.enableAutoSizing) {
+                twin.enableAutoSizing = true;
+            }
+            if(twin.textWrappingMode != TextWrappingModes.NoWrap) {
+                twin.textWrappingMode = TextWrappingModes.NoWrap;
+            }
+            if(twin.fontSizeMin != 1f) {
+                twin.fontSizeMin = 1f;
+            }
+            float max = Mathf.Max(1f, anchor * SizeScale);
+            if(twin.fontSizeMax != max) {
+                twin.fontSizeMax = max;
+            }
 
             int sid = source.GetInstanceID();
             if(diagLogged.Add(sid)) {
@@ -594,15 +619,29 @@ public sealed class GameFontMirror : MonoBehaviour {
             // titles — auto-fit fixes both.) Cap at the game's OWN best-fit ceiling
             // so the twin never overshoots it; min 1 lets it shrink to dodge clips.
             float maxPx = source.resizeTextMaxSize > 0 ? source.resizeTextMaxSize : source.fontSize;
-            twin.enableAutoSizing = true;
-            twin.fontSizeMin = 1f;
-            twin.fontSizeMax = Mathf.Max(1f, maxPx);
+            if(!twin.enableAutoSizing) {
+                twin.enableAutoSizing = true;
+            }
+            if(twin.fontSizeMin != 1f) {
+                twin.fontSizeMin = 1f;
+            }
+            float max = Mathf.Max(1f, maxPx);
+            if(twin.fontSizeMax != max) {
+                twin.fontSizeMax = max;
+            }
         } else {
             // Fixed-size game label: copy its size directly.
-            twin.enableAutoSizing = false;
-            twin.fontSize = source.fontSize * SizeScale;
+            if(twin.enableAutoSizing) {
+                twin.enableAutoSizing = false;
+            }
+            float size = source.fontSize * SizeScale;
+            if(twin.fontSize != size) {
+                twin.fontSize = size;
+            }
         }
-        twin.enabled = source.enabled;
+        if(twin.enabled != source.enabled) {
+            twin.enabled = source.enabled;
+        }
 
         // Hide the original's pixels without touching its colour/enabled state,
         // so the game's own fade and show/hide logic keeps driving the twin.
