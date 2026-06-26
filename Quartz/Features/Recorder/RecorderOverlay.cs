@@ -35,7 +35,7 @@ internal static class RecorderOverlay {
         scaler.referenceResolution = new Vector2(1920, 1080);
         scaler.matchWidthOrHeight = 0.5f;
 
-        // Opaque white fill.
+        // Translucent white fill so the gameplay stays visible behind it.
         GameObject bg = new("White");
         bg.transform.SetParent(canvasObj.transform, false);
         RectTransform bgRect = bg.AddComponent<RectTransform>();
@@ -43,7 +43,7 @@ internal static class RecorderOverlay {
         bgRect.anchorMax = Vector2.one;
         bgRect.offsetMin = Vector2.zero;
         bgRect.offsetMax = Vector2.zero;
-        bg.AddComponent<Image>().color = Color.white;
+        bg.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.5f);
 
         title = MakeText(40f, FontStyles.Bold, new Color(0.08f, 0.08f, 0.1f), new Vector2(0f, 70f));
         detail = MakeText(28f, FontStyles.Normal, new Color(0.3f, 0.3f, 0.34f), new Vector2(0f, -10f));
