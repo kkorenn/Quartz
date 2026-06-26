@@ -36,10 +36,12 @@ public sealed class RecorderSettings : ISettingsFile {
     // frame advances, and stretches/compresses the muxed audio to match.
     public float Speed = 1.0f;
 
-    // Target video bitrate in kbit/s. 0 means constant-quality (CRF) for the
-    // software encoders; the hardware encoder always needs a real bitrate.
-    public int VideoBitrateKbps = 16000;
-    public int Crf = 18; // used only when VideoBitrateKbps == 0
+    // Target video bitrate in kbit/s. 0 = auto quality: constant-quality (CRF) for the
+    // software encoders, or a resolution-scaled target for the hardware encoder (which
+    // has no CRF mode). A fixed flat value starved 4K into softness (fine at 1080p), so
+    // auto is the default; set a number to pin it.
+    public int VideoBitrateKbps = 0;
+    public int Crf = 18; // used only when VideoBitrateKbps == 0 (software encoders)
 
     public RecorderCodec Codec = RecorderCodec.H264;
 

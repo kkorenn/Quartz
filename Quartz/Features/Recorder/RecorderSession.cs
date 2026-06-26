@@ -116,7 +116,10 @@ internal sealed class RecorderSession : MonoBehaviour {
 
         long videoBitrate = (long)c.VideoBitrateKbps * 1000;
         if(c.Codec.RequiresBitrate() && videoBitrate <= 0) {
-            videoBitrate = 16_000_000;
+            // Hardware encoder has no CRF mode, so "auto" is a resolution-scaled target.
+            // ~0.1 bits/pixel/frame keeps 4K crisp; the old flat 16 Mbps was fine at 1080p
+            // but only ~0.03 bpp at 4K (soft/smeary). Floored so small outputs stay clean.
+            videoBitrate = Math.Max(8_000_000L, (long)(width * (long)height * fps * 0.1));
         }
 
         // Start at the first tile (the conductor's live song position isn't
