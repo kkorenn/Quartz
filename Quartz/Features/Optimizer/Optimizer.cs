@@ -3,6 +3,7 @@ using Quartz.Compat.Interface;
 using Quartz.Core;
 using Quartz.Features.Status;
 using Quartz.IO;
+using Quartz.UI.Utility;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Scripting;
@@ -111,6 +112,11 @@ public static class Optimizer {
         if(gcDeferred && !(on && Conf.SmoothGC && GameStats.InGame)) {
             ResumeGC();
         }
+
+        // Global lightweight-shadow toggle for the overlay text shadows. Read on
+        // each TMPTextShadow.Apply; existing labels pick it up on their next
+        // refresh / scene rebuild.
+        TMPTextShadow.UseMaterialUnderlay = on && Conf.LightTextShadows;
     }
 
     // Restores every engine default. Called when the mod is disabled.

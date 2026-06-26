@@ -48,6 +48,15 @@ public sealed class OptimizerSettings : ISettingsFile {
     // so this should not change visuals and defaults on.
     public bool SkipNoOpScreenFilters = true;
 
+    // Render Quartz overlay text drop-shadows via the font material's GPU underlay
+    // (one mesh/draw per label) instead of a second sibling TMP (two meshes/draws).
+    // Halves the draw calls of every shadowed overlay label (Combo/Judgement/Panels;
+    // SongTitle's rich-text shadow keeps the sibling path for its per-glyph fade).
+    // EXPERIMENTAL + defaults off: the underlay offset is font-relative, not pixel-
+    // exact, so the shadow can sit slightly differently than the sibling shadow and
+    // wants an eyeball check. Only the softness-0 (no blur) shadow uses it.
+    public bool LightTextShadows = false;
+
     public JToken Serialize() {
         return new JObject {
             [nameof(SmoothGC)] = SmoothGC,
@@ -57,6 +66,7 @@ public sealed class OptimizerSettings : ISettingsFile {
             [nameof(LossyTextureCompression)] = LossyTextureCompression,
             [nameof(FastBloom)] = FastBloom,
             [nameof(SkipNoOpScreenFilters)] = SkipNoOpScreenFilters,
+            [nameof(LightTextShadows)] = LightTextShadows,
         };
     }
 
@@ -68,5 +78,6 @@ public sealed class OptimizerSettings : ISettingsFile {
         LossyTextureCompression = IOUtils.Read(token, nameof(LossyTextureCompression), LossyTextureCompression);
         FastBloom = IOUtils.Read(token, nameof(FastBloom), FastBloom);
         SkipNoOpScreenFilters = IOUtils.Read(token, nameof(SkipNoOpScreenFilters), SkipNoOpScreenFilters);
+        LightTextShadows = IOUtils.Read(token, nameof(LightTextShadows), LightTextShadows);
     }
 }

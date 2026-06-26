@@ -11,6 +11,18 @@ namespace Quartz.UI.Utility;
 public static class TMPTextShadow {
     private const string RootName = "__QuartzTextShadow";
 
+    // Set by the Optimizer's LightTextShadows toggle. When on, a softness-0 drop
+    // shadow on a non-isolateCanvas label is rendered via the font material's GPU
+    // underlay (1 mesh/draw, part of the text's own draw) instead of a sibling TMP
+    // (2 meshes/draws). Halves the draw calls of every shadowed overlay label.
+    // Default off — the underlay offset is font-relative, not pixel-exact.
+    public static bool UseMaterialUnderlay;
+
+    // Approximate px→underlay-units factor. TMP's underlay offset is in font-
+    // relative units (no pixel API); this lands a typical small shadow offset in
+    // the visible range. Tune if the underlay shadow sits too far from the glyph.
+    private const float UnderlayOffsetScale = 6f;
+
     public static void Apply(
         TextMeshProUGUI text,
         bool enabled,
@@ -26,6 +38,18 @@ public static class TMPTextShadow {
 
         ShadowRoot root = GetOrCreateRoot(text);
         if(root == null) {
+            return;
+        }
+
+        bool on = enabled && text.gameObject.activeSelf && color.a > 0.001f;
+
+        // Lightweight path: a non-blur shadow on a solid label rendered by the
+        // font material's GPU underlay (part of the text's own draw call) instead
+        // of a second sibling TMP. Rich-text isolateCanvas labels (SongTitle) keep
+        // the sibling path for their per-glyph alpha fade.
+        if(UseMaterialUnderlay && !isolateCanvas && softness <= 0.001f) {
+            root.Rect.gameObject.SetActive(false);
+            ApplyUnderlay(text, root, on, offsetX, offsetY, color);
             return;
         }
 
@@ -50,7 +74,6 @@ public static class TMPTextShadow {
             shadowRoot.gameObject.AddComponent<Canvas>().overrideSorting = false;
         }
 
-        bool on = enabled && text.gameObject.activeSelf && color.a > 0.001f;
         shadowRoot.gameObject.SetActive(on);
         if(!on) {
             return;
@@ -301,6 +324,42 @@ public static class TMPTextShadow {
             6 => new Vector2(-spread, spread),
             _ => new Vector2(-spread, -spread),
         };
+    }
+
+    // Drive the drop shadow through the font material's GPU underlay instead of a
+    // sibling TMP. One mesh/draw per label. Offset is font-relative (approximate).
+    private static void ApplyUnderlay(
+        TextMeshProUGUI text,
+        ShadowRoot root,
+        bool on,
+        float offsetX,
+        float offsetY,
+        Color color
+    ) {
+        Material mat = text.fontMaterial;
+        if(mat == null) {
+            return;
+        }
+
+        if(!on) {
+            mat.DisableKeyword("UNDERLAY_ON");
+            // Invalidate the cache so a later sibling-mode Apply re-runs its
+            // idempotent disable writes against this material.
+            root.UnderlayDisabledMat = null;
+            return;
+        }
+
+        float fs = text.fontSize <= 0f ? 1f : text.fontSize;
+        mat.EnableKeyword("UNDERLAY_ON");
+        mat.DisableKeyword("UNDERLAY_INNER");
+        mat.SetColor("_UnderlayColor", color);
+        mat.SetFloat("_UnderlayOffsetX", Mathf.Clamp(offsetX / fs * UnderlayOffsetScale, -1f, 1f));
+        mat.SetFloat("_UnderlayOffsetY", Mathf.Clamp(offsetY / fs * UnderlayOffsetScale, -1f, 1f));
+        mat.SetFloat("_UnderlaySoftness", 0f);
+        mat.SetFloat("_UnderlayDilate", 0f);
+        // Underlay is ON now — a switch back to sibling mode must actually re-run
+        // DisableUnderlay, so clear its "already disabled" memo.
+        root.UnderlayDisabledMat = null;
     }
 
     private static void DisableUnderlay(TextMeshProUGUI text, ShadowRoot root) {
