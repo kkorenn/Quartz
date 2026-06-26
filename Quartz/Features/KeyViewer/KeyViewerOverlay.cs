@@ -2160,14 +2160,16 @@ public static partial class KeyViewerOverlay {
         public Color ColorBottom;
     }
 
-    // Batched row renderer for rain drops. One Graphic per row replaces one
-    // GameObject + Graphic + RectTransform write per live drop.
+    // Renderer for ALL rain drops in one mesh. Drops are held in 3 ordering
+    // groups (back-to-front) and emitted group 1 → 3 so a single Graphic/batch
+    // reproduces the layering the former 3 sibling rows gave — one mesh rebuild
+    // per frame instead of three.
     private sealed class RainGraphic : MaskableGraphic {
-        private List<RawRain> active;
+        private List<RawRain>[] groups;
         private float now;
 
-        public void SetSource(List<RawRain> source) {
-            active = source;
+        public void SetSource(List<RawRain>[] source) {
+            groups = source;
             SetVerticesDirty();
         }
 
@@ -2178,13 +2180,18 @@ public static partial class KeyViewerOverlay {
 
         protected override void OnPopulateMesh(VertexHelper vh) {
             vh.Clear();
-            if(active == null || active.Count == 0) {
+            if(groups == null) {
                 return;
             }
 
             Rect layer = rectTransform.rect;
-            for(int i = 0; i < active.Count; i++) {
-                AddDrop(vh, layer, active[i]);
+            // Group order IS draw order: group 1 first (behind) … group 3 last
+            // (front), matching the old sibling-row ordering.
+            for(int g = 0; g < groups.Length; g++) {
+                List<RawRain> active = groups[g];
+                for(int i = 0; i < active.Count; i++) {
+                    AddDrop(vh, layer, active[i]);
+                }
             }
         }
 
@@ -2276,45 +2283,40 @@ public static partial class KeyViewerOverlay {
         }
     }
 
-    private sealed class RainRow {
-        public readonly RectTransform Rect;
-        public readonly RainGraphic Graphic;
-        public readonly List<RawRain> Active = new(64);
-
-        public RainRow(RectTransform parent, int index) {
-            GameObject obj = new("Row" + index);
-            obj.transform.SetParent(parent, false);
-            Rect = obj.AddComponent<RectTransform>();
-            Rect.anchorMin = Vector2.zero;
-            Rect.anchorMax = Vector2.one;
-            Rect.offsetMin = Vector2.zero;
-            Rect.offsetMax = Vector2.zero;
-
-            Graphic = obj.AddComponent<RainGraphic>();
-            Graphic.raycastTarget = false;
-            Graphic.color = Color.white;
-            Graphic.SetSource(Active);
-        }
-    }
-
-    // One manager update. Drops are grouped into per-row meshes so row ordering
-    // stays stable without per-drop Unity components.
+    // Manages all rain drops, rendered by ONE RainGraphic. Drops live in 3
+    // ordering groups (back-to-front); a frame of active rain is one mesh
+    // rebuild + one batch instead of the former three sibling rows.
     private sealed class RainManager : MonoBehaviour {
-        private readonly RainRow[] rows = new RainRow[3];
+        private RainGraphic graphic;
+        private readonly List<RawRain>[] groups = [new(64), new(64), new(64)];
         private readonly Queue<RawRain> pending = new(64);
 
         public void SetLayer(RectTransform value) {
             pending.Clear();
-
-            for(int i = 0; i < rows.Length; i++) {
-                rows[i]?.Active.Clear();
-                if(value == null) {
-                    rows[i] = null;
-                    continue;
-                }
-
-                rows[i] = new RainRow(value, i + 1);
+            for(int i = 0; i < groups.Length; i++) {
+                groups[i].Clear();
             }
+
+            if(graphic != null) {
+                Destroy(graphic.gameObject);
+                graphic = null;
+            }
+            if(value == null) {
+                return;
+            }
+
+            GameObject obj = new("RainDrops");
+            obj.transform.SetParent(value, false);
+            RectTransform rect = obj.AddComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            graphic = obj.AddComponent<RainGraphic>();
+            graphic.raycastTarget = false;
+            graphic.color = Color.white;
+            graphic.SetSource(groups);
         }
 
         public void Enqueue(RawRain raw) {
@@ -2325,32 +2327,33 @@ public static partial class KeyViewerOverlay {
 
         public void Clear() {
             pending.Clear();
-            for(int i = 0; i < rows.Length; i++) {
-                if(rows[i] == null) {
-                    continue;
-                }
-                rows[i].Active.Clear();
-                rows[i].Graphic.SetVerticesDirty();
+            for(int i = 0; i < groups.Length; i++) {
+                groups[i].Clear();
+            }
+            if(graphic != null) {
+                graphic.SetVerticesDirty();
             }
         }
 
         private void Update() {
-            if(rows[0] == null) {
+            if(graphic == null) {
                 pending.Clear();
                 return;
             }
 
             while(pending.Count > 0) {
                 RawRain raw = pending.Dequeue();
-                rows[Mathf.Clamp(raw.Group, 1, 3) - 1].Active.Add(raw);
+                groups[Mathf.Clamp(raw.Group, 1, 3) - 1].Add(raw);
             }
 
             float now = Time.unscaledTime;
+            bool dirty = false;
 
-            for(int r = 0; r < rows.Length; r++) {
-                RainRow row = rows[r];
-                List<RawRain> active = row.Active;
-                bool dirty = active.Count > 0;
+            for(int g = 0; g < groups.Length; g++) {
+                List<RawRain> active = groups[g];
+                if(active.Count > 0) {
+                    dirty = true;
+                }
                 int write = 0;
                 for(int read = 0; read < active.Count; read++) {
                     RawRain raw = active[read];
@@ -2368,10 +2371,10 @@ public static partial class KeyViewerOverlay {
                 if(write < active.Count) {
                     active.RemoveRange(write, active.Count - write);
                 }
+            }
 
-                if(dirty) {
-                    row.Graphic.SetFrame(now);
-                }
+            if(dirty) {
+                graphic.SetFrame(now);
             }
         }
     }
