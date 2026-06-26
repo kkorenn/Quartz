@@ -294,7 +294,10 @@ internal sealed class RecorderSession : MonoBehaviour {
         NeutralizeCalibration();
         Recorder.DrivingClock = false;   // realtime: the game owns the clock
 
-        Recorder.TotalFrames = Mathf.Max(0, Mathf.CeilToInt((float)((endClock - startClock) / frameDt)));
+        // Realtime pass: it plays to the live-audio tail (silence), whose length isn't
+        // known up front, so the tile-geometry frame estimate is only a lower bound and
+        // the counter would overshoot it. Show it indeterminate (0 = no denominator).
+        Recorder.TotalFrames = 0;
         Recorder.FramesWritten = 0;
         Recorder.Error = null;
         Recorder.Current = Recorder.State.Recording;
@@ -359,6 +362,7 @@ internal sealed class RecorderSession : MonoBehaviour {
 
             Recorder.RenderClock = renderStart + wallClock.Elapsed.TotalSeconds;
             int prog = Mathf.Max(0, Mathf.FloorToInt((float)((Recorder.RenderClock - renderStart) / frameDt)));
+            Recorder.FramesWritten = prog;   // drive the page readout too; TotalFrames is 0 (indeterminate)
             RecorderOverlay.Set(prog, Recorder.TotalFrames, 0);
 
             bool audioFinished = levelEnded && silentAudioSeconds >= SilenceGraceSeconds;
