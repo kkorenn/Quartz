@@ -452,6 +452,7 @@ internal sealed class RecorderSession : MonoBehaviour {
         encoder = null;
         ReleaseBuffers();
         RecorderOverlay.Hide();
+        Recorder.ClearPrepass();   // drop any orphaned audio-pass buffer so it can't hijack the next play
     }
 
     private IEnumerator CaptureLoop() {
@@ -1196,12 +1197,14 @@ internal sealed class RecorderSession : MonoBehaviour {
     }
 
     private void OnDestroy() {
-        if(running) {
-            RestoreState();
-            encoder?.Dispose();
-            encoder = null;
-            RecorderOverlay.Hide();
-        }
+        // Always restore — Begin()'s early-return paths (encoder fail, prepass handoff)
+        // destroy the object with global engine state already mutated but running==false.
+        // RestoreState + Hide + Dispose are all idempotent/guarded, so a normal teardown
+        // that already ran them is unaffected.
+        RestoreState();
+        encoder?.Dispose();
+        encoder = null;
+        RecorderOverlay.Hide();
         if(liveNative.IsCreated) { liveNative.Dispose(); } // Persistent alloc isn't auto-freed
     }
 

@@ -219,14 +219,10 @@ public static class Recorder {
         PrepassStartSongPos = startSongPos;
         session = null;
         Current = State.Armed;
-        try {
-            if(ADOBase.controller != null) {
-                ADOBase.controller.Restart(false);
-            }
-        } catch(Exception e) {
-            MainCore.Log.Wrn($"[Recorder] couldn't restart for the video pass: {e.Message}");
-            ClearPrepass();
-            Current = State.Idle;
-        }
+        // Replaying for the video pass is context-sensitive: from the editor we must
+        // re-enter play via scnEditor.Play() — controller.Restart there drops back to the
+        // blank edit view, so scnGame.Play never fires and the video pass never starts.
+        // The handoff helper picks the right path and defers until the level has settled.
+        RecorderHandoff.BeginVideoPass();
     }
 }
