@@ -121,25 +121,14 @@
 		<Reference Include="Unity.TextMeshPro"><HintPath>$(GamePath)/$(GameData)/Managed/Unity.TextMeshPro.dll</HintPath></Reference>
 		<Reference Include="UnityEngine"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.CoreModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.CoreModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.AnimationModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.AnimationModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.AssetBundleModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.AssetBundleModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.AudioModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.AudioModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.IMGUIModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.IMGUIModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.ImageConversionModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.ScreenCaptureModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.ScreenCaptureModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.ParticleSystemModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.ParticleSystemModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.PhysicsModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.PhysicsModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.Physics2DModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.Physics2DModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.SharedInternalsModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.SharedInternalsModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.TextCoreFontEngineModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.TextCoreFontEngineModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.TextCoreTextEngineModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.TextCoreTextEngineModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.TextRenderingModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.UI"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.UI.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.UIElementsModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.UIElementsModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.UIModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.UIModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.PropertiesModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.PropertiesModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.JSONSerializeModule"><HintPath>$(GamePath)/$(GameData)/Managed/UnityEngine.JSONSerializeModule.dll</HintPath></Reference>
 	</ItemGroup>
 
 	<ItemGroup Condition="$(Configuration.Contains('IL2CPP'))">
@@ -149,24 +138,14 @@
 		<Reference Include="Unity.TextMeshPro"><HintPath>$(Il2CppPath)/Unity.TextMeshPro.dll</HintPath></Reference>
 		<Reference Include="UnityEngine"><HintPath>$(Il2CppPath)/UnityEngine.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.CoreModule"><HintPath>$(Il2CppPath)/UnityEngine.CoreModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.AnimationModule"><HintPath>$(Il2CppPath)/UnityEngine.AnimationModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.AudioModule"><HintPath>$(Il2CppPath)/UnityEngine.AudioModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.IMGUIModule"><HintPath>$(Il2CppPath)/UnityEngine.IMGUIModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(Il2CppPath)/UnityEngine.ImageConversionModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.ScreenCaptureModule"><HintPath>$(Il2CppPath)/UnityEngine.ScreenCaptureModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(Il2CppPath)/UnityEngine.InputLegacyModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.ParticleSystemModule"><HintPath>$(Il2CppPath)/UnityEngine.ParticleSystemModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.PhysicsModule"><HintPath>$(Il2CppPath)/UnityEngine.PhysicsModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.Physics2DModule"><HintPath>$(Il2CppPath)/UnityEngine.Physics2DModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.SharedInternalsModule"><HintPath>$(Il2CppPath)/UnityEngine.SharedInternalsModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.TextCoreFontEngineModule"><HintPath>$(Il2CppPath)/UnityEngine.TextCoreFontEngineModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.TextCoreTextEngineModule"><HintPath>$(Il2CppPath)/UnityEngine.TextCoreTextEngineModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(Il2CppPath)/UnityEngine.TextRenderingModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.UI"><HintPath>$(Il2CppPath)/UnityEngine.UI.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.UIElementsModule"><HintPath>$(Il2CppPath)/UnityEngine.UIElementsModule.dll</HintPath></Reference>
 		<Reference Include="UnityEngine.UIModule"><HintPath>$(Il2CppPath)/UnityEngine.UIModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.PropertiesModule"><HintPath>$(Il2CppPath)/UnityEngine.PropertiesModule.dll</HintPath></Reference>
-		<Reference Include="UnityEngine.JSONSerializeModule"><HintPath>$(Il2CppPath)/UnityEngine.JSONSerializeModule.dll</HintPath></Reference>
 	</ItemGroup>
 
 	<ItemGroup>
