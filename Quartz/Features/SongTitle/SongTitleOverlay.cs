@@ -41,6 +41,11 @@ public static class SongTitleOverlay {
     private static string bbFmt;
     private static bool bbReorg;
     private static string bbResult;
+    // Raw-fallback memo (built-in levels with no separate artist/title): cache the
+    // last normalized result so an unchanged game title doesn't re-scan/re-regex
+    // the live string every frame.
+    private static string bbRawSource;
+    private static string bbRawResult;
     private static readonly Dictionary<int, Graphic> hiddenTitleGraphics = [];
 
     public static void EnsureConf() {
@@ -211,7 +216,12 @@ public static class SongTitleOverlay {
                 artist = MainCore.Tr.Get("SONGTITLE_PLACEHOLDER_ARTIST", "Artist");
                 title = MainCore.Tr.Get("SONGTITLE_PLACEHOLDER_TITLE", "Title");
             } else {
-                return NormalizeColorTags(GameStats.SongTitleRaw);
+                string raw = GameStats.SongTitleRaw;
+                if(bbRawResult == null || raw != bbRawSource) {
+                    bbRawSource = raw;
+                    bbRawResult = NormalizeColorTags(raw);
+                }
+                return bbRawResult;
             }
         }
 
