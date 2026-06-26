@@ -130,9 +130,32 @@ static int open_video(KorenEncoder* e, const KorenEncoderConfig* cfg) {
         snprintf(crf, sizeof(crf), "%d", cfg->crf > 0 ? cfg->crf : 18);
         av_opt_set(e->vc->priv_data, "crf", crf, 0);
     }
-    /* offline render: bias hard toward encode speed (x264/x265 understand this;
-       hardware encoders ignore it). Quality is carried by the bitrate. */
-    av_opt_set(e->vc->priv_data, "preset", "ultrafast", 0);
+    /* Offline render: bias every codec hard toward encode throughput. Each encoder
+       family takes a different "go fast" knob, so dispatch on the encoder name rather
+       than blasting one string at all of them (the old code set x264's "ultrafast" on
+       everything, which SVT-AV1 and VideoToolbox silently rejected -> they ran at their
+       slow defaults). */
+    if (!strcmp(name, "libx264") || !strcmp(name, "libx265")) {
+        /* Fastest CPU preset. Frame threading (below) carries the rest; deliberately
+           NOT "zerolatency", which disables frame threading and hurts throughput. */
+        av_opt_set(e->vc->priv_data, "preset", "ultrafast", 0);
+    } else if (!strcmp(name, "libsvtav1")) {
+        /* SVT-AV1 preset is numeric 0 (slowest) .. 13 (fastest). 12 sits near the top
+           of the speed range and still produces a clean, small file. */
+        av_opt_set(e->vc->priv_data, "preset", "12", 0);
+    } else if (strstr(name, "videotoolbox")) {
+        /* Apple hardware encoder: prioritise speed over latency/quality tuning. */
+        av_opt_set(e->vc->priv_data, "realtime", "1", 0);
+        av_opt_set(e->vc->priv_data, "prio_speed", "1", 0);
+    }
+
+    /* Multithreaded encode across all logical cores — the dominant offline-render speed
+       win. x264/x265 parallelise over frames AND slices; SVT-AV1 runs its own thread
+       pool (harmless); hardware encoders ignore this. Frame threading also overlaps
+       encoding with the NEXT frame's capture, because avcodec_send_frame returns before
+       the frame is fully encoded and drain() only pulls packets that are already ready. */
+    e->vc->thread_count = 0;                                  /* 0 = detect cores */
+    e->vc->thread_type  = FF_THREAD_FRAME | FF_THREAD_SLICE;
 
     if (e->fmt->oformat->flags & AVFMT_GLOBALHEADER)
         e->vc->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
@@ -143,9 +166,11 @@ static int open_video(KorenEncoder* e, const KorenEncoderConfig* cfg) {
     ret = avcodec_parameters_from_context(e->vst->codecpar, e->vc);
     if (ret < 0) { set_err_av(e, "video parameters", ret); return ret; }
 
+    /* Same in/out dimensions (no spatial scaling), so the only filtering is chroma
+       subsampling — SWS_FAST_BILINEAR is the cheapest path and visually identical here. */
     e->sws = sws_getContext(cfg->width, cfg->height, AV_PIX_FMT_RGBA,
                             cfg->width, cfg->height, AV_PIX_FMT_YUV420P,
-                            SWS_BILINEAR, NULL, NULL, NULL);
+                            SWS_FAST_BILINEAR, NULL, NULL, NULL);
     if (!e->sws) { set_err(e, "sws_getContext failed"); return -1; }
 
     e->vframe = av_frame_alloc();
