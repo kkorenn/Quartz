@@ -269,6 +269,14 @@ public static class KeyLimiter {
     private const int HookHeldWindowMs = 250;
     private static readonly Dictionary<KeyCode, int> hookHeldUntil = new();
 
+    // Volatile mirror of (hookHeldUntil.Count > 0), maintained under the lock.
+    // hookHeldUntil is only ever populated by SkyHook Hangul/Hanja events, so it
+    // stays empty for anyone without a Korean keyboard — the common case. The
+    // KeyViewer box loop calls HookKeyHeld for every un-pressed key every frame
+    // (and in menus, since ShowOutsideGame defaults on); this flag lets that path
+    // skip the lock entirely when no hook keys are held.
+    private static volatile bool hookActive;
+
     public static void NoteHookEvent(KeyCode key, bool pressed) {
         if(key == KeyCode.None) {
             return;
@@ -279,11 +287,14 @@ public static class KeyLimiter {
             } else {
                 hookHeldUntil.Remove(key);
             }
+            hookActive = hookHeldUntil.Count > 0;
         }
     }
 
     public static bool HookKeyHeld(KeyCode key) {
-        if(key == KeyCode.None) {
+        // Lock-free fast reject for the overwhelmingly common no-hook-keys-held
+        // case (volatile read, no lock acquired per un-pressed key per frame).
+        if(!hookActive || key == KeyCode.None) {
             return false;
         }
         lock(hookHeldUntil) {
