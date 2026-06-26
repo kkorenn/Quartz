@@ -192,6 +192,9 @@ internal sealed class RecorderSession : MonoBehaviour {
                 AudioCodec = "aac",
             });
         } catch(Exception e) {
+            // captureFramerate was already pinned (and AudioRenderer maybe started) above;
+            // restore them or the whole game stays locked to the render frame-rate.
+            RestoreState();
             Recorder.Error = e.Message;
             Recorder.Current = Recorder.State.Idle;
             MainCore.Log.Err($"[Recorder] {e}");
