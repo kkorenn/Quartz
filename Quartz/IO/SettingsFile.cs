@@ -166,6 +166,10 @@ public sealed class SettingsFile<T> : ISettingsHandle where T : class, ISettings
             await Task.Delay(delay, token);
 
             if(token.IsCancellationRequested) {
+                // Cancelled at the Delay boundary without throwing: this is the one path
+                // that skips the disposal every other branch does. The canceller already
+                // swapped saveCts off this request, so nothing else references it.
+                request.Dispose();
                 return;
             }
 
