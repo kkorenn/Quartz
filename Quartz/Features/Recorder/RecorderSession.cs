@@ -338,7 +338,12 @@ internal sealed class RecorderSession : MonoBehaviour {
                 int got = audioTap.Drain(ref audioDrainBuf);
                 if(got > 0) {
                     if(prepassStartSongPos < 0) {
-                        prepassStartSongPos = CurrentSongPos();
+                        // Anchor buffer[0] to its TRUE song position. CurrentSongPos() is read
+                        // now, but `got` frames already accumulated in the tap since the splice,
+                        // so the first captured sample is got/rate seconds older than now. Without
+                        // this back-date the whole track anchors late and the muxed audio lags the
+                        // video by that much.
+                        prepassStartSongPos = CurrentSongPos() - (double)got / Mathf.Max(1, liveSampleRate);
                     }
                     int n = got * audioTap.Channels;
                     for(int i = 0; i < n; i++) {
@@ -384,6 +389,12 @@ internal sealed class RecorderSession : MonoBehaviour {
         float[] pcm = prepassBuf.ToArray();
         double s0 = prepassStartSongPos < 0 ? renderStart : prepassStartSongPos;
         int rate = liveSampleRate;
+
+        if(pcm.Length == 0) {
+            // Tap never fired (no active AudioListener / OnAudioFilterRead never called).
+            // The video pass still runs; warn loudly so a silent render isn't a mystery.
+            MainCore.Log.Wrn("[Recorder] AUDIO PASS captured 0 samples — the live tap never produced audio; the rendered video will have NO sound");
+        }
 
         running = false;
         prepassMode = false;
