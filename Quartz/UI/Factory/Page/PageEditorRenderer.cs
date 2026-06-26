@@ -275,14 +275,41 @@ internal sealed class RecorderStatusBinder : MonoBehaviour {
         this.status = status;
     }
 
+    // Last-rendered display inputs. BuildStatus/ButtonLabel allocate interpolated
+    // strings + do dictionary Tr.Get lookups; this ran every frame even when nothing
+    // on screen changed (e.g. idle "Saved: <path>"). Rebuild only on an actual change.
+    private Recorder.State lastLabelState = (Recorder.State)(-1);
+    private Recorder.State lastState = (Recorder.State)(-1);
+    private int lastFrames = -1, lastTotal = -1, lastRate = -1;
+    private string lastError = "", lastOutput = "";
+
     private void Update() {
         if(button == null || status == null) {
             return;
         }
-        if(button.Label != null) {
-            button.Label.text = ButtonLabel();
+
+        Recorder.State state = Recorder.Current;
+        if(state != lastLabelState && button.Label != null) {
+            button.Label.text = ButtonLabel();   // depends only on state
+            lastLabelState = state;
         }
-        status.text = BuildStatus();
+
+        // Status depends on state + the live counters + rate + native/error/output.
+        // During active recording the counters change every frame, so it still rebuilds
+        // then (correct — the number is live); when idle it now costs nothing.
+        int frames = Recorder.FramesWritten;
+        int total = Recorder.TotalFrames;
+        int rate = (int)Math.Round(Recorder.RenderFps);
+        if(state != lastState || frames != lastFrames || total != lastTotal || rate != lastRate
+           || !ReferenceEquals(Recorder.Error, lastError) || !ReferenceEquals(Recorder.OutputPath, lastOutput)) {
+            status.text = BuildStatus();
+            lastState = state;
+            lastFrames = frames;
+            lastTotal = total;
+            lastRate = rate;
+            lastError = Recorder.Error;
+            lastOutput = Recorder.OutputPath;
+        }
     }
 
     private static string ButtonLabel() => Recorder.Current switch {
