@@ -89,7 +89,7 @@ public static class ChatterBlocker {
             }
             player.keyFrequency[key] = player.keyFrequency.ContainsKey(key)
                 ? player.keyFrequency[key] + 1
-                : 0;
+                : 1; // first press is one occurrence, not zero (kept keyTotal in step)
             player.keyTotal++;
         } catch {
         }
