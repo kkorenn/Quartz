@@ -57,6 +57,15 @@ public static partial class PlanetColors {
     private static MethodInfo setParticleSystemColorMethod;
     private static readonly object[] particleColorInvokeArgs = new object[3];
 
+    // ApplyPlanetRing reads ring/onlyRing once per planet off PlanetRenderer's
+    // per-frame LateUpdate. Resolve zero-boxing typed field accessors once
+    // (Harmony emits direct field IL) instead of reflecting + boxing the bool
+    // every frame. Falls back to the member resolver if a game version exposes
+    // these as something other than a plain field.
+    private static bool ringAccessorsResolved;
+    private static AccessTools.FieldRef<PlanetRenderer, LineRenderer> ringRef;
+    private static AccessTools.FieldRef<PlanetRenderer, bool> onlyRingRef;
+
     private static readonly scrPlanet[] EmptyPlanets = [];
     private static PlanetarySystem cachedSystem;
     private static int cachedSystemCount = -1;
@@ -425,14 +434,12 @@ public static partial class PlanetColors {
             return;
         }
 
-        LineRenderer ring = TryGetMemberValue(renderer, "ring", out object ringObj)
-            ? ringObj as LineRenderer
-            : null;
+        LineRenderer ring = GetRing(renderer);
         if(ring == null) {
             return;
         }
 
-        if(TryGetMemberValue(renderer, "onlyRing", out object onlyRing) && onlyRing is bool b && b) {
+        if(IsOnlyRing(renderer)) {
             return;
         }
 
@@ -459,6 +466,37 @@ public static partial class PlanetColors {
             }
         } catch {
         }
+    }
+
+    private static void EnsureRingAccessors() {
+        if(ringAccessorsResolved) {
+            return;
+        }
+        ringAccessorsResolved = true;
+        try {
+            ringRef = AccessTools.FieldRefAccess<PlanetRenderer, LineRenderer>("ring");
+        } catch {
+        }
+        try {
+            onlyRingRef = AccessTools.FieldRefAccess<PlanetRenderer, bool>("onlyRing");
+        } catch {
+        }
+    }
+
+    private static LineRenderer GetRing(PlanetRenderer renderer) {
+        EnsureRingAccessors();
+        if(ringRef != null) {
+            return ringRef(renderer);
+        }
+        return TryGetMemberValue(renderer, "ring", out object ringObj) ? ringObj as LineRenderer : null;
+    }
+
+    private static bool IsOnlyRing(PlanetRenderer renderer) {
+        EnsureRingAccessors();
+        if(onlyRingRef != null) {
+            return onlyRingRef(renderer);
+        }
+        return TryGetMemberValue(renderer, "onlyRing", out object onlyRing) && onlyRing is bool b && b;
     }
 
     private static ParticleSystem GetParticles(PlanetRenderer renderer, string name)
