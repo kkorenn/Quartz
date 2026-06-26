@@ -17,6 +17,7 @@
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
 		<GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+		<FindDependenciesOfExternallyResolvedReferences>false</FindDependenciesOfExternallyResolvedReferences>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<EnableNETAnalyzers>true</EnableNETAnalyzers>
 		<AnalysisLevel>latest</AnalysisLevel>
@@ -75,6 +76,7 @@
 	<ItemDefinitionGroup>
 		<Reference>
 			<Private>false</Private>
+			<ExternallyResolved>true</ExternallyResolved>
 		</Reference>
 	</ItemDefinitionGroup>
 
@@ -87,6 +89,14 @@
 	     so a UMM-only checkout (no MelonLoader installed) still compiles. -->
 	<ItemGroup>
 		<Reference Include="Newtonsoft.Json"><HintPath>$(GamePath)/$(GameData)/Managed/Newtonsoft.Json.dll</HintPath></Reference>
+		<!-- Prefer the exact System.* assemblies shipped with the game over the
+		     netstandard facade versions so MSBuild's conflict resolver matches the
+		     runtime binding set instead of reporting version conflicts through
+		     Assembly-CSharp/System.Text.Json. -->
+		<Reference Include="System.Buffers" Condition="Exists('$(GamePath)/$(GameData)/Managed/System.Buffers.dll')"><HintPath>$(GamePath)/$(GameData)/Managed/System.Buffers.dll</HintPath></Reference>
+		<Reference Include="System.IO.Compression, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" Condition="Exists('$(GamePath)/$(GameData)/Managed/System.IO.Compression.dll')"><HintPath>$(GamePath)/$(GameData)/Managed/System.IO.Compression.dll</HintPath></Reference>
+		<Reference Include="System.Memory" Condition="Exists('$(GamePath)/$(GameData)/Managed/System.Memory.dll')"><HintPath>$(GamePath)/$(GameData)/Managed/System.Memory.dll</HintPath></Reference>
+		<Reference Include="System.ValueTuple" Condition="Exists('$(GamePath)/$(GameData)/Managed/System.ValueTuple.dll')"><HintPath>$(GamePath)/$(GameData)/Managed/System.ValueTuple.dll</HintPath></Reference>
 		<Reference Include="0Harmony" Condition="Exists('$(GamePath)/MelonLoader/net35/0Harmony.dll')"><HintPath>$(GamePath)/MelonLoader/net35/0Harmony.dll</HintPath></Reference>
 		<Reference Include="0Harmony" Condition="!Exists('$(GamePath)/MelonLoader/net35/0Harmony.dll')"><HintPath>$(GamePath)/$(GameData)/Managed/UnityModManager/0Harmony.dll</HintPath></Reference>
 		<Reference Include="UnityFileDialog" Condition="Exists('$(GamePath)/$(GameData)/Managed/UnityFileDialog.dll')"><HintPath>$(GamePath)/$(GameData)/Managed/UnityFileDialog.dll</HintPath><Private>false</Private></Reference>
