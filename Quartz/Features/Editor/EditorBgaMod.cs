@@ -162,14 +162,22 @@ public static partial class EditorFeature {
         if(pr == null) {
             return;
         }
-        Renderer[] renderers = pr.appearanceRenderers; // body, particles, ring, glow
-        for(int i = 0; i < renderers.Length; i++) {
-            Set(renderers[i], visible);
-        }
+        // Mirror PlanetRenderer.appearanceRenderers (body, particles, ring, glow)
+        // without that property's per-access `new Renderer[6]` allocation — this
+        // runs per planet every frame while BGA Mod is active.
+        Set(pr.sprite != null ? pr.sprite.meshRenderer : null, visible);
+        Set(ParticleRenderer(pr.coreParticles), visible);
+        Set(ParticleRenderer(pr.tailParticles), visible);
+        Set(ParticleRenderer(pr.sparks), visible);
+        Set(pr.ring, visible);
+        Set(pr.glow, visible);
         Set(pr.faceSprite, visible);
         Set(pr.faceDetails, visible);
         Set(pr.samuraiSprite, visible);
     }
+
+    private static Renderer ParticleRenderer(ParticleSystem ps)
+        => ps != null ? ps.GetComponent<Renderer>() : null;
 
     private static void Set(Renderer r, bool visible) {
         if(r != null && r.enabled != visible) {
