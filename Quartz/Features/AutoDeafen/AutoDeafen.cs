@@ -71,7 +71,7 @@ public static class AutoDeafen {
 
         Conf.DeafenAtPercent = Mathf.Clamp(Conf.DeafenAtPercent, 0f, 100f);
 
-        if(string.IsNullOrEmpty(Trim(Conf.DiscordAccessToken))) {
+        if(string.IsNullOrWhiteSpace(Conf.DiscordAccessToken)) {
             StopRpc();
             status = "waiting for authorization";
             return;
