@@ -1,0 +1,19 @@
+Quartz/Features/Recorder/RecorderOverlay.cs
+  s_1a48ac40402ef4::t_0780e767eb2ffc 38,46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.2",
+  "base_commit_sha": "48f5d58b92d7960a96ceafafe7c93166eb9281d3",
+  "prompts": {},
+  "sessions": {
+    "s_1a48ac40402ef4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "602f71f5-5da9-4743-8045-9f64b12acb9b",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
