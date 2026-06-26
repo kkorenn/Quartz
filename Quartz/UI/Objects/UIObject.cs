@@ -13,23 +13,6 @@ public abstract class UIObject {
     public string Id { get; }
     public RectTransform Rect { get; }
 
-    public bool OnlyModOn {
-        get;
-        set {
-            if(field == value) {
-                return;
-            }
-
-            field = value;
-            if(field) {
-                SetBlocked(!MainCore.IsModEnabled, true);
-                MainCore.OnModEnabledChanged += ApplyStateForAction;
-            } else {
-                MainCore.OnModEnabledChanged -= ApplyStateForAction;
-            }
-        }
-    }
-
     protected CanvasGroup CanvasGroup {
         get {
             field ??= Rect.GetComponent<CanvasGroup>() ?? Rect.gameObject.AddComponent<CanvasGroup>();
@@ -41,14 +24,6 @@ public abstract class UIObject {
     protected UIObject(string id, RectTransform rect) {
         Id = id;
         Rect = rect;
-    }
-
-    private void ApplyStateForAction(bool enabled, bool isDispose) {
-        if(!OnlyModOn || isDispose) {
-            return;
-        }
-
-        SetBlocked(!enabled);
     }
 
     public virtual void SetBlocked(bool blocked, bool noAnimate = false) {

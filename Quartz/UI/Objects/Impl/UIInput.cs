@@ -22,10 +22,6 @@ public sealed class UIInput : UIObject {
     public Image IconImage { get; }
     public Image ChangedImage { get; }
 
-    private readonly Queue<TextMeshProUGUI> glyphPool = [];
-
-    private readonly List<GlyphSnapshot> glyphCache = [];
-
     private GTween changeTween;
     private GTween caretTween;
     private GTween placeholderTween;
@@ -251,11 +247,6 @@ public sealed class UIInput : UIObject {
             )
             .SetEasing(Easing.OutQuad)).Build();
         MainCore.TC.Play(iconTween);
-    }
-
-    private readonly struct GlyphSnapshot(char character, Vector2 position) {
-        public readonly char Character = character;
-        public readonly Vector2 Position = position;
     }
 
     bool hasFocused = false;
