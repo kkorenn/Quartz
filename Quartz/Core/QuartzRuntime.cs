@@ -310,6 +310,8 @@ public sealed class QuartzRuntime {
         // Their targets are static, so without this a UnityModManager reload
         // would leave every prior session's handler live (see field comment).
         Safe(() => FontManager.OnFontChanged -= GameOverlayFont.ApplyFontChange);
+        Safe(GameOverlayFont.Unhook);
+        Safe(Optimizer.Unhook);
         Safe(() => {
             if(xperfectGuardHandler != null) {
                 UnityEngine.SceneManagement.SceneManager.sceneLoaded -= xperfectGuardHandler;

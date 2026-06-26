@@ -53,13 +53,25 @@ public static class GameOverlayFont {
             return;
         }
         hooked = true;
-        SceneManager.sceneLoaded += (_, _) => {
-            // Sweep hard for a short window right after the load so freshly-spawned
-            // game labels get their twin the same frame they appear, instead of
-            // flashing the game font until the next idle sweep.
-            GameFontMirror.ArmBurst();
-            MainThread.Enqueue(Refresh);
-        };
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    // Named (not a lambda) so it can be removed in Unhook on full teardown/reload.
+    private static void OnSceneLoaded(Scene scene, LoadSceneMode mode) {
+        // Sweep hard for a short window right after the load so freshly-spawned
+        // game labels get their twin the same frame they appear, instead of
+        // flashing the game font until the next idle sweep.
+        GameFontMirror.ArmBurst();
+        MainThread.Enqueue(Refresh);
+    }
+
+    // Drop the scene-load subscription on full mod unload (UMM in-process reload),
+    // so a stale handler from the previous load can't fire into dead code.
+    public static void Unhook() {
+        if(hooked) {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            hooked = false;
+        }
     }
 
     private static bool Active =>

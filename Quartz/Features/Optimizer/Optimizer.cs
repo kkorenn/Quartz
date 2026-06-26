@@ -143,6 +143,13 @@ public static class Optimizer {
         }
     }
 
+    // Drop the scene-load subscription on full mod unload (UMM in-process reload).
+    // Not done in Restore(): the subscription is idempotent + inert when disabled,
+    // and Initialize (which re-adds it) only runs at startup, not on re-enable.
+    public static void Unhook() {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
     private static void Tick() {
         // Bracket the run with manual GC: entering gameplay defers collection so
         // none lands mid-run; leaving gameplay collects the run's garbage and
