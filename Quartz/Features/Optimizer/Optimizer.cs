@@ -25,17 +25,27 @@ public static class Optimizer {
     // open/close the manual-GC window and runs the heap-growth safety valve.
     public static readonly IRuntimeTick Ticker = new TickImpl();
 
-    // One forced collect if the deferred heap grows past this much over its size
-    // at the start of the run. A single hitch on a marathon level beats an OOM.
-    private const long GCSafetyBytes = 768L * 1024 * 1024;
+    // Cap how far the deferred (Manual-mode) heap may grow over its size at the
+    // start of the run before a forced collect. Kept SMALL on purpose: a large
+    // cap (this was 768 MB) let the heap balloon during play, and a collect of a
+    // huge heap is a multi-100 ms stop-the-world freeze — plus the bloated heap
+    // adds OS memory pressure — which is exactly what craters 1% lows. A tighter
+    // cap trades that one catastrophic hitch for a few small, bounded collects.
+    private const long GCSafetyBytes = 96L * 1024 * 1024;
 
     private static bool defaultsCaptured;
     private static bool defaultRunInBackground;
     private static ProcessPriorityClass defaultPriority = ProcessPriorityClass.Normal;
 
-    // True while the GC has been put into Manual mode for an active run.
+    // True while SmoothGC is smoothing collection for an active run.
     private static bool gcDeferred;
     private static long heapAtDefer;
+    // True only when the deferral actually switched the GC to Manual mode (a
+    // non-incremental build). On incremental-GC builds SmoothGC leaves the GC
+    // enabled: incremental collection amortizes pauses across frames, which is
+    // far better for 1% lows than a Manual defer + one giant catch-up collect.
+    private static bool usingManualDefer;
+    private static bool loggedGcStrategy;
 
     public static void EnsureConf() {
         if(ConfMgr != null) {
@@ -164,9 +174,11 @@ public static class Optimizer {
             return;
         }
 
-        // While deferred, bound heap growth so a very long level can't run the
-        // process out of memory (GetTotalMemory(false) doesn't force a collect).
-        if(gcDeferred && GC.GetTotalMemory(false) - heapAtDefer > GCSafetyBytes) {
+        // Only the Manual path lets the heap balloon; bound it so a very long
+        // level can't run the process out of memory (and so the eventual collect
+        // stays small). Incremental builds never defer, so this never fires there.
+        if(gcDeferred && usingManualDefer
+            && GC.GetTotalMemory(false) - heapAtDefer > GCSafetyBytes) {
             GC.Collect();
             heapAtDefer = GC.GetTotalMemory(false);
         }
@@ -174,22 +186,47 @@ public static class Optimizer {
 
     private static void DeferGC() {
         try {
+            if(!loggedGcStrategy) {
+                loggedGcStrategy = true;
+                MainCore.Log.Msg(GarbageCollector.isIncremental
+                    ? "[Optimizer] SmoothGC: incremental GC present — leaving collection enabled (no Manual defer)."
+                    : "[Optimizer] SmoothGC: no incremental GC — deferring via Manual mode (96MB heap cap).");
+            }
+
+            if(GarbageCollector.isIncremental) {
+                // Incremental GC already amortizes collection across frames — far
+                // better for 1% lows than Manual mode, which halts ALL collection,
+                // balloons the heap, then dumps one multi-100ms stop-the-world
+                // collect. Leave it enabled; don't defer.
+                usingManualDefer = false;
+                gcDeferred = true;
+                return;
+            }
+
             GarbageCollector.GCMode = GarbageCollector.Mode.Manual;
+            usingManualDefer = true;
             gcDeferred = true;
             heapAtDefer = GC.GetTotalMemory(false);
         } catch {
             // GC mode control unavailable — leave automatic collection on.
             gcDeferred = false;
+            usingManualDefer = false;
         }
     }
 
     private static void ResumeGC() {
         try {
-            GarbageCollector.GCMode = GarbageCollector.Mode.Enabled;
+            // Only restore + catch-up collect if we actually went Manual. The
+            // incremental path never changed GC state, so leave it alone (and skip
+            // the catch-up collect that would itself be a needless spike).
+            if(usingManualDefer) {
+                GarbageCollector.GCMode = GarbageCollector.Mode.Enabled;
+                GC.Collect();
+            }
         } catch {
         }
+        usingManualDefer = false;
         gcDeferred = false;
-        GC.Collect();
     }
 
     private sealed class TickImpl : IRuntimeTick {
