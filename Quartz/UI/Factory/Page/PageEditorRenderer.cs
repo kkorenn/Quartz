@@ -103,6 +103,28 @@ internal static partial class PageEditor {
             "Output frame rate. The engine is locked to this rate during the render, so every frame is captured — heavy levels render slower than real time but never drop frames."
         );
 
+        // --- In-game FPS (simulation oversampling, integer multiple of output fps) ---
+        List<int> inGameMults = new() { 1, 2, 4, 8 };
+        int currentMult = Mathf.Clamp(conf.Oversample, 1, 8);
+        if(!inGameMults.Contains(currentMult)) {
+            inGameMults.Insert(0, currentMult);
+        }
+        var inGameFpsDrop = GenerateUI.DropDown(
+            GenerateUI.Row(content),
+            def.Oversample,
+            currentMult,
+            inGameMults,
+            m => m <= 1 ? "1× (same as output)" : $"{m}× ({m * conf.Fps} fps)",
+            m => { conf.Oversample = Mathf.Clamp(m, 1, 8); Recorder.Save(); },
+            "editor_render_ingame_fps",
+            300f,
+            "In-Game FPS"
+        );
+        inGameFpsDrop.Rect.AddToolTip(
+            "DESC_EDITOR_RENDER_INGAME_FPS",
+            "Steps the game simulation at this multiple of the output frame rate, then encodes every Nth frame. Higher means the planet lands tighter on the beat and fast motion is sampled finer — at the cost of a proportionally longer render. The output frame rate and file are unchanged; this only affects how finely the run is simulated. 4× at 60 fps simulates at 240."
+        );
+
         // --- Playback speed ---
         static float speedFilter(float v) => Mathf.Clamp(Mathf.Round(v * 20f) / 20f, 0.1f, 4f);
         UISlider speed = GenerateUI.Slider(
@@ -136,7 +158,7 @@ internal static partial class PageEditor {
         );
 
         // --- Codec ---
-        List<RecorderCodec> codecs = new() { RecorderCodec.H264, RecorderCodec.H265 };
+        List<RecorderCodec> codecs = new() { RecorderCodec.H264, RecorderCodec.H265, RecorderCodec.Av1 };
         if(Application.platform is RuntimePlatform.OSXPlayer or RuntimePlatform.OSXEditor) {
             codecs.Insert(1, RecorderCodec.H264Hardware);
         }
@@ -156,7 +178,7 @@ internal static partial class PageEditor {
         );
         codecDrop.Rect.AddToolTip(
             "DESC_EDITOR_RENDER_CODEC",
-            "Video encoder. x264 is the most compatible; the hardware encoder (macOS) is fastest; x265 makes smaller files but encodes slower."
+            "Video encoder. x264 is the most compatible; the hardware encoder (macOS) is fastest; x265 makes smaller files but encodes slower; AV1 (SVT-AV1) makes the smallest files but is the slowest to encode."
         );
 
         // --- Audio ---
@@ -260,6 +282,7 @@ internal static partial class PageEditor {
         RecorderCodec.H264 => MainCore.Tr.Get("RENDER_CODEC_H264", "H.264 (x264)"),
         RecorderCodec.H264Hardware => MainCore.Tr.Get("RENDER_CODEC_H264_HW", "H.264 (hardware)"),
         RecorderCodec.H265 => MainCore.Tr.Get("RENDER_CODEC_H265", "H.265 (x265)"),
+        RecorderCodec.Av1 => MainCore.Tr.Get("RENDER_CODEC_AV1", "AV1 (SVT-AV1)"),
         _ => codec.ToString(),
     };
 }
@@ -282,6 +305,7 @@ internal sealed class RecorderStatusBinder : MonoBehaviour {
     private Recorder.State lastState = (Recorder.State)(-1);
     private int lastFrames = -1, lastTotal = -1, lastRate = -1;
     private string lastError = "", lastOutput = "";
+    private bool lastReloading;
 
     private void Update() {
         if(button == null || status == null) {
@@ -300,10 +324,12 @@ internal sealed class RecorderStatusBinder : MonoBehaviour {
         int frames = Recorder.FramesWritten;
         int total = Recorder.TotalFrames;
         int rate = (int)Math.Round(Recorder.RenderFps);
-        if(state != lastState || frames != lastFrames || total != lastTotal || rate != lastRate
+        bool reloading = Recorder.Reloading;
+        if(state != lastState || reloading != lastReloading || frames != lastFrames || total != lastTotal || rate != lastRate
            || !ReferenceEquals(Recorder.Error, lastError) || !ReferenceEquals(Recorder.OutputPath, lastOutput)) {
             status.text = BuildStatus();
             lastState = state;
+            lastReloading = reloading;
             lastFrames = frames;
             lastTotal = total;
             lastRate = rate;
@@ -327,7 +353,9 @@ internal sealed class RecorderStatusBinder : MonoBehaviour {
 
         switch(Recorder.Current) {
             case Recorder.State.Armed:
-                return MainCore.Tr.Get("RENDER_STATUS_ARMED", "Armed — play a level to start rendering");
+                return Recorder.Reloading
+                    ? MainCore.Tr.Get("RENDER_STATUS_RELOADING", "Reloading level…")
+                    : MainCore.Tr.Get("RENDER_STATUS_ARMED", "Armed — play a level to start rendering");
             case Recorder.State.Recording: {
                 string r = MainCore.Tr.Get("RENDER_STATUS_RECORDING", "Recording");
                 string rate = Recorder.RenderFps > 0 ? $" · {Recorder.RenderFps:0} fps" : "";

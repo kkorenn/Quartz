@@ -9,6 +9,7 @@ public enum RecorderCodec {
     H264,          // libx264 — most compatible
     H264Hardware,  // h264_videotoolbox — macOS hardware encode (needs a bitrate)
     H265,          // libx265 — smaller files, slower
+    Av1,           // libsvtav1 (SVT-AV1) — smallest files, modern; supports CRF
 }
 
 public static class RecorderCodecExtensions {
@@ -16,6 +17,7 @@ public static class RecorderCodecExtensions {
         RecorderCodec.H264 => "libx264",
         RecorderCodec.H264Hardware => "h264_videotoolbox",
         RecorderCodec.H265 => "libx265",
+        RecorderCodec.Av1 => "libsvtav1",
         _ => "libx264",
     };
 
@@ -48,10 +50,14 @@ public sealed class RecorderSettings : ISettingsFile {
     public bool CaptureAudio = true;
     public int AudioBitrateKbps = 192;
 
-    // Realtime (macOS live-audio) capture only: run the GAME at Fps * Oversample so the
-    // conductor steps and hit detection are finer, while still encoding the video at Fps
-    // (every Oversample-th frame). 1 = off (planet timing is instead corrected by the
-    // per-frame tile snap, which is exact and doesn't strain the machine). Clamped 1..8.
+    // In-game FPS multiplier for the offline render: step the simulation at Fps * Oversample
+    // and encode every Oversample-th sim frame, so the output stays at Fps but auto-hit
+    // detection, tweens and FFX advance on a finer step (planet lands tighter on the beat,
+    // fast motion sampled higher). Integer multiple only — sub-frames must divide evenly into
+    // an output frame. 1 = off. Unlike the old realtime path this owns the clock and decouples
+    // Time from wall-clock, so the extra sim frames just make the render take longer (stepped
+    // as fast as the machine can), never strain a realtime budget. Clamped 1..8. Exposed in the
+    // Editor tab as "In-Game FPS" (1×/2×/4×/8×). Pairs with SnapPlanetToBeat.
     public int Oversample = 1;
 
     // Realtime (macOS live-audio) capture only: at end-of-frame, advance any auto-play

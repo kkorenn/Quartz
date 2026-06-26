@@ -34,6 +34,7 @@ internal sealed class RecorderSession : MonoBehaviour {
 
     private int width, height, fps;
     private double frameDt;
+    private int simOversample = 1;   // sim runs at fps*simOversample; encode every Nth sim frame
 
     private int prevCaptureFramerate;
     private bool prevAuto;
@@ -151,8 +152,16 @@ internal sealed class RecorderSession : MonoBehaviour {
 
         // --- VIDEO RENDER PASS (offline, deterministic, frame-perfect) ---
         realtimeAudio = false;
+        // In-game FPS oversampling: step the simulation at fps*oversample and encode only
+        // every oversample-th frame, so the output is still fps but auto-hit detection,
+        // tweens and FFX all advance on a finer step (the planet lands tighter on the beat
+        // and fast motion is sampled at the higher rate). captureFramerate pins Time to the
+        // SIM rate and decouples it from wall-clock, so the extra sim frames just make the
+        // offline render take longer — they're stepped as fast as the machine can and never
+        // dropped. The conductor clock is sub-stepped to match in CaptureLoop.
+        simOversample = Mathf.Clamp(Recorder.Conf.Oversample, 1, 8);
         prevCaptureFramerate = Time.captureFramerate;
-        Time.captureFramerate = fps;
+        Time.captureFramerate = fps * simOversample;
 
         if(Recorder.PrepassAudio != null) {
             // Live mix captured in the audio pass — mux it like a song clip, keyed to song
@@ -266,7 +275,8 @@ internal sealed class RecorderSession : MonoBehaviour {
         RecorderOverlay.Show();
         RecorderOverlay.Set(0, Recorder.TotalFrames, 0);
 
-        MainCore.Log.Msg($"[Recorder] rendering {width}x{height}@{fps}{(realtimeAudio ? " (realtime live-audio)" : "")}, " +
+        MainCore.Log.Msg($"[Recorder] rendering {width}x{height}@{fps}{(realtimeAudio ? " (realtime live-audio)" : "")}" +
+                         $"{(simOversample > 1 ? $", sim {fps * simOversample}fps (in-game {simOversample}x)" : "")}, " +
                          $"clock {startClock:0.00}..{endClock:0.00}s, ~{Recorder.TotalFrames} frames -> {outPath}");
         StartCoroutine(realtimeAudio ? RealtimeCaptureLoop() : CaptureLoop());
     }
@@ -465,6 +475,15 @@ internal sealed class RecorderSession : MonoBehaviour {
         for(int i = 0; resolutionForced && i < 10 && (Screen.width != width || Screen.height != height); i++) {
             yield return endOfFrame;
         }
+        AutoHitSnap.ResetStats();
+
+        // Oversampling: simulate at fps*oversample, encode only every oversample-th sim
+        // frame. simStep counts SIM frames; video frame F == sim step F*oversample, where
+        // songTime lands back exactly on renderStart + F*frameDt (so audio/mux alignment is
+        // identical to a non-oversampled render). subDt is the song time per sim frame.
+        int oversample = Mathf.Max(1, simOversample);
+        double subDt = frameDt / oversample;
+        long simStep = 0;
         while(running) {
             yield return endOfFrame;
             if(!running) {
@@ -480,14 +499,33 @@ internal sealed class RecorderSession : MonoBehaviour {
                 yield break;
             }
 
-            // Deterministic song time for this frame (the conductor is driven to
-            // exactly this position via ControlledDsp). Computed, not read back, so
-            // it can't drift.
-            double songTime = renderStart + Recorder.FramesWritten * frameDt;
+            // Deterministic song time for THIS sim frame (the conductor is driven to exactly
+            // this position via ControlledDsp). Sub-stepped by subDt; on encode boundaries it
+            // lands back on renderStart + F*frameDt. Computed, not read back, so it can't drift.
+            double songTime = renderStart + simStep * subDt;
             Recorder.RenderClock = songTime;
 
-            if(!CaptureFrame()) {
-                Recorder.Error = encoder?.LastError ?? "capture failed";
+            // Tile snap: the game's auto-hit (scrPlayer.OttoHoldHit) and the planet-angle
+            // refresh (scrPlanet.Update_RefreshAngles) are separate MonoBehaviours with
+            // undefined relative Update order, so on the frame an angle first crosses a
+            // tile the hit can lag a frame and the planet renders PAST the tile. Driving
+            // the clock deterministically makes that lag deterministic, not absent, so we
+            // still flush any due auto-hit here — at end-of-frame, right before the cameras
+            // are re-rendered — exactly as the (now-unused) realtime loop did. No-op when
+            // nothing is due; hitsounds are DSP-scheduled so firing the hit here doesn't
+            // shift them. Without this the snap only lived in RealtimeCaptureLoop and the
+            // offline video pass (the actual renderer) never snapped — the planet-late bug.
+            // Runs every sim frame so the oversampled in-between steps stay on the beat too.
+            if(Recorder.Conf.SnapPlanetToBeat) {
+                AutoHitSnap.FlushDueAutoHits();
+            }
+
+            // Audio every sim frame: the clip-mux path is keyed to RenderClock and the
+            // AudioRenderer path pumps one capture-frame (captureFramerate == fps*oversample),
+            // so writing at the finer cadence keeps the track continuous and exactly as long
+            // as the video regardless of the oversample factor.
+            if(!WriteFrameAudio()) {
+                Recorder.Error = encoder?.LastError ?? "audio write failed";
                 MainCore.Log.Err($"[Recorder] {Recorder.Error}");
                 Abort();
                 Recorder.Current = Recorder.State.Idle;
@@ -496,8 +534,23 @@ internal sealed class RecorderSession : MonoBehaviour {
                 yield break;
             }
 
-            Recorder.FramesWritten++;
-            Recorder.ControlledDsp = dspTimeSong + renderStart + Recorder.FramesWritten * frameDt; // next frame
+            // Encode a video frame only on oversample boundaries; the in-between sim frames
+            // just advance the simulation (and the snap/audio) as fast as the machine steps.
+            if(simStep % oversample == 0) {
+                if(!CaptureVideoFrame()) {
+                    Recorder.Error = encoder?.LastError ?? "capture failed";
+                    MainCore.Log.Err($"[Recorder] {Recorder.Error}");
+                    Abort();
+                    Recorder.Current = Recorder.State.Idle;
+                    Recorder.OnSessionEnded();
+                    Object.Destroy(gameObject);
+                    yield break;
+                }
+                Recorder.FramesWritten++;
+            }
+
+            simStep++;
+            Recorder.ControlledDsp = dspTimeSong + renderStart + simStep * subDt; // next sim frame
             UpdateRate();
             RecorderOverlay.Set(Recorder.FramesWritten, Recorder.TotalFrames, Recorder.RenderFps);
 
@@ -505,23 +558,24 @@ internal sealed class RecorderSession : MonoBehaviour {
                 break;
             }
         }
+        if(Recorder.Conf.SnapPlanetToBeat) {
+            MainCore.Log.Msg($"[Recorder] tile snap: ran {AutoHitSnap.Invocations} frames, force-advanced a tile on {AutoHitSnap.ForcedAdvances}" +
+                             (AutoHitSnap.Invocations == 0 ? " (NEVER ran — guard blocked: not auto / not PlayerControl)" : ""));
+        }
         CompleteAndSave();
     }
 
-    private bool CaptureFrame() {
-        RenderGameInto(targetRT);
+    // Render + read back + encode ONE video frame. Split from the audio write so the offline
+    // loop can oversample: video is emitted every oversample-th sim frame while audio is
+    // written every sim frame.
+    private bool CaptureVideoFrame() {
+        RenderVideoFrameToBuf();
+        return encoder.WriteVideo(videoBuf, videoBuf.Length);
+    }
 
-        RenderTexture prev = RenderTexture.active;
-        RenderTexture.active = targetRT;
-        readTex.ReadPixels(new Rect(0, 0, width, height), 0, 0, false);
-        RenderTexture.active = prev;
-
-        NativeArray<byte> raw = readTex.GetRawTextureData<byte>();
-        raw.CopyTo(videoBuf);
-        if(!encoder.WriteVideo(videoBuf, videoBuf.Length)) {
-            return false;
-        }
-
+    // Write one sim frame of audio: the live AudioRenderer pull, or the clip mux keyed to
+    // RenderClock (captured-live two-pass buffer, or decoded song file).
+    private bool WriteFrameAudio() {
         return audioCaptureLive ? CaptureLiveAudio() : WriteAudioForFrame();
     }
 
@@ -683,7 +737,7 @@ internal sealed class RecorderSession : MonoBehaviour {
     // sized to the frame rate so audio and picture advance together.
     private bool CaptureLiveAudio() {
         int avail = AudioRenderer.GetSampleCountForCaptureFrame();
-        bool first = Recorder.FramesWritten == 0;
+        bool first = liveAudioFramesWritten == 0;   // one-shot even when oversampling steps before frame 0 is encoded
 
         // Pump a full capture-frame's worth EVERY frame. Two reasons:
         //  1. Some platforms (macOS) report 0 until Render() is actually called — if we
@@ -693,8 +747,9 @@ internal sealed class RecorderSession : MonoBehaviour {
         //  2. Writing a fixed expected count keeps the audio track exactly as long as
         //     the video and a/v aligned, even on frames where Render yields nothing.
         // 48000/60 = 800 exactly; if a rate isn't divisible the FIFO/AAC repacking
-        // absorbs the ±1-sample jitter.
-        int expected = Mathf.Max(1, liveSampleRate / fps);
+        // absorbs the ±1-sample jitter. Divide by the SIM rate (fps*oversample) since this
+        // is pumped once per sim frame, not per encoded video frame.
+        int expected = Mathf.Max(1, liveSampleRate / Mathf.Max(1, fps * simOversample));
         int frames = avail > 0 ? avail : expected;
         int need = frames * liveChannels;
         if(!liveNative.IsCreated || liveNative.Length != need) {

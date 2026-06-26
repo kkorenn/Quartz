@@ -10,15 +10,20 @@ namespace Quartz.Features.Recorder;
 // FFmpeg renderer (Editor tab). Offline, deterministic, frame-by-frame capture
 // bound to a level run.
 //
-// Flow: the player arms the renderer from the menu, then plays a level. scnGame
-// .Play (see RecorderPatches) starts the session; the engine is pinned to a
+// Flow: pressing Render fully reloads the current level from disk and immediately
+// starts capturing from frame zero — no separate "arm then play" step. A normal
+// level reloads via ADOBase.RestartScene (a clean SceneManager reload that re-reads
+// the level from its file and auto-plays); an editor level reloads scnEditor from
+// the saved file and then playtests from the start (see RecorderReload). Either way
+// scnGame.Play (see RecorderPatches) starts the session; the engine is pinned to a
 // fixed frame rate (Time.captureFramerate) and the audio mix is rendered offline
 // (AudioRenderer), so every frame is captured regardless of how long it takes to
 // draw — heavy levels render slower than real time but never skip a frame. While
 // recording the level is locked (pause/exit blocked) and a white progress overlay
 // covers the screen; the capture itself re-renders the game cameras into an
 // off-screen texture, so the overlay is never in the video. The run finalizes when
-// the player lands on the end portal.
+// the player lands on the end portal. Pressed from a menu (no level loaded) it falls
+// back to arming, so the next level played starts the render.
 public static class Recorder {
     public static SettingsFile<RecorderSettings> ConfMgr { get; private set; }
     public static RecorderSettings Conf => ConfMgr?.Data;
@@ -55,6 +60,11 @@ public static class Recorder {
 
     public static bool IsArmed => Current == State.Armed;
     public static bool IsRecording => Current is State.Recording or State.Finalizing;
+
+    // True while a press-Render reload is in flight (the level is reloading and will
+    // start capturing on its own) — distinct from being armed from a menu, where we're
+    // genuinely waiting for the player to start a level. Drives the status line wording.
+    public static bool Reloading { get; internal set; }
 
     // While true, the pause/exit patch swallows TogglePauseGame so the run can't
     // be interrupted mid-render.
@@ -94,7 +104,8 @@ public static class Recorder {
         return dir;
     }
 
-    // Button entry point: arm if idle, disarm if armed, cancel if recording.
+    // Button entry point: start (reload + render) if idle, disarm if armed, cancel if
+    // recording.
     public static void Toggle() {
         switch(Current) {
             case State.Idle: Arm(); break;
@@ -103,8 +114,14 @@ public static class Recorder {
         }
     }
 
-    // Arm the renderer; the next level Play begins capture. If a level is already
-    // playing, restart it so the capture starts from a clean frame zero.
+    // Press Render: arm, then fully reload the current level from disk and start the
+    // capture from frame zero. The reload path depends on context:
+    //   normal play -> ADOBase.RestartScene() reloads the scene from the level file and
+    //                  auto-plays; the scnGame.Play patch fires BeginSession.
+    //   editor      -> reload scnEditor from the saved file, then playtest from the
+    //                  start once it has settled (RecorderReload). Needs a saved file —
+    //                  an unsaved level has nothing on disk to reload.
+    //   no level    -> stay armed; the next level played starts the render.
     public static void Arm() {
         if(Current != State.Idle) {
             return;
@@ -120,21 +137,47 @@ public static class Recorder {
         }
 
         Current = State.Armed;
-        MainCore.Log.Msg("[Recorder] armed — play a level to start rendering");
 
-        // Already in a level? Restart it so capture begins from the top.
         try {
-            if(ADOBase.controller != null && ADOBase.isScnGame && !ADOBase.isLevelEditor) {
-                ADOBase.controller.Restart(false);
+            var ed = ADOBase.isLevelEditor ? ADOBase.editor : null;
+            if(ed != null) {
+                string levelPath = null;
+                try { levelPath = ed.customLevel?.levelPath; } catch { }
+                if(string.IsNullOrEmpty(levelPath)) {
+                    // Nothing on disk to reload — a full reload would open a blank editor.
+                    Error = "save the level before rendering from the editor";
+                    Current = State.Idle;
+                    MainCore.Log.Wrn($"[Recorder] {Error}");
+                    return;
+                }
+                // Full reload from disk (RestartScene re-sets scnEditor.levelToOpenOnLoad),
+                // then playtest from the start once the editor has reloaded.
+                Reloading = true;
+                MainCore.Log.Msg("[Recorder] editor render: full reload from disk, then capture");
+                ADOBase.RestartScene();
+                RecorderReload.PlayEditorFromStartWhenReady();
+            } else if(ADOBase.isScnGame && ADOBase.controller != null) {
+                // Full scene reload: re-reads the level from its file and auto-plays from
+                // frame zero, so the captured run is pristine. scnGame.Play -> BeginSession.
+                Reloading = true;
+                MainCore.Log.Msg("[Recorder] level render: full reload, then capture");
+                ADOBase.RestartScene();
+            } else {
+                // Pressed from a menu / level select — no level to reload yet.
+                Reloading = false;
+                MainCore.Log.Msg("[Recorder] armed — play a level to start rendering");
             }
         } catch(Exception e) {
-            MainCore.Log.Wrn($"[Recorder] restart-on-arm skipped: {e.Message}");
+            // Reload failed but we're still armed; the next Play will start the render.
+            Reloading = false;
+            MainCore.Log.Wrn($"[Recorder] reload-on-start failed, staying armed: {e.Message}");
         }
     }
 
     public static void Disarm() {
         if(Current == State.Armed) {
             Current = State.Idle;
+            Reloading = false;
             MainCore.Log.Msg("[Recorder] disarmed");
         }
     }
@@ -144,6 +187,7 @@ public static class Recorder {
         if(Current != State.Armed) {
             return;
         }
+        Reloading = false;   // the level has loaded and capture is starting
         if(session == null) {
             GameObject go = new("QuartzRecorderSession");
             go.transform.SetParent(MainCore.Root.transform, false);
@@ -178,6 +222,7 @@ public static class Recorder {
         }
         ClearPrepass();
         Current = State.Idle;
+        Reloading = false;
     }
 
     // Hard stop on mod disable / teardown.
@@ -190,6 +235,7 @@ public static class Recorder {
         ClearPrepass();
         RecorderOverlay.Hide();
         Current = State.Idle;
+        Reloading = false;
     }
 
     internal static void OnSessionEnded() => session = null;
@@ -219,6 +265,7 @@ public static class Recorder {
         PrepassStartSongPos = startSongPos;
         session = null;
         Current = State.Armed;
+        Reloading = true;   // video pass is replaying the level, not waiting for the player
         // Replaying for the video pass is context-sensitive: from the editor we must
         // re-enter play via scnEditor.Play() — controller.Restart there drops back to the
         // blank edit view, so scnGame.Play never fires and the video pass never starts.
