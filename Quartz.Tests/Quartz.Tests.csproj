@@ -10,6 +10,7 @@
 	<ItemGroup>
 		<Compile Include="../Quartz/Core/SemVer.cs" Link="Source/SemVer.cs" />
 		<Compile Include="../Quartz/IO/AtomicFile.cs" Link="Source/AtomicFile.cs" />
+		<Compile Include="../Quartz/IO/ProfileNames.cs" Link="Source/ProfileNames.cs" />
 		<Compile Include="../Quartz/Features/KeyViewer/KeyViewerCss.cs" Link="Source/KeyViewerCss.cs" />
 	</ItemGroup>
 </Project>

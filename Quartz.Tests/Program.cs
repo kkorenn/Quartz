@@ -6,6 +6,7 @@ using Quartz.IO;
 List<(string Name, Action Run)> tests = [
     ("SemVer parses and orders channels", TestSemVer),
     ("AtomicFile replaces without temp debris", TestAtomicFile),
+    ("Imported mod profile names are sanitized and uniquified", TestImportedModProfileNames),
     ("Localization keys stay in parity", TestLocalizationParity),
     ("KeyViewer CSS parses the DM Note contract", TestKeyViewerCss),
     ("KeyViewer CSS parses the extended web effects", TestKeyViewerCssExtended),
@@ -47,6 +48,20 @@ static void TestAtomicFile() {
             Directory.Delete(root, true);
         }
     }
+}
+
+static void TestImportedModProfileNames() {
+    HashSet<string> existing = new(StringComparer.OrdinalIgnoreCase) {
+        "Imported - JipperKeyViewer",
+        "Imported - JipperKeyViewer (2)",
+    };
+
+    string first = ProfileNames.ImportedModName("JipperKeyViewer");
+    string unique = ProfileNames.Unique(first, existing.Contains);
+
+    Assert(first == "Imported - JipperKeyViewer", "import base profile name");
+    Assert(unique == "Imported - JipperKeyViewer (3)", "import profile name uniquified");
+    Assert(ProfileNames.ImportedModName("<b>Bad/Name?</b>") == "Imported - bBadNameb", "import profile name sanitized");
 }
 
 static void TestLocalizationParity() {
