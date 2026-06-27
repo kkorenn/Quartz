@@ -61,7 +61,10 @@ public static class JudgementOverlay {
         System.Array.ConvertAll(Judgement.SlotColors, ColorUtility.ToHtmlStringRGB);
     private static readonly string XPerfectHex = ColorUtility.ToHtmlStringRGB(XPerfectColor);
     private static readonly string PlusMinusHex = ColorUtility.ToHtmlStringRGB(PlusMinusPerfectColor);
-    // Reused buffer for the compact row string; SetText(sb) feeds TMP with no alloc.
+    // Reused buffer for the compact row string. Appending into it avoids per-token
+    // allocs; the row is then assigned via .text (one string per change) rather than
+    // SetText(sb), because the sibling drop-shadow mirrors the label's .text and
+    // SetText(StringBuilder) leaves .text stale (see UpdateCompact).
     private static readonly StringBuilder rowBuilder = new(160);
 
     public static void EnsureConf() {
@@ -174,21 +177,37 @@ public static class JudgementOverlay {
     }
 
     // One rich-text label for the whole row: per-slot <color> spans joined by
-    // <space> gaps, the label self-centers (alignment + ContentSizeFitter on its own
-    // rect, pivot 0.5). One mesh / one draw, and a count change re-meshes only this
-    // label with no 9-cell layout solve. The TMP sits on rowObj itself so the
-    // ContentSizeFitter reads its preferred size and the drag surface hugs the text.
+    // <space> gaps, the label self-centers. One mesh / one draw, and a count change
+    // re-meshes only this label with no 9-cell layout solve.
+    //
+    // The label is a CHILD of rowObj, NOT rowObj itself: TMPTextShadow parents a
+    // label's drop-shadow under the label's PARENT, so a label sitting on rowObj
+    // (=root) put its shadow under the CANVAS as a sibling of root — and hiding the
+    // overlay (root.SetActive(false)) left that shadow rendering as a ghost with no
+    // text. As a child, the shadow lands under rowObj and hides with it, exactly like
+    // the multi-label row. A HorizontalLayoutGroup + ContentSizeFitter size rowObj to
+    // the single label (the shadow root sets ignoreLayout, so the group ignores it).
     private static void BuildCompactRow(GameObject rowObj) {
-        rowLabel = rowObj.AddComponent<TextMeshProUGUI>();
+        HorizontalLayoutGroup layout = rowObj.AddComponent<HorizontalLayoutGroup>();
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = false;
+
+        ContentSizeFitter fit = rowObj.AddComponent<ContentSizeFitter>();
+        fit.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        GameObject labelObj = new("RowLabel");
+        labelObj.transform.SetParent(rowObj.transform, false);
+        labelObj.AddComponent<RectTransform>();
+        rowLabel = labelObj.AddComponent<TextMeshProUGUI>();
         rowLabel.font = FontManager.Current;
         rowLabel.alignment = TextAlignmentOptions.Center;
         rowLabel.richText = true;
         rowLabel.raycastTarget = false;
         rowLabel.text = "0";
-
-        ContentSizeFitter fit = rowObj.AddComponent<ContentSizeFitter>();
-        fit.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-        fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
     }
 
     public static void Apply() {
@@ -394,8 +413,8 @@ public static class JudgementOverlay {
         }
 
         // Compact row: rebuild one rich-text string when any count / mode / font /
-        // size / gap changes, then SetText it. No per-cell labels, no 9-cell layout
-        // solve — the only per-hit work is re-meshing this single label.
+        // size / gap changes, then assign it to .text. No per-cell labels, no 9-cell
+        // layout solve — the only per-hit work is re-meshing this single label.
         private void UpdateCompact(TMP_FontAsset font, float fontSize) {
             if(rowLabel.font != font) {
                 rowLabel.font = font;
@@ -466,7 +485,12 @@ public static class JudgementOverlay {
                 }
             }
 
-            rowLabel.SetText(sb);
+            // Assign .text (not SetText(sb)): the sibling drop-shadow mirrors the
+            // label's .text, and SetText(StringBuilder) feeds TMP's char buffer
+            // without updating .text — which left the shadow stuck on the initial
+            // string while the row updated. One string per change still beats the
+            // nine-label row's nine per-label assigns plus its 9-cell layout solve.
+            rowLabel.text = sb.ToString();
 
             // Settle the ContentSizeFitter now so the drag surface (and a sibling
             // shadow, if the underlay is turned off) tracks the new width this frame
