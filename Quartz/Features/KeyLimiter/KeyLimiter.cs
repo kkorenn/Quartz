@@ -229,7 +229,7 @@ public static class KeyLimiter {
             return false;
         }
 
-        KeyCode mappedKey = AsyncKeyMapper.AsyncKeyToUnityKey(label);
+        KeyCode mappedKey = SkyHookKeyMapper.SkyHookKeyToUnityKey(label);
         if(mappedKey == KeyCode.None && IsAllowedGenericModifierVirtualKey(key)) {
             return false;
         }
@@ -306,7 +306,7 @@ public static class KeyLimiter {
     }
 
     public static KeyCode HookKeyToPhysicalUnityKey(ushort key, KeyLabel label) {
-        KeyCode labelKey = AsyncKeyMapper.AsyncKeyToUnityKey(label);
+        KeyCode labelKey = SkyHookKeyMapper.SkyHookKeyToUnityKey(label);
         if(IsNumpadOrArrowKey(labelKey)) {
             return labelKey;
         }
@@ -452,7 +452,7 @@ public static class KeyLimiter {
             case "MouseX2": return KeyCode.Mouse4;
         }
 
-        return AsyncKeyMapper.AsyncKeyToUnityKey(label);
+        return SkyHookKeyMapper.SkyHookKeyToUnityKey(label);
     }
 
     private static KeyCode WindowsVirtualKeyToUnityKey(ushort key) {
