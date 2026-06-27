@@ -142,19 +142,28 @@ public sealed class KeyViewerSettings : ISettingsFile {
     public const int FootSlotBase = 20;
 
     // Font sizes: global multipliers (v1 KeyFontSize / CounterFontSize) with
-    // optional per-key overrides.
+    // optional per-key overrides. The opt-in is PER SLOT: a slot uses its
+    // PerKeyKeyFont/PerKeyCounterFont only when PerKeyFontEnabled[slot] is set,
+    // otherwise the shared scale. PerKeyFontInit records whether a slot was ever
+    // seeded from the shared scale, so the first opt-in matches the current look
+    // instead of snapping to 1x while a later off/on keeps the slot's edits.
+    // (v1 had ONE global flag; Quartz makes it per slot so one key can differ
+    // without flipping the rest.)
     public float KeyFontScale = 1f;
     public float CounterFontScale = 1f;
-    public bool PerKeyFontSizes = false;
-    public bool PerKeyFontInitialized = false;
+    public bool[] PerKeyFontEnabled = new bool[SlotCount];
+    public bool[] PerKeyFontInit = new bool[SlotCount];
     public float[] PerKeyKeyFont = Filled(SlotCount, 1f);
     public float[] PerKeyCounterFont = Filled(SlotCount, 1f);
 
     // Per-key colors (v1 EnablePerKeyColors + PerKey* arrays). Each slot keeps
     // an idle/pressed pair for background, outline and text, plus a rain colour.
-    // Defaults match the global colours so enabling looks identical until edited.
-    public bool PerKeyColors = false;
-    public bool PerKeyColorsInitialized = false;
+    // The opt-in is PER SLOT (PerKeyColorEnabled[slot]) like the fonts above —
+    // enabling one key never touches the others; PerKeyColorInit tracks the
+    // first-seed-from-global per slot. Defaults match the global colours so a
+    // freshly-seeded slot looks identical until edited.
+    public bool[] PerKeyColorEnabled = new bool[SlotCount];
+    public bool[] PerKeyColorInit = new bool[SlotCount];
     public Color[] PerKeyBg = FilledColor(SlotCount, new Color(1f, 0.2352941f, 0.2352941f, 0.1960784f));
     public Color[] PerKeyBgPressed = FilledColor(SlotCount, new Color(1f, 1f, 1f, 1f));
     public Color[] PerKeyOutline = FilledColor(SlotCount, new Color(1f, 0f, 0f, 1f));
@@ -251,41 +260,96 @@ public sealed class KeyViewerSettings : ISettingsFile {
     public Color GetRain3() => new(Rain3R, Rain3G, Rain3B, Rain3A);
     public void SetRain3(Color c) { Rain3R = c.r; Rain3G = c.g; Rain3B = c.b; Rain3A = c.a; }
 
-    // Per-key resolvers: the slot's override when per-key is on and the slot is
+    // Per-key resolvers: the slot's override when that slot has opted in and is
     // in range, otherwise the matching global value.
     public Color PerKeyOr(Color[] arr, int slot, Color global) =>
-        PerKeyColors && arr != null && slot >= 0 && slot < arr.Length ? arr[slot] : global;
+        arr != null && slot >= 0 && slot < arr.Length
+        && slot < PerKeyColorEnabled.Length && PerKeyColorEnabled[slot]
+            ? arr[slot] : global;
 
     public float KeyFontFor(int slot) =>
-        PerKeyFontSizes && slot >= 0 && slot < PerKeyKeyFont.Length ? PerKeyKeyFont[slot] : KeyFontScale;
+        slot >= 0 && slot < PerKeyKeyFont.Length
+        && slot < PerKeyFontEnabled.Length && PerKeyFontEnabled[slot]
+            ? PerKeyKeyFont[slot] : KeyFontScale;
 
     public float CounterFontFor(int slot) =>
-        PerKeyFontSizes && slot >= 0 && slot < PerKeyCounterFont.Length ? PerKeyCounterFont[slot] : CounterFontScale;
+        slot >= 0 && slot < PerKeyCounterFont.Length
+        && slot < PerKeyFontEnabled.Length && PerKeyFontEnabled[slot]
+            ? PerKeyCounterFont[slot] : CounterFontScale;
 
     // Copy the current global colours / font scales into every slot. Used to
     // seed the per-key arrays the first time the user enables them so the view
     // doesn't jump, and from the page's "copy from global" buttons.
     public void SeedPerKeyColorsFromGlobal() {
         for(int i = 0; i < SlotCount; i++) {
-            PerKeyBg[i] = GetBg();
-            PerKeyBgPressed[i] = GetBgPressed();
-            PerKeyOutline[i] = GetOutline();
-            PerKeyOutlinePressed[i] = GetOutlinePressed();
-            PerKeyText[i] = GetText();
-            PerKeyTextPressed[i] = GetTextPressed();
-            PerKeyRain[i] = GetRain();
+            SeedPerKeyColorsFromGlobal(i);
         }
+    }
+
+    // Seed a single slot's colours from the current shared values. Called when a
+    // slot first opts in so it keeps the current look rather than snapping to the
+    // array defaults.
+    public void SeedPerKeyColorsFromGlobal(int slot) {
+        if(slot < 0 || slot >= SlotCount) {
+            return;
+        }
+        PerKeyBg[slot] = GetBg();
+        PerKeyBgPressed[slot] = GetBgPressed();
+        PerKeyOutline[slot] = GetOutline();
+        PerKeyOutlinePressed[slot] = GetOutlinePressed();
+        PerKeyText[slot] = GetText();
+        PerKeyTextPressed[slot] = GetTextPressed();
+        PerKeyRain[slot] = GetRain();
     }
 
     public void SeedPerKeyFontFromGlobal() {
         for(int i = 0; i < SlotCount; i++) {
-            PerKeyKeyFont[i] = KeyFontScale;
-            PerKeyCounterFont[i] = CounterFontScale;
+            SeedPerKeyFontFromGlobal(i);
+        }
+    }
+
+    public void SeedPerKeyFontFromGlobal(int slot) {
+        if(slot < 0 || slot >= SlotCount) {
+            return;
+        }
+        PerKeyKeyFont[slot] = KeyFontScale;
+        PerKeyCounterFont[slot] = CounterFontScale;
+    }
+
+    // Copy one slot's per-key colours onto every slot and opt them all in, so a
+    // "copy this key to all" action makes the whole viewer match the edited key.
+    // (The shared-colour seeders above are the inverse — global onto the slots.)
+    public void CopyPerKeyColorsToAll(int slot) {
+        if(slot < 0 || slot >= SlotCount) {
+            return;
+        }
+        Color bg = PerKeyBg[slot], bgP = PerKeyBgPressed[slot];
+        Color ol = PerKeyOutline[slot], olP = PerKeyOutlinePressed[slot];
+        Color tx = PerKeyText[slot], txP = PerKeyTextPressed[slot];
+        Color rn = PerKeyRain[slot];
+        for(int i = 0; i < SlotCount; i++) {
+            PerKeyBg[i] = bg;
+            PerKeyBgPressed[i] = bgP;
+            PerKeyOutline[i] = ol;
+            PerKeyOutlinePressed[i] = olP;
+            PerKeyText[i] = tx;
+            PerKeyTextPressed[i] = txP;
+            PerKeyRain[i] = rn;
+            PerKeyColorEnabled[i] = true;
+            PerKeyColorInit[i] = true;
         }
     }
 
     private static float[] Filled(int n, float v) {
         float[] a = new float[n];
+        for(int i = 0; i < n; i++) {
+            a[i] = v;
+        }
+        return a;
+    }
+
+    private static bool[] Filled(int n, bool v) {
+        bool[] a = new bool[n];
         for(int i = 0; i < n; i++) {
             a[i] = v;
         }
@@ -383,12 +447,12 @@ public sealed class KeyViewerSettings : ISettingsFile {
             [nameof(TextPressedR)] = TextPressedR, [nameof(TextPressedG)] = TextPressedG, [nameof(TextPressedB)] = TextPressedB, [nameof(TextPressedA)] = TextPressedA,
             [nameof(KeyFontScale)] = KeyFontScale,
             [nameof(CounterFontScale)] = CounterFontScale,
-            [nameof(PerKeyFontSizes)] = PerKeyFontSizes,
-            [nameof(PerKeyFontInitialized)] = PerKeyFontInitialized,
+            [nameof(PerKeyFontEnabled)] = new JArray(PerKeyFontEnabled),
+            [nameof(PerKeyFontInit)] = new JArray(PerKeyFontInit),
             [nameof(PerKeyKeyFont)] = new JArray(PerKeyKeyFont),
             [nameof(PerKeyCounterFont)] = new JArray(PerKeyCounterFont),
-            [nameof(PerKeyColors)] = PerKeyColors,
-            [nameof(PerKeyColorsInitialized)] = PerKeyColorsInitialized,
+            [nameof(PerKeyColorEnabled)] = new JArray(PerKeyColorEnabled),
+            [nameof(PerKeyColorInit)] = new JArray(PerKeyColorInit),
             [nameof(PerKeyBg)] = WriteColors(PerKeyBg),
             [nameof(PerKeyBgPressed)] = WriteColors(PerKeyBgPressed),
             [nameof(PerKeyOutline)] = WriteColors(PerKeyOutline),
@@ -521,12 +585,19 @@ public sealed class KeyViewerSettings : ISettingsFile {
 
         KeyFontScale = IOUtils.Read(token, nameof(KeyFontScale), KeyFontScale);
         CounterFontScale = IOUtils.Read(token, nameof(CounterFontScale), CounterFontScale);
-        PerKeyFontSizes = IOUtils.Read(token, nameof(PerKeyFontSizes), PerKeyFontSizes);
-        PerKeyFontInitialized = IOUtils.Read(token, nameof(PerKeyFontInitialized), PerKeyFontInitialized);
         PerKeyKeyFont = ReadFloats(token, nameof(PerKeyKeyFont), PerKeyKeyFont);
         PerKeyCounterFont = ReadFloats(token, nameof(PerKeyCounterFont), PerKeyCounterFont);
-        PerKeyColors = IOUtils.Read(token, nameof(PerKeyColors), PerKeyColors);
-        PerKeyColorsInitialized = IOUtils.Read(token, nameof(PerKeyColorsInitialized), PerKeyColorsInitialized);
+        // Per-slot opt-in arrays. A pre-per-slot save has a single global
+        // PerKeyFontSizes/PerKeyColors (+*Initialized) bool — fan each old flag
+        // out across every slot so existing per-key users keep their look.
+        PerKeyFontEnabled = ReadBools(token, nameof(PerKeyFontEnabled),
+            Filled(SlotCount, IOUtils.Read(token, "PerKeyFontSizes", false)));
+        PerKeyFontInit = ReadBools(token, nameof(PerKeyFontInit),
+            Filled(SlotCount, IOUtils.Read(token, "PerKeyFontInitialized", false)));
+        PerKeyColorEnabled = ReadBools(token, nameof(PerKeyColorEnabled),
+            Filled(SlotCount, IOUtils.Read(token, "PerKeyColors", false)));
+        PerKeyColorInit = ReadBools(token, nameof(PerKeyColorInit),
+            Filled(SlotCount, IOUtils.Read(token, "PerKeyColorsInitialized", false)));
         PerKeyBg = ReadColors(token, nameof(PerKeyBg), PerKeyBg);
         PerKeyBgPressed = ReadColors(token, nameof(PerKeyBgPressed), PerKeyBgPressed);
         PerKeyOutline = ReadColors(token, nameof(PerKeyOutline), PerKeyOutline);
@@ -616,6 +687,22 @@ public sealed class KeyViewerSettings : ISettingsFile {
             float[] result = new float[arr.Count];
             for(int i = 0; i < arr.Count; i++) {
                 result[i] = arr[i].Value<float>();
+            }
+            return result;
+        } catch {
+            return fallback;
+        }
+    }
+
+    private static bool[] ReadBools(JToken token, string name, bool[] fallback) {
+        if(token[name] is not JArray arr || arr.Count != fallback.Length) {
+            return fallback;
+        }
+
+        try {
+            bool[] result = new bool[arr.Count];
+            for(int i = 0; i < arr.Count; i++) {
+                result[i] = arr[i].Value<bool>();
             }
             return result;
         } catch {

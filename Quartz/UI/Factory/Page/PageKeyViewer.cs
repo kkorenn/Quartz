@@ -209,9 +209,11 @@ internal static class PageKeyViewer {
             int style = Mathf.Clamp(conf.Style, 0, KeyViewerSettings.MaxStyle);
             foreach((int slot, (Image fill, Image border, TextMeshProUGUI label)) in previewBoxes) {
                 bool selected = slot == selectedSlot;
-                fill.color = conf.GetBg();
-                border.color = selected ? UIColors.ObjectActive : conf.GetOutline();
-                label.color = conf.GetText();
+                fill.color = conf.PerKeyOr(conf.PerKeyBg, slot, conf.GetBg());
+                border.color = selected
+                    ? UIColors.ObjectActive
+                    : conf.PerKeyOr(conf.PerKeyOutline, slot, conf.GetOutline());
+                label.color = conf.PerKeyOr(conf.PerKeyText, slot, conf.GetText());
                 label.text = selected && listening ? "..." : KeyViewerOverlay.LabelFor(style, slot);
             }
 
@@ -464,29 +466,41 @@ internal static class PageKeyViewer {
         );
         labelInput.InputField.characterLimit = 8;
 
-        // Colors: a collapsible whose header dot IS the per-key-colours enable.
-        // Body holds this key's colour pickers plus its ghost (secondary) key.
-        var colorsSec = GenerateUI.Collapsible(
-            popup, "Colors", startExpanded: false,
+        // Colors: a collapsible whose first body row is the per-key-colours
+        // enable for THIS slot (each key opts in on its own — no global switch),
+        // followed by this key's colour pickers.
+        var colorsSec = GenerateUI.Collapsible(popup, "Colors", startExpanded: false);
+
+        UIToggle pkColorsEnable = GenerateUI.Toggle(
+            GenerateUI.Row(colorsSec.Body),
+            false, conf.PerKeyColorEnabled[0],
             v => {
-                conf.PerKeyColors = v;
-                if(v && !conf.PerKeyColorsInitialized) {
-                    conf.SeedPerKeyColorsFromGlobal();
-                    conf.PerKeyColorsInitialized = true;
+                if(!SlotValid()) {
+                    return;
+                }
+                conf.PerKeyColorEnabled[selectedSlot] = v;
+                if(v && !conf.PerKeyColorInit[selectedSlot]) {
+                    conf.SeedPerKeyColorsFromGlobal(selectedSlot);
+                    conf.PerKeyColorInit[selectedSlot] = true;
                 }
                 Apply();
                 Save();
                 refreshPopup?.Invoke();
+                RefreshPreviewVisuals();
             },
-            conf.PerKeyColors
+            "Separate Colors For This Key", "keyviewer_pk_colorsenable"
+        );
+        pkColorsEnable.Rect.AddToolTip(
+            "DESC_KEYVIEWER_PK_COLORSENABLE",
+            "Give just this key its own colours. The other keys keep the shared colours until you turn theirs on too."
         );
 
         UIColorPicker PerKeyColor(string label, string id, Color[] arr, Func<Color> fallback) =>
             GenerateUI.ColorPicker(
                 GenerateUI.Row(colorsSec.Body),
                 fallback(), fallback(),
-                c => { if(SlotValid()) { arr[selectedSlot] = c; Apply(); } },
-                c => { if(SlotValid()) { arr[selectedSlot] = c; Apply(); Save(); } },
+                c => { if(SlotValid()) { arr[selectedSlot] = c; Apply(); RefreshPreviewVisuals(); } },
+                c => { if(SlotValid()) { arr[selectedSlot] = c; Apply(); Save(); RefreshPreviewVisuals(); } },
                 label, id
             );
 
@@ -498,20 +512,31 @@ internal static class PageKeyViewer {
         UIColorPicker pkTextPressed = PerKeyColor("Text Pressed", "keyviewer_pk_textpressed", conf.PerKeyTextPressed, conf.GetTextPressed);
         UIColorPicker pkRain = PerKeyColor("Rain", "keyviewer_pk_rain", conf.PerKeyRain, conf.GetRain);
 
-        // Fonts: a collapsible whose header dot IS the per-key font-size enable.
-        var fontsSec = GenerateUI.Collapsible(
-            popup, "Fonts", startExpanded: false,
+        // Fonts: a collapsible whose first body row is the per-key font-size
+        // enable for THIS slot (per-key, like the colours above).
+        var fontsSec = GenerateUI.Collapsible(popup, "Fonts", startExpanded: false);
+
+        UIToggle pkFontEnable = GenerateUI.Toggle(
+            GenerateUI.Row(fontsSec.Body),
+            false, conf.PerKeyFontEnabled[0],
             v => {
-                conf.PerKeyFontSizes = v;
-                if(v && !conf.PerKeyFontInitialized) {
-                    conf.SeedPerKeyFontFromGlobal();
-                    conf.PerKeyFontInitialized = true;
+                if(!SlotValid()) {
+                    return;
+                }
+                conf.PerKeyFontEnabled[selectedSlot] = v;
+                if(v && !conf.PerKeyFontInit[selectedSlot]) {
+                    conf.SeedPerKeyFontFromGlobal(selectedSlot);
+                    conf.PerKeyFontInit[selectedSlot] = true;
                 }
                 KeyViewerOverlay.Rebuild();
                 Save();
                 refreshPopup?.Invoke();
             },
-            conf.PerKeyFontSizes
+            "Separate Font Sizes For This Key", "keyviewer_pk_fontenable"
+        );
+        pkFontEnable.Rect.AddToolTip(
+            "DESC_KEYVIEWER_PK_FONTENABLE",
+            "Give just this key its own font sizes. The other keys keep the shared sizes until you turn theirs on too."
         );
 
         UISlider pkKeyFont = GenerateUI.Slider(
@@ -569,16 +594,36 @@ internal static class PageKeyViewer {
             () => {
                 conf.SeedPerKeyColorsFromGlobal();
                 conf.SeedPerKeyFontFromGlobal();
-                conf.PerKeyColorsInitialized = true;
-                conf.PerKeyFontInitialized = true;
+                for(int i = 0; i < KeyViewerSettings.SlotCount; i++) {
+                    conf.PerKeyColorInit[i] = true;
+                    conf.PerKeyFontInit[i] = true;
+                }
                 KeyViewerOverlay.Rebuild();
                 Save();
                 refreshPopup?.Invoke();
+                RefreshPreviewVisuals();
             },
             "Copy Global to All Keys", "keyviewer_pk_copyglobal"
         ).SetNeutral().Rect.AddToolTip(
             "DESC_KEYVIEWER_PK_COPYGLOBAL",
             "Overwrite every key's per-key colours and font sizes with the current shared values."
+        );
+
+        GenerateUI.Button(
+            GenerateUI.Row(popup),
+            () => {
+                if(SlotValid()) {
+                    conf.CopyPerKeyColorsToAll(selectedSlot);
+                    Apply();
+                    Save();
+                    refreshPopup?.Invoke();
+                    RefreshPreviewVisuals();
+                }
+            },
+            "Copy This Key's Colors to All Keys", "keyviewer_pk_copythis"
+        ).SetNeutral().Rect.AddToolTip(
+            "DESC_KEYVIEWER_PK_COPYTHIS",
+            "Copy this key's colours onto every key and turn on separate colours for all of them."
         );
 
         GenerateUI.Button(
@@ -618,6 +663,8 @@ internal static class PageKeyViewer {
             labelInput.Set(idx >= 0 && idx < overrides.Length ? overrides[idx] ?? "" : "", invoke: false);
 
             int s = selectedSlot;
+            pkColorsEnable.Set(conf.PerKeyColorEnabled[s], invoke: false);
+            pkFontEnable.Set(conf.PerKeyFontEnabled[s], invoke: false);
             pkKeyFont.Set(conf.PerKeyKeyFont[s], invoke: false);
             pkCounterFont.Set(conf.PerKeyCounterFont[s], invoke: false);
             pkBg.Set(conf.PerKeyBg[s], invoke: false);
