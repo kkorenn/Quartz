@@ -182,12 +182,15 @@ internal sealed class RecorderSession : MonoBehaviour {
 
         if(Recorder.PrepassAudio != null) {
             // Live mix captured in the audio pass — mux it like a song clip, keyed to song
-            // position (buffer[0] == song position PrepassStartSongPos).
+            // position (buffer[0] == song position PrepassStartSongPos). The level's audio
+            // offset is ALREADY baked into this capture (the game played the song with it),
+            // so unlike the raw-file paths we do NOT add LevelOffsetSec here — only the
+            // optional manual fine-tune (0 by default).
             clipData = Recorder.PrepassAudio;
             clipChannels = Recorder.PrepassChannels;
             clipSampleRate = Recorder.PrepassRate;
             clipFrames = clipData.Length / Mathf.Max(1, clipChannels);
-            audioOffsetSec = -Recorder.PrepassStartSongPos;
+            audioOffsetSec = -Recorder.PrepassStartSongPos + Recorder.Conf.AudioOffsetMs / 1000.0;
             audioCursor = (long)Math.Round((startClock + audioOffsetSec) * clipSampleRate);
             MainCore.Log.Msg($"[Recorder] VIDEO PASS (2/2): muxing captured live audio {clipSampleRate}Hz {clipChannels}ch, " +
                              $"{clipFrames} frames, start songpos {Recorder.PrepassStartSongPos:0.000}");
@@ -960,6 +963,22 @@ internal sealed class RecorderSession : MonoBehaviour {
         return 0.0;
     }
 
+    // The level's own audio offset in seconds — the .adofai "offset" (ms) the chart was
+    // authored with, i.e. the lead-in between the song file's start and the first beat.
+    // The conductor exposes it as addoffset (set to levelData.offset * 0.001 in
+    // SetupConductorWithLevelData). songposition = clip_time - offset, so a raw song clip
+    // is read at clip_time = song_position + offset. Zero when no level/conductor is live.
+    private static double LevelOffsetSec() {
+        try {
+            scrConductor cd = scrConductor.instance;
+            // skipOffset: the conductor is playing without the lead-in (so song_position
+            // already equals clip_time) — don't re-apply the offset in that case.
+            return cd != null && !cd.skipOffset ? cd.addoffset : 0.0;
+        } catch {
+            return 0.0;
+        }
+    }
+
     private static double ComputeEndClock(double startClock) {
         const double tail = 3.0; // capture the outro after the last tile
         try {
@@ -986,15 +1005,15 @@ internal sealed class RecorderSession : MonoBehaviour {
                 clipChannels = ch;
                 clipFrames = pcm.Length / ch;
 
-                // Audio sync is a per-render adjustment driven entirely by the user
-                // Audio Offset slider (the level's own offset value doesn't map
-                // cleanly to clip time, so auto-applying it over/under-shot).
-                // clip_time = song_position + AudioOffset.
-                audioOffsetSec = Recorder.Conf.AudioOffsetMs / 1000.0;
+                // The raw song file isn't pre-shifted, so sync it with the LEVEL's own
+                // audio offset (the .adofai "offset", read live as scrConductor.addoffset):
+                // clip_time = song_position + offset. The manual AudioOffsetMs is an
+                // optional fine-tune added on top (0 by default).
+                audioOffsetSec = LevelOffsetSec() + Recorder.Conf.AudioOffsetMs / 1000.0;
                 audioCursor = (long)Math.Round((startClock + audioOffsetSec) * sr);
 
                 MainCore.Log.Msg($"[Recorder] audio from {Path.GetFileName(songPath)}: {sr}Hz {ch}ch, " +
-                                 $"{clipFrames} frames, audio offset {audioOffsetSec:0.000}s");
+                                 $"{clipFrames} frames, audio offset {audioOffsetSec:0.000}s (level {LevelOffsetSec():0.000}s)");
                 return;
             }
         }
@@ -1068,7 +1087,10 @@ internal sealed class RecorderSession : MonoBehaviour {
                 clipData = null;
                 return;
             }
-            audioCursor = (long)Math.Round(startClock * clipSampleRate);
+            // Same level audio offset (+ manual fine-tune) as the decoded-file path; the
+            // in-memory clip is just as un-shifted, so it needs the offset too.
+            audioOffsetSec = LevelOffsetSec() + Recorder.Conf.AudioOffsetMs / 1000.0;
+            audioCursor = (long)Math.Round((startClock + audioOffsetSec) * clipSampleRate);
         } catch(Exception e) {
             MainCore.Log.Wrn($"[Recorder] couldn't read song clip ({e.Message}); no audio");
             clipData = null;

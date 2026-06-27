@@ -69,10 +69,12 @@ public sealed class RecorderSettings : ISettingsFile {
     // On by default; an escape hatch if a specific level interacts badly with it.
     public bool SnapPlanetToBeat = true;
 
-    // Audio sync offset in milliseconds (clip_time = song_position + this).
-    // -2000 lines the song up with the deterministic render start; kept as a
-    // setting (JSON-editable) but no longer exposed as a slider.
-    public int AudioOffsetMs = -2000;
+    // OPTIONAL manual audio-sync fine-tune in milliseconds, added on top of the
+    // level's own audio offset (the .adofai "offset", read live from the conductor —
+    // see RecorderSession.LevelOffsetSec). The level offset already lines the song up,
+    // so this defaults to 0; nudge it only if a particular file/encoder still drifts.
+    // JSON-editable, no slider.
+    public int AudioOffsetMs = 0;
 
     // Warm-up: seconds of silent planet-spin BEFORE recording starts (not captured).
     // An auto render forces fastTakeoff/forceNoCountdown, so the game jumps straight
