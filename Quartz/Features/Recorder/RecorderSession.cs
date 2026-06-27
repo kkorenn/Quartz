@@ -68,6 +68,8 @@ internal sealed class RecorderSession : MonoBehaviour {
     private double dspTimeSong;     // conductor's song anchor (deterministic start)
     private double renderStart;     // song position the render starts at
     private double warmupSeconds;   // real-time planet-spin settle before recording (not captured)
+    private int preRollFrames;      // opening frames held + CAPTURED before the song (0 = off)
+    private float[] preRollSilence; // one video-frame of silence, reused for every held frame
 
     // Audio muxed from the song clip.
     private float[] clipData;       // interleaved PCM, or null for silent render
@@ -237,7 +239,14 @@ internal sealed class RecorderSession : MonoBehaviour {
         readTex = new Texture2D(width, height, TextureFormat.RGBA32, false);
         videoBuf = new byte[width * height * 4];
 
-        Recorder.TotalFrames = Mathf.Max(0, Mathf.CeilToInt((float)((endClock - startClock) / frameDt)));
+        // Pre-roll: a held still of the opening, captured before the song. Only on the
+        // muxed-audio paths (clipData != null), where the matching silence can be written
+        // — the live AudioRenderer pull has no silence to emit. Counts toward the total.
+        preRollFrames = clipData != null
+            ? Mathf.Max(0, Mathf.RoundToInt(Mathf.Clamp(c.PreRollSeconds, 0f, 30f) * fps))
+            : 0;
+
+        Recorder.TotalFrames = Mathf.Max(0, Mathf.CeilToInt((float)((endClock - startClock) / frameDt))) + preRollFrames;
         Recorder.FramesWritten = 0;
         Recorder.OutputPath = outPath;
         Recorder.Error = null;
@@ -535,6 +544,54 @@ internal sealed class RecorderSession : MonoBehaviour {
             RecorderOverlay.Show();
             RecorderOverlay.Set(0, Recorder.TotalFrames, 0);
             wallClock.Restart();   // rate/ETA covers the recorded portion, not the warm-up
+        }
+
+        // Pre-roll: hold the opening still and CAPTURE it (with silent audio) before the
+        // song, so the clip opens on the start instead of cutting onto the first note. One
+        // render, reused for every held frame. Clip-mux paths only (preRollFrames is 0
+        // otherwise), so the silence written here matches the muxed audio track frame-for-
+        // frame and the song below stays sample-aligned (audioCursor is untouched — the
+        // silence is written straight to the encoder, not pulled from the clip).
+        if(preRollFrames > 0) {
+            Recorder.RenderClock = renderStart;
+            Recorder.ControlledDsp = dspTimeSong + renderStart;
+            RenderVideoFrameToBuf();   // the opening frame, held for the whole pre-roll
+
+            int silPerFrame = Mathf.Max(1, clipSampleRate / Mathf.Max(1, fps));
+            int silLen = silPerFrame * Mathf.Max(1, clipChannels);
+            if(preRollSilence == null || preRollSilence.Length != silLen) {
+                preRollSilence = new float[silLen];
+            }
+
+            for(int k = 0; running && k < preRollFrames; k++) {
+                yield return endOfFrame;
+                if(!running) {
+                    break;
+                }
+                if(Input.GetKeyDown(KeyCode.Escape)) {
+                    MainCore.Log.Msg("[Recorder] cancelled by user (pre-roll)");
+                    Abort();
+                    Recorder.Current = Recorder.State.Idle;
+                    Recorder.OnSessionEnded();
+                    Object.Destroy(gameObject);
+                    yield break;
+                }
+                // Keep the conductor pinned at tile 0 so it can't drift during the hold.
+                Recorder.ControlledDsp = dspTimeSong + renderStart;
+                if(!encoder.WriteVideo(videoBuf, videoBuf.Length)
+                   || !encoder.WriteAudio(preRollSilence, silPerFrame)) {
+                    Recorder.Error = encoder?.LastError ?? "pre-roll write failed";
+                    MainCore.Log.Err($"[Recorder] {Recorder.Error}");
+                    Abort();
+                    Recorder.Current = Recorder.State.Idle;
+                    Recorder.OnSessionEnded();
+                    Object.Destroy(gameObject);
+                    yield break;
+                }
+                Recorder.FramesWritten++;
+                UpdateRate();
+                RecorderOverlay.Set(Recorder.FramesWritten, Recorder.TotalFrames, Recorder.RenderFps);
+            }
         }
 
         AutoHitSnap.ResetStats();

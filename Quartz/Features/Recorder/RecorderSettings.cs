@@ -90,6 +90,16 @@ public sealed class RecorderSettings : ISettingsFile {
     // losing the song start, so that path ignores it. Clamped 0..30.
     public float LeadInSeconds = 5f;
 
+    // Pre-roll: seconds of the opening frame held — and CAPTURED — at the very start
+    // of the output, before the song begins. Unlike LeadInSeconds (a silent warm-up
+    // that is NOT in the video), this IS in the video: the clip opens on a still of
+    // the start with silent audio for this long, then the song plays. Gives the
+    // viewer a beat to settle before the chart kicks off instead of a hard cut onto
+    // the first note. Applies only to the muxed-audio paths (file mux and the macOS
+    // two-pass video pass), where the matching silence can be written; 0 disables it.
+    // Clamped 0..30.
+    public float PreRollSeconds = 2f;
+
     // Unity reads back textures bottom-up; the captured frame usually needs a
     // vertical flip. Exposed so it can be corrected if a platform differs.
     public bool FlipVertical = true;
@@ -117,6 +127,7 @@ public sealed class RecorderSettings : ISettingsFile {
             [nameof(SnapPlanetToBeat)] = SnapPlanetToBeat,
             [nameof(AudioOffsetMs)] = AudioOffsetMs,
             [nameof(LeadInSeconds)] = LeadInSeconds,
+            [nameof(PreRollSeconds)] = PreRollSeconds,
             [nameof(FlipVertical)] = FlipVertical,
             [nameof(OutputDirectory)] = OutputDirectory,
             [nameof(SampleMode)] = SampleMode,
@@ -141,6 +152,7 @@ public sealed class RecorderSettings : ISettingsFile {
         SnapPlanetToBeat = IOUtils.Read(token, nameof(SnapPlanetToBeat), SnapPlanetToBeat);
         AudioOffsetMs = IOUtils.Read(token, nameof(AudioOffsetMs), AudioOffsetMs);
         LeadInSeconds = IOUtils.Read(token, nameof(LeadInSeconds), LeadInSeconds);
+        PreRollSeconds = IOUtils.Read(token, nameof(PreRollSeconds), PreRollSeconds);
         FlipVertical = IOUtils.Read(token, nameof(FlipVertical), FlipVertical);
         OutputDirectory = IOUtils.Read(token, nameof(OutputDirectory), OutputDirectory);
         SampleMode = IOUtils.Read(token, nameof(SampleMode), SampleMode);

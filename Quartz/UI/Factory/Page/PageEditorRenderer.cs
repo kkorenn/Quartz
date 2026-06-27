@@ -157,6 +157,22 @@ internal static partial class PageEditor {
             "Seconds the planet spins silently to warm up before recording starts — this is NOT in the video. An auto render skips the count-in and begins on the frame the level loads, while the pipeline is still priming, which can leave the whole clip out of sync. The warm-up absorbs that hitch, then recording begins clean at the song. 0 turns it off."
         );
 
+        // --- Pre-roll (a held opening still that IS captured before the song) ---
+        static float preRollFilter(float v) => Mathf.Clamp(Mathf.Round(v * 2f) / 2f, 0f, 30f);
+        UISlider preRoll = GenerateUI.Slider(
+            GenerateUI.Row(content),
+            def.PreRollSeconds,
+            0f, 10f, conf.PreRollSeconds, preRollFilter, null, null,
+            "Opening Hold", "editor_render_preroll"
+        );
+        preRoll.Format = "0.0 s";
+        preRoll.OnChanged = v => conf.PreRollSeconds = v;
+        preRoll.OnComplete = v => { conf.PreRollSeconds = v; Recorder.Save(); };
+        preRoll.Rect.AddToolTip(
+            "DESC_EDITOR_RENDER_PREROLL",
+            "Seconds the video holds on the opening still — with silent audio — before the song starts. Unlike the warm-up spin, this IS in the output: the clip opens on a freeze of the start, then plays, so it doesn't cut straight onto the first note. 0 turns it off."
+        );
+
         // --- Video bitrate (Mbps in the UI, stored as kbps) ---
         static float mbpsFilter(float v) => Mathf.Round(v);
         UISlider bitrate = GenerateUI.Slider(
