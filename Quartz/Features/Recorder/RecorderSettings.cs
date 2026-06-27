@@ -74,6 +74,20 @@ public sealed class RecorderSettings : ISettingsFile {
     // setting (JSON-editable) but no longer exposed as a slider.
     public int AudioOffsetMs = -2000;
 
+    // Warm-up: seconds of silent planet-spin BEFORE recording starts (not captured).
+    // An auto render forces fastTakeoff/forceNoCountdown, so the game jumps straight
+    // into the song with no count-in — the render would otherwise begin on the exact
+    // frame the level loads, where the encoder/camera/readback path is still priming,
+    // which shows up as the song being out of sync for the whole clip. The warm-up
+    // spins the planet (held in the pre-tile-0 region; its angle is linear in song
+    // position) for this many seconds of real time WITHOUT encoding and with the song
+    // muted, so the priming hitch is absorbed during the spin; recording then begins
+    // clean at tile 0. The spin is NOT in the output — the video starts at the song.
+    // 0 disables it. Applies to the muxed-audio paths (incl. the macOS two-pass video
+    // pass) and silent renders; the live AudioRenderer pull can't run silently without
+    // losing the song start, so that path ignores it. Clamped 0..30.
+    public float LeadInSeconds = 5f;
+
     // Unity reads back textures bottom-up; the captured frame usually needs a
     // vertical flip. Exposed so it can be corrected if a platform differs.
     public bool FlipVertical = true;
@@ -100,6 +114,7 @@ public sealed class RecorderSettings : ISettingsFile {
             [nameof(Oversample)] = Oversample,
             [nameof(SnapPlanetToBeat)] = SnapPlanetToBeat,
             [nameof(AudioOffsetMs)] = AudioOffsetMs,
+            [nameof(LeadInSeconds)] = LeadInSeconds,
             [nameof(FlipVertical)] = FlipVertical,
             [nameof(OutputDirectory)] = OutputDirectory,
             [nameof(SampleMode)] = SampleMode,
@@ -123,6 +138,7 @@ public sealed class RecorderSettings : ISettingsFile {
         Oversample = IOUtils.Read(token, nameof(Oversample), Oversample);
         SnapPlanetToBeat = IOUtils.Read(token, nameof(SnapPlanetToBeat), SnapPlanetToBeat);
         AudioOffsetMs = IOUtils.Read(token, nameof(AudioOffsetMs), AudioOffsetMs);
+        LeadInSeconds = IOUtils.Read(token, nameof(LeadInSeconds), LeadInSeconds);
         FlipVertical = IOUtils.Read(token, nameof(FlipVertical), FlipVertical);
         OutputDirectory = IOUtils.Read(token, nameof(OutputDirectory), OutputDirectory);
         SampleMode = IOUtils.Read(token, nameof(SampleMode), SampleMode);

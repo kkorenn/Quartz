@@ -141,6 +141,22 @@ internal static partial class PageEditor {
             "How fast the output plays relative to real time. 1.00x is the level exactly as played; lower is slow-motion, higher is sped up. Audio is stretched or compressed to match."
         );
 
+        // --- Warm-up spin (silent settle before recording; not captured) ---
+        static float leadInFilter(float v) => Mathf.Clamp(Mathf.Round(v * 2f) / 2f, 0f, 30f);
+        UISlider leadIn = GenerateUI.Slider(
+            GenerateUI.Row(content),
+            def.LeadInSeconds,
+            0f, 15f, conf.LeadInSeconds, leadInFilter, null, null,
+            "Warm-Up Spin", "editor_render_leadin"
+        );
+        leadIn.Format = "0.0 s";
+        leadIn.OnChanged = v => conf.LeadInSeconds = v;
+        leadIn.OnComplete = v => { conf.LeadInSeconds = v; Recorder.Save(); };
+        leadIn.Rect.AddToolTip(
+            "DESC_EDITOR_RENDER_LEADIN",
+            "Seconds the planet spins silently to warm up before recording starts — this is NOT in the video. An auto render skips the count-in and begins on the frame the level loads, while the pipeline is still priming, which can leave the whole clip out of sync. The warm-up absorbs that hitch, then recording begins clean at the song. 0 turns it off."
+        );
+
         // --- Video bitrate (Mbps in the UI, stored as kbps) ---
         static float mbpsFilter(float v) => Mathf.Round(v);
         UISlider bitrate = GenerateUI.Slider(

@@ -67,6 +67,7 @@ internal sealed class RecorderSession : MonoBehaviour {
     private double endClock;        // song position at which the render stops
     private double dspTimeSong;     // conductor's song anchor (deterministic start)
     private double renderStart;     // song position the render starts at
+    private double warmupSeconds;   // real-time planet-spin settle before recording (not captured)
 
     // Audio muxed from the song clip.
     private float[] clipData;       // interleaved PCM, or null for silent render
@@ -162,6 +163,22 @@ internal sealed class RecorderSession : MonoBehaviour {
         simOversample = Mathf.Clamp(Recorder.Conf.Oversample, 1, 8);
         prevCaptureFramerate = Time.captureFramerate;
         Time.captureFramerate = fps * simOversample;
+
+        // Warm-up (lead-in): before recording, spin the planet for this many seconds of
+        // REAL time WITHOUT capturing, so the camera/readback path and the planet/conductor
+        // simulation settle and any first-frame hitch is absorbed before the recorded part.
+        // An auto render forces fastTakeoff/forceNoCountdown — the game jumps straight into
+        // the song — so without this the render begins on the exact frame the level loads,
+        // while the pipeline is still priming, which reads as the whole clip being out of
+        // sync. The warm-up holds the clock in the pre-tile-0 region (the planet's angle is
+        // linear in song position, so it winds toward the first tile — the engine's own
+        // count-in motion), keeps the song SILENT (live mix muted, nothing encoded), and is
+        // NOT in the output: recording begins clean at tile 0 (startClock is left unshifted).
+        // The live AudioRenderer pull can't run silently without losing the song start, so
+        // that path (non-macOS live audio) opts out; macOS live audio renders via the
+        // two-pass MUX path, whose video pass keeps the warm-up.
+        bool audioRendererPath = wantLiveAudio && !macOS && Recorder.PrepassAudio == null;
+        warmupSeconds = audioRendererPath ? 0.0 : Mathf.Clamp(Recorder.Conf.LeadInSeconds, 0f, 30f);
 
         if(Recorder.PrepassAudio != null) {
             // Live mix captured in the audio pass — mux it like a song clip, keyed to song
@@ -272,11 +289,16 @@ internal sealed class RecorderSession : MonoBehaviour {
         Recorder.RenderFps = 0;
         camRefreshCountdown = 0;
 
-        RecorderOverlay.Show();
-        RecorderOverlay.Set(0, Recorder.TotalFrames, 0);
+        // During a warm-up the capture overlay is deferred so the player sees the live spin;
+        // CaptureLoop reveals it when recording actually starts.
+        if(warmupSeconds <= 0) {
+            RecorderOverlay.Show();
+            RecorderOverlay.Set(0, Recorder.TotalFrames, 0);
+        }
 
         MainCore.Log.Msg($"[Recorder] rendering {width}x{height}@{fps}{(realtimeAudio ? " (realtime live-audio)" : "")}" +
-                         $"{(simOversample > 1 ? $", sim {fps * simOversample}fps (in-game {simOversample}x)" : "")}, " +
+                         $"{(simOversample > 1 ? $", sim {fps * simOversample}fps (in-game {simOversample}x)" : "")}" +
+                         $"{(warmupSeconds > 0 ? $", {warmupSeconds:0.0}s warm-up spin (not recorded)" : "")}, " +
                          $"clock {startClock:0.00}..{endClock:0.00}s, ~{Recorder.TotalFrames} frames -> {outPath}");
         StartCoroutine(realtimeAudio ? RealtimeCaptureLoop() : CaptureLoop());
     }
@@ -475,6 +497,43 @@ internal sealed class RecorderSession : MonoBehaviour {
         for(int i = 0; resolutionForced && i < 10 && (Screen.width != width || Screen.height != height); i++) {
             yield return endOfFrame;
         }
+
+        // Warm-up spin (NOT recorded): hold the clock in the pre-tile-0 region so the planet
+        // winds toward the first tile (its angle is linear in song position), for warmupSeconds
+        // of REAL time, rendering each frame through the capture path to prime camera/readback —
+        // but encoding NOTHING and writing NO audio. The live mix is muted, so it's silent.
+        // Recording then begins clean at tile 0 (renderStart); the spin never reaches the file.
+        // captureFramerate decouples Time from wall-clock, so frames are stepped as fast as the
+        // machine draws while the planet position tracks the real clock (natural spin rate).
+        if(warmupSeconds > 0) {
+            var warm = System.Diagnostics.Stopwatch.StartNew();
+            double e;
+            while(running && (e = warm.Elapsed.TotalSeconds) < warmupSeconds) {
+                yield return endOfFrame;
+                if(!running) {
+                    break;
+                }
+                if(Input.GetKeyDown(KeyCode.Escape)) {
+                    MainCore.Log.Msg("[Recorder] cancelled by user (warm-up)");
+                    Abort();
+                    Recorder.Current = Recorder.State.Idle;
+                    Recorder.OnSessionEnded();
+                    Object.Destroy(gameObject);
+                    yield break;
+                }
+                double warmSong = renderStart - warmupSeconds + e;   // [tile0 - warmup, tile0)
+                Recorder.RenderClock = warmSong;
+                Recorder.ControlledDsp = dspTimeSong + warmSong;
+                RenderVideoFrameToBuf();   // prime the capture path; result discarded
+            }
+            // Snap to the exact recording anchor and reveal the capture overlay.
+            Recorder.RenderClock = renderStart;
+            Recorder.ControlledDsp = dspTimeSong + renderStart;
+            RecorderOverlay.Show();
+            RecorderOverlay.Set(0, Recorder.TotalFrames, 0);
+            wallClock.Restart();   // rate/ETA covers the recorded portion, not the warm-up
+        }
+
         AutoHitSnap.ResetStats();
 
         // Oversampling: simulate at fps*oversample, encode only every oversample-th sim
