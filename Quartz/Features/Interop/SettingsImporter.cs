@@ -16,6 +16,7 @@ using Quartz.Features.ProgressBar;
 using Quartz.Features.Restriction;
 using Quartz.Features.Tweaks;
 using Quartz.Features.UiHider;
+using Quartz.IO;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -64,6 +65,7 @@ public sealed class SettingsImportResult {
     public bool Success;
     public int ImportedCount;
     public string Message;
+    public string ProfileName;
 }
 
 // A UMM mod installed on disk, with the label to show for it. The Import page
@@ -325,6 +327,56 @@ public static class SettingsImporter {
     // rather than a bare name.
     public static SettingsImportResult Import(SettingsImportOption option) =>
         Import(option, SettingsImportReplaceMode.ReplaceAll, SettingsImportKeyViewerPart.All);
+
+    public static SettingsImportResult ImportToProfile(
+        SettingsImportOption option,
+        SettingsImportReplaceMode keyViewerMode,
+        SettingsImportKeyViewerPart keyViewerParts
+    ) {
+        SettingsImportResult result = new();
+        if(option == null) {
+            result.Message = "No import target selected.";
+            return result;
+        }
+
+        string previous = ProfileManager.Active;
+        string profile = null;
+        try {
+            profile = ProfileManager.CreateUnique(ProfileNames.ImportedModName(option.Label));
+            if(string.IsNullOrEmpty(profile)) {
+                result.Message = "Could not create an import profile.";
+                return result;
+            }
+
+            result = Import(option, keyViewerMode, keyViewerParts);
+            result.ProfileName = profile;
+
+            if(!result.Success || result.ImportedCount <= 0) {
+                RestorePreviousProfile(previous);
+                ProfileManager.Delete(profile);
+                return result;
+            }
+
+            if(!RestorePreviousProfile(previous)) {
+                result.Message = "Imported into profile, but could not switch back to the previous profile.";
+            }
+            return result;
+        } catch(Exception ex) {
+            MainCore.Log.Err($"[SettingsImporter] profile import failed: {ex}");
+            RestorePreviousProfile(previous);
+            if(!string.IsNullOrEmpty(profile)) {
+                ProfileManager.Delete(profile);
+            }
+            result.Message = ex.Message;
+            return result;
+        }
+    }
+
+    private static bool RestorePreviousProfile(string previous) {
+        return string.IsNullOrEmpty(previous)
+            || previous == ProfileManager.Active
+            || ProfileManager.Apply(previous);
+    }
 
     public static SettingsImportResult Import(
         SettingsImportOption option,

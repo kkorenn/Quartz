@@ -79,21 +79,7 @@ public static class ProfileManager {
         => !string.IsNullOrEmpty(name) && Directory.Exists(DirOf(name));
 
     // Strips path-hostile characters; returns null when nothing usable remains.
-    public static string Sanitize(string name) {
-        if(string.IsNullOrWhiteSpace(name)) {
-            return null;
-        }
-
-        char[] invalid = Path.GetInvalidFileNameChars();
-        string clean = new([.. name.Trim().Where(c => !invalid.Contains(c))]);
-        clean = clean.Trim().Trim('.');
-
-        if(clean.Length > 32) {
-            clean = clean[..32].Trim();
-        }
-
-        return clean.Length == 0 ? null : clean;
-    }
+    public static string Sanitize(string name) => ProfileNames.Sanitize(name);
 
     // Creates a new profile from the current live settings and makes it the
     // active one (the old active profile is captured first, so both hold the
@@ -119,6 +105,11 @@ public static class ProfileManager {
 
             return false;
         }
+    }
+
+    public static string CreateUnique(string name) {
+        name = ProfileNames.Unique(name, Exists);
+        return Create(name) ? name : null;
     }
 
     public static bool Delete(string name) {

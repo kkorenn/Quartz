@@ -253,11 +253,18 @@ internal static class PageImport {
         label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
         label.text = option.Label;
 
-        UIButton importBtn = GenerateUI.Button(row, () => RunImport(option), "Import", "import_do");
+        UIButton importBtn = GenerateUI.Button(row, () => RunImport(option, false), "Import", "import_do");
         FixWidth(importBtn, 140f);
         importBtn.Rect.AddToolTip(
             "DESC_IMPORT_DO",
             "Copy this mod's settings into Quartz. Settings it doesn't cover are left as they are."
+        );
+
+        UIButton profileBtn = GenerateUI.Button(row, () => RunImport(option, true), "Import Profile", "import_profile").SetSecondary();
+        FixWidth(profileBtn, 190f);
+        profileBtn.Rect.AddToolTip(
+            "DESC_IMPORT_PROFILE",
+            "Copy this mod's settings into a new Quartz profile, leaving the current profile selected."
         );
 
         if(!SettingsImporter.HasKeyViewerPayload(option.Source)) {
@@ -323,14 +330,26 @@ internal static class PageImport {
         _ => Tr("IMPORT_MODE_KEEP_OLD", "Keep old"),
     };
 
-    private static void RunImport(SettingsImportOption option) {
+    private static void RunImport(SettingsImportOption option, bool separateProfile) {
         SettingsImportReplaceMode mode = modes.TryGetValue(option.OptionId, out var m) ? m : SettingsImportReplaceMode.ReplaceAll;
         SettingsImportKeyViewerPart p = parts.TryGetValue(option.OptionId, out var pp) ? pp : SettingsImportKeyViewerPart.All;
 
-        SettingsImportResult result = SettingsImporter.Import(option, mode, p);
+        SettingsImportResult result = separateProfile
+            ? SettingsImporter.ImportToProfile(option, mode, p)
+            : SettingsImporter.Import(option, mode, p);
 
         if(!result.Success) {
             statusText.text = string.Format(Tr("IMPORT_FAIL", "Import failed: {0}"), result.Message);
+            return;
+        }
+
+        if(separateProfile && result.ImportedCount > 0) {
+            statusText.text = string.Format(
+                Tr("IMPORT_PROFILE_OK", "Imported {0} settings from {1} into profile {2}."),
+                result.ImportedCount,
+                option.Label,
+                result.ProfileName
+            );
             return;
         }
 
