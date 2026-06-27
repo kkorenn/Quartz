@@ -209,6 +209,19 @@ public static class ChatterBlocker {
     [HarmonyPatch(typeof(SkyHookManager), "HookCallback")]
     private static class HookCallbackPatch {
         private static bool Prefix(SkyHookEvent __0) {
+            // Runs inside SkyHook's native keyboard event-tap callback. ANY exception
+            // here propagates into the tap and makes it SWALLOW the event — the
+            // keyboard dies game-wide. (A SkyHook game update renamed AsyncKeyMapper
+            // → TypeLoadException on every key → total keyboard loss.) Never throw:
+            // on any failure, let the key through untouched.
+            try {
+                return PrefixCore(__0);
+            } catch {
+                return true;
+            }
+        }
+
+        private static bool PrefixCore(SkyHookEvent __0) {
             SkyHookEvent ev = __0;
 
             if(KeyLimiter.KeyLimiter.IsMouseLabel(ev.Label)) {
