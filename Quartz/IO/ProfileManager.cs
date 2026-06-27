@@ -10,13 +10,33 @@ namespace Quartz.IO;
 // files in the root stay authoritative; the active profile is kept in sync
 // by capturing on quit and right before switching, so selecting another
 // profile never loses the current one. Export/import bundles a profile into
-// a single .krprofile file so settings survive manual updates that replace
-// the UserData folder.
+// a single .qprofile file so settings survive manual updates that replace
+// the UserData folder. Legacy .krprofile files still import.
 public static class ProfileManager {
     public const string DEFAULT_NAME = "Default";
-    public const string EXPORT_EXTENSION = "krprofile";
+    public const string EXPORT_EXTENSION = "qprofile";
+
+    // Legacy export extension (KRP v2). New exports use EXPORT_EXTENSION, but
+    // both are still imported and discovered as presets so old .krprofile files
+    // and the shipped presets keep working.
+    public const string LEGACY_EXTENSION = "krprofile";
+
+    // Extensions accepted when importing or scanning for profile bundles.
+    public static readonly string[] ImportExtensions = [EXPORT_EXTENSION, LEGACY_EXTENSION];
 
     private const string BUNDLE_TYPE = "QuartzProfile";
+
+    // Bundle "Type" values accepted on import. QuartzProfile is the current
+    // format; KorenProfile is the pre-rename (KRP v2) magic, kept so old
+    // .krprofile files and already-installed presets still load. The bundle
+    // structure is otherwise identical, so accepting the legacy tag is enough.
+    private static readonly HashSet<string> bundleTypes = new(StringComparer.Ordinal) {
+        BUNDLE_TYPE,
+        "KorenProfile",
+    };
+
+    private static bool IsProfileBundle(JToken bundle) =>
+        bundle?["Type"]?.Value<string>() is string type && bundleTypes.Contains(type);
 
     // Root json files that are not profile-switchable settings: play
     // statistics shouldn't rewind when switching, and the pointer file
@@ -261,13 +281,13 @@ public static class ProfileManager {
     }
 
     // Creates a profile from a bundle file; returns its (uniquified) name,
-    // or null when the file isn't a Quartz profile. Does not auto-apply.
+    // or null when the file isn't a profile bundle. Accepts both the current
+    // and legacy (KRP v2) bundle tags. Does not auto-apply.
     public static string Import(string srcPath) {
         try {
             JToken bundle = JToken.Parse(File.ReadAllText(srcPath));
 
-            if(bundle["Type"]?.Value<string>() != BUNDLE_TYPE
-                || bundle["Files"] is not JObject files) {
+            if(!IsProfileBundle(bundle) || bundle["Files"] is not JObject files) {
                 return null;
             }
 
@@ -327,26 +347,28 @@ public static class ProfileManager {
         }
     }
 
-    // The shipped presets, each a .krprofile under Presets/ (name read from the
-    // bundle, falling back to the file name).
+    // The shipped presets, each a .qprofile (or legacy .krprofile) under
+    // Presets/ (name read from the bundle, falling back to the file name).
     public static List<PresetInfo> ListPresets() {
         List<PresetInfo> list = [];
         try {
             if(!Directory.Exists(PresetsPath)) {
                 return list;
             }
-            foreach(string file in Directory.GetFiles(PresetsPath, "*." + EXPORT_EXTENSION)) {
-                string name = null;
-                try {
-                    JToken b = JToken.Parse(File.ReadAllText(file));
-                    if(b["Type"]?.Value<string>() == BUNDLE_TYPE) {
-                        name = b["Name"]?.Value<string>();
+            foreach(string ext in ImportExtensions) {
+                foreach(string file in Directory.GetFiles(PresetsPath, "*." + ext)) {
+                    string name = null;
+                    try {
+                        JToken b = JToken.Parse(File.ReadAllText(file));
+                        if(IsProfileBundle(b)) {
+                            name = b["Name"]?.Value<string>();
+                        }
+                    } catch {
                     }
-                } catch {
-                }
-                name = Sanitize(name) ?? Sanitize(Path.GetFileNameWithoutExtension(file));
-                if(name != null) {
-                    list.Add(new PresetInfo(file, name));
+                    name = Sanitize(name) ?? Sanitize(Path.GetFileNameWithoutExtension(file));
+                    if(name != null) {
+                        list.Add(new PresetInfo(file, name));
+                    }
                 }
             }
         } catch(Exception e) {

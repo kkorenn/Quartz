@@ -17,7 +17,7 @@ namespace Quartz.UI.Factory.Page;
 
 // Profiles tab. Lists the settings profiles, lets the user add one from the
 // current settings, switch between them, and move them in/out of the install
-// as single .krprofile files (so a manual update that wipes UserData doesn't
+// as single .qprofile files (so a manual update that wipes UserData doesn't
 // take the settings with it). File pickers go through the game's bundled
 // UnityFileDialog.
 internal static class PageProfiles {
@@ -141,7 +141,7 @@ internal static class PageProfiles {
         FixWidth(importBtn, 160f);
         importBtn.Rect.AddToolTip(
             "DESC_PROFILE_IMPORT",
-            "Loads a .krprofile file as a new profile. It won't be selected automatically."
+            "Loads a .qprofile (or legacy .krprofile) file as a new profile. It won't be selected automatically."
         );
 
         UIButton folderBtn = GenerateUI.Button(
@@ -275,7 +275,7 @@ internal static class PageProfiles {
         }
     }
 
-    // Built-in presets: a header plus one Apply row per shipped .krprofile.
+    // Built-in presets: a header plus one Apply row per shipped .qprofile/.krprofile.
     // Hidden entirely when none ship. Each name is localized via PRESET_<NAME>.
     private static void BuildPresetsSection(Transform content) {
         List<ProfileManager.PresetInfo> presets = ProfileManager.ListPresets();
@@ -349,7 +349,7 @@ internal static class PageProfiles {
             path = FileBrowser.PickFile(
                 null,
                 "Quartz Profile",
-                [ProfileManager.EXPORT_EXTENSION, "json"],
+                [.. ProfileManager.ImportExtensions, "json"],
                 Tr("PROFILE_IMPORT_TITLE", "Import Quartz Profile")
             );
         } catch(Exception e) {
@@ -393,6 +393,7 @@ internal static class PageProfiles {
         }
 
         if(!path.EndsWith($".{ProfileManager.EXPORT_EXTENSION}", StringComparison.OrdinalIgnoreCase)
+            && !path.EndsWith($".{ProfileManager.LEGACY_EXTENSION}", StringComparison.OrdinalIgnoreCase)
             && !path.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) {
             path += $".{ProfileManager.EXPORT_EXTENSION}";
         }
