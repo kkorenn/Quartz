@@ -469,12 +469,19 @@ public static partial class KeyViewerOverlay {
         int[] keys = Conf.KeysForStyle(Mathf.Clamp(Conf.Style, 0, KeyViewerSettings.MaxStyle));
         List<int> result = [];
         HashSet<int> seen = [];
-        foreach(int code in keys) {
-            int normalized = (int)Features.KeyLimiter.KeyLimiter.NormalizeKey((KeyCode)code);
-            if(normalized != 0 && seen.Add(normalized)) {
-                result.Add(normalized);
+        void AddKeys(int[] codes, int count) {
+            for(int i = 0; i < count && i < codes.Length; i++) {
+                int normalized = (int)Features.KeyLimiter.KeyLimiter.NormalizeKey((KeyCode)codes[i]);
+                if(normalized != 0 && seen.Add(normalized)) {
+                    result.Add(normalized);
+                }
             }
         }
+
+        AddKeys(keys, keys.Length);
+        // Foot keys are shown on the viewer too (FootKeys[0..FootKeyCount]), so
+        // they must join the allowed set or the limiter blocks them in-game.
+        AddKeys(Conf.FootKeys, Conf.FootKeyCount());
 
         if(result.Count == 0) {
             return;
