@@ -871,7 +871,21 @@ public static partial class KeyViewerOverlay {
         List<DmNoteSpec> specs = ParseDmNoteSpecs();
         root.sizeDelta = new Vector2(dmCanvasWidth, dmCanvasHeight);
 
-        for(int i = 0; i < specs.Count; i++) {
+        // Key paint order follows the preset's key order: an earlier key in the JSON
+        // overlaps a later one (e.g. R before T -> R draws over T). Unity paints later
+        // siblings on top, so create the KEY boxes back-to-front — the first key ends up
+        // created last and therefore topmost. Stats and graphs (which ParseDmNoteSpecs
+        // appends after the keys) are built afterwards in natural order, so they stay on
+        // top of the keys as before. index is just the GameObject name / graph id; box
+        // identity is spec.KeyCode, so reordering creation can't disturb key->count.
+        int keyCount = 0;
+        while(keyCount < specs.Count && !specs[keyCount].IsStat && !specs[keyCount].IsGraph) {
+            keyCount++;
+        }
+        for(int i = keyCount - 1; i >= 0; i--) {
+            AddDmNoteBox(i, specs[i]);
+        }
+        for(int i = keyCount; i < specs.Count; i++) {
             AddDmNoteBox(i, specs[i]);
         }
 
