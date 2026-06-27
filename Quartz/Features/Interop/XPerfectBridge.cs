@@ -20,8 +20,12 @@ internal static class XPerfectBridge {
         Minus = 3,
     }
 
-    private static bool resolved;
     private static bool installed;
+    private static bool hookInstalled;
+    // Forces the first resolve attempt; thereafter set by the AssemblyLoad hook
+    // whenever a new assembly enters the domain, so a re-scan only runs when there
+    // is actually something new to find.
+    private static bool assembliesChanged = true;
 
     private static MemberInfo lastJudgeMember;
     private static MemberInfo lastJudgeForTextMember;
@@ -119,11 +123,31 @@ internal static class XPerfectBridge {
         return field ?? type.GetField("<" + name + ">k__BackingField", flags);
     }
 
+    private static void OnAssemblyLoad(object sender, AssemblyLoadEventArgs args) => assembliesChanged = true;
+
     private static void EnsureResolved() {
-        if(resolved) {
+        if(installed) {
             return;
         }
-        resolved = true;
+
+        // XPerfect can load AFTER Quartz first queries the bridge: UMM loads its
+        // mods on its own schedule, and the user can enable XPerfect from the UMM
+        // UI at runtime. A permanent "not found" latch would leave the split dead
+        // until a game restart, so instead of caching the negative result, re-scan
+        // — but only when a new assembly has actually entered the domain. The
+        // AssemblyLoad hook flips a flag so the per-frame callers (JudgementOverlay,
+        // Combo, Restriction) pay nothing once the domain is quiet.
+        if(!hookInstalled) {
+            hookInstalled = true;
+            try {
+                AppDomain.CurrentDomain.AssemblyLoad += OnAssemblyLoad;
+            } catch { }
+        }
+        if(!assembliesChanged) {
+            return;
+        }
+        assembliesChanged = false;
+
         try {
             Assembly xpAsm = null;
             foreach(Assembly a in AppDomain.CurrentDomain.GetAssemblies()) {
@@ -153,8 +177,14 @@ internal static class XPerfectBridge {
             }
 
             installed = lastJudgeMember != null;
+            if(installed) {
+                // Resolved for good — members never unload. Stop listening.
+                try {
+                    AppDomain.CurrentDomain.AssemblyLoad -= OnAssemblyLoad;
+                } catch { }
+            }
         } catch {
-            installed = false;
+            // Leave installed=false; a later AssemblyLoad re-arms another attempt.
         }
     }
 }
