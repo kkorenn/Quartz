@@ -124,11 +124,13 @@ public static class SettingsImporter {
             "KorenResourcePack", "koren resource pack"),
     ];
 
-    // Every supported source mod UMM knows about, ready to import from. The other
-    // sources are read through their LOADED assembly (reflection on live types),
-    // so they must be active. v1 is fully importable from its on-disk Settings.xml
-    // alone, so it's matched against INSTALLED mods too — an upgrader has usually
-    // toggled v1 off in UMM, and it should still show up to import from.
+    // Every supported source mod UMM knows about, ready to import from. Most
+    // sources also have an on-disk config reader (their Settings.xml/.json is on
+    // disk whether or not the mod is loaded), so they're matched against INSTALLED
+    // mods and can be imported even while disabled in UMM — an upgrader has usually
+    // toggled the old mod off, and it should still show up to import from. The lone
+    // exception is JipperResourcePack: it's read purely from its live types (no
+    // disk fallback), so it must still be ACTIVE for its assembly to be loaded.
     public static List<SettingsImportOption> GetAvailableOptions() {
         List<SettingsImportOption> options = [];
         if(!UmmInterop.IsPresent) {
@@ -138,7 +140,7 @@ public static class SettingsImporter {
         List<string> activeIds = UmmInterop.ActiveModIds();
         List<string> installedIds = UmmInterop.InstalledModIds();
         foreach(ImportSpec spec in Specs) {
-            List<string> ids = spec.Source == SettingsImportSource.KorenResourcePackV1 ? installedIds : activeIds;
+            List<string> ids = spec.Source == SettingsImportSource.JipperResourcePack ? activeIds : installedIds;
             foreach(string id in ids) {
                 object entry = UmmInterop.FindMod(id);
                 if(entry == null || !EntryMatches(entry, id, spec)) {
