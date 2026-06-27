@@ -20,8 +20,9 @@ public static class TMPTextShadow {
 
     // Approximate px→underlay-units factor. TMP's underlay offset is in font-
     // relative units (no pixel API); this lands a typical small shadow offset in
-    // the visible range. Tune if the underlay shadow sits too far from the glyph.
-    private const float UnderlayOffsetScale = 6f;
+    // the visible range. Settable so it can be A/B-tuned without a recompile — the
+    // Optimizer drives it from OptimizerSettings.ShadowUnderlayOffsetScale.
+    public static float UnderlayOffsetScale = 6f;
 
     public static void Apply(
         TextMeshProUGUI text,

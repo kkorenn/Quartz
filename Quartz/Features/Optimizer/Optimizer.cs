@@ -115,7 +115,9 @@ public static class Optimizer {
 
         // Global lightweight-shadow toggle for the overlay text shadows. Read on
         // each TMPTextShadow.Apply; existing labels pick it up on their next
-        // refresh / scene rebuild.
+        // refresh / scene rebuild. The offset scale is pushed first so a tuned value
+        // is live before the next Apply reads it.
+        TMPTextShadow.UnderlayOffsetScale = Conf.ShadowUnderlayOffsetScale;
         TMPTextShadow.UseMaterialUnderlay = on && Conf.LightTextShadows;
     }
 

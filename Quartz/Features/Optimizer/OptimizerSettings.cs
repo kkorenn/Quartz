@@ -50,12 +50,24 @@ public sealed class OptimizerSettings : ISettingsFile {
 
     // Render Quartz overlay text drop-shadows via the font material's GPU underlay
     // (one mesh/draw per label) instead of a second sibling TMP (two meshes/draws).
-    // Halves the draw calls of every shadowed overlay label (Combo/Judgement/Panels;
-    // SongTitle's rich-text shadow keeps the sibling path for its per-glyph fade).
-    // EXPERIMENTAL + defaults off: the underlay offset is font-relative, not pixel-
-    // exact, so the shadow can sit slightly differently than the sibling shadow and
-    // wants an eyeball check. Only the softness-0 (no blur) shadow uses it.
-    public bool LightTextShadows = false;
+    // Halves the draw calls of every shadowed overlay label (Combo/Judgement/Panels/
+    // KeyViewer; SongTitle's rich-text shadow + any blurred shadow keep the sibling
+    // path for the per-glyph fade / soft edge). This is the single biggest draw-call
+    // reduction available and is the dominant FPS lever on weak/integrated GPUs, so
+    // it now defaults ON. The one caveat is cosmetic: the underlay offset is font-
+    // relative, not pixel-exact, so a hard shadow can sit slightly differently than
+    // the old sibling shadow — tune ShadowUnderlayOffsetScale if it looks off, or set
+    // this false to fall back to the pixel-exact sibling shadow. Only the softness-0
+    // (no blur) shadow on a non-isolate label uses the underlay.
+    public bool LightTextShadows = true;
+
+    // px -> TMP-underlay-units factor for the LightTextShadows offset. TMP exposes no
+    // pixel API for the underlay offset (it's font-relative), so the shadow's X/Y px
+    // are mapped as (offsetPx / fontSize) * this. The default lands a typical small
+    // shadow in the visible range; raise it if the underlay shadow sits too close to
+    // the glyph, lower it if it sits too far. Exposed so the offset can be A/B-tuned
+    // per bundled font without a recompile.
+    public float ShadowUnderlayOffsetScale = 6f;
 
     public JToken Serialize() {
         return new JObject {
@@ -67,6 +79,7 @@ public sealed class OptimizerSettings : ISettingsFile {
             [nameof(FastBloom)] = FastBloom,
             [nameof(SkipNoOpScreenFilters)] = SkipNoOpScreenFilters,
             [nameof(LightTextShadows)] = LightTextShadows,
+            [nameof(ShadowUnderlayOffsetScale)] = ShadowUnderlayOffsetScale,
         };
     }
 
@@ -79,5 +92,6 @@ public sealed class OptimizerSettings : ISettingsFile {
         FastBloom = IOUtils.Read(token, nameof(FastBloom), FastBloom);
         SkipNoOpScreenFilters = IOUtils.Read(token, nameof(SkipNoOpScreenFilters), SkipNoOpScreenFilters);
         LightTextShadows = IOUtils.Read(token, nameof(LightTextShadows), LightTextShadows);
+        ShadowUnderlayOffsetScale = IOUtils.Read(token, nameof(ShadowUnderlayOffsetScale), ShadowUnderlayOffsetScale);
     }
 }
