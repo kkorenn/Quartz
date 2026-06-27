@@ -1,3 +1,4 @@
+using Quartz.Features.Interop;
 using Quartz.Features.Judgement;
 using Quartz.UI.Generator;
 using Quartz.UI.Objects.Impl;
@@ -23,17 +24,23 @@ internal static class PageJudgement {
             conf.Enabled
         );
 
-        GenerateUI.Toggle(
-            GenerateUI.Row(sec.Body),
-            def.ShowXPerfect,
-            conf.ShowXPerfect,
-            v => { conf.ShowXPerfect = v; Apply(); Save(); },
-            "Show XPerfect",
-            "judgement_xperfect"
-        ).Rect.AddToolTip(
-            "DESC_JUDGEMENT_XPERFECT",
-            "Split the Perfect count into +Perfect / X / -Perfect when the XPerfect mod is active."
-        );
+        // Only meaningful when the XPerfect mod is loaded — Quartz reads the X /
+        // +Perfect / -Perfect counts FROM XPerfect, so with it disabled the split
+        // has no data and the toggle would silently do nothing. Hidden unless
+        // installed, matching the XPerfect Combo toggle on PageCombo.
+        if(XPerfectBridge.Installed) {
+            GenerateUI.Toggle(
+                GenerateUI.Row(sec.Body),
+                def.ShowXPerfect,
+                conf.ShowXPerfect,
+                v => { conf.ShowXPerfect = v; Apply(); Save(); },
+                "Show XPerfect",
+                "judgement_xperfect"
+            ).Rect.AddToolTip(
+                "DESC_JUDGEMENT_XPERFECT",
+                "Split the Perfect count into +Perfect / X / -Perfect when the XPerfect mod is active."
+            );
+        }
 
         // === Layout ===
         GenerateUI.Localize(GenerateUI.AddTextH1(GenerateUI.Row(sec.Body)), "HEADING_LAYOUT", "Layout");
