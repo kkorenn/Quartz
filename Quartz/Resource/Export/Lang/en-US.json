@@ -765,6 +765,7 @@
     "IMPORT_PART_POSITION": "Position / size",
     "IMPORT_OK": "Imported {0} settings from {1}.",
     "IMPORT_OK_NONE": "Nothing to import from {0}.",
+    "IMPORT_NOT_COMPATIBLE": "Not Compatible",
     "IMPORT_FAIL": "Import failed: {0}",
     "NOSTALGIA": "Nostalgia",
     "NOST_NORESULT": "Hide Result",

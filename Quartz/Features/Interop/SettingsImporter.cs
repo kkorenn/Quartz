@@ -66,6 +66,14 @@ public sealed class SettingsImportResult {
     public string Message;
 }
 
+// A UMM mod installed on disk, with the label to show for it. The Import page
+// lists every installed mod — the ones Quartz can't import from are surfaced
+// as "Not Compatible" rather than hidden, so the user sees their whole roster.
+public sealed class InstalledModInfo {
+    public string Id;
+    public string Label;
+}
+
 // Migrates settings INTO Quartz from other ADOFAI mods, reading
 // their state purely through reflection + their on-disk config (Quartz never
 // hard-links another mod — see UmmInterop). Ported from v1's SettingsImporter,
@@ -168,6 +176,31 @@ public static class SettingsImporter {
         }
 
         return options;
+    }
+
+    // Every UMM mod installed on disk (enabled or not), deduped, each with a
+    // display label (its UMM DisplayName, rich-text stripped; the id is the
+    // fallback). The Import page diff's this against GetAvailableOptions to show
+    // the ones with no Quartz importer as "Not Compatible".
+    public static List<InstalledModInfo> GetAllInstalledMods() {
+        List<InstalledModInfo> mods = [];
+        if(!UmmInterop.IsPresent) {
+            return mods;
+        }
+
+        HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
+        foreach(string id in UmmInterop.InstalledModIds()) {
+            if(string.IsNullOrEmpty(id) || !seen.Add(id)) {
+                continue;
+            }
+            object entry = UmmInterop.FindMod(id);
+            string display = StripRichText(ReadNested(entry, "Info", "DisplayName") as string);
+            mods.Add(new InstalledModInfo {
+                Id = id,
+                Label = string.IsNullOrEmpty(display) ? id : display,
+            });
+        }
+        return mods;
     }
 
     // Walk the UMM mods folder ("UMMMods") looking for an installed v1 — matched

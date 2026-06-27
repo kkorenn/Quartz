@@ -765,6 +765,7 @@
     "IMPORT_PART_POSITION": "위치 / 크기",
     "IMPORT_OK": "{1}에서 설정 {0}개를 가져왔습니다.",
     "IMPORT_OK_NONE": "{0}에서 가져올 설정이 없습니다.",
+    "IMPORT_NOT_COMPATIBLE": "호환 안 됨",
     "IMPORT_FAIL": "가져오기 실패: {0}",
     "NOSTALGIA": "추억",
     "NOST_NORESULT": "결과 숨기기",

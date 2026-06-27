@@ -160,7 +160,23 @@ internal static class PageImport {
         }
 
         List<SettingsImportOption> options = SettingsImporter.GetAvailableOptions();
-        if(options.Count == 0) {
+        List<InstalledModInfo> installed = SettingsImporter.GetAllInstalledMods();
+
+        // Compatible = Quartz has an importer for it (an option). Every other
+        // installed UMM mod is shown below, tagged "Not Compatible".
+        HashSet<string> compatIds = new(StringComparer.OrdinalIgnoreCase);
+        foreach(SettingsImportOption opt in options) {
+            compatIds.Add(opt.Id);
+        }
+
+        List<InstalledModInfo> incompatible = [];
+        foreach(InstalledModInfo mod in installed) {
+            if(!compatIds.Contains(mod.Id)) {
+                incompatible.Add(mod);
+            }
+        }
+
+        if(options.Count == 0 && incompatible.Count == 0) {
             var emptyRow = GenerateUI.Row(listContainer, 96f);
             var emptyText = GenerateUI.AddText(emptyRow, noPad: true);
             emptyText.fontSize = 18f;
@@ -176,9 +192,47 @@ internal static class PageImport {
             return;
         }
 
+        // Compatible on top, not-compatible below; each group sorted A→Z by label.
+        options.Sort((a, b) => string.Compare(a.Label, b.Label, StringComparison.OrdinalIgnoreCase));
+        incompatible.Sort((a, b) => string.Compare(a.Label, b.Label, StringComparison.OrdinalIgnoreCase));
+
         foreach(SettingsImportOption option in options) {
             CreateOptionCard(option);
         }
+        foreach(InstalledModInfo mod in incompatible) {
+            CreateIncompatibleCard(mod);
+        }
+    }
+
+    // A muted row for an installed mod Quartz has no importer for: name on the
+    // left, a right-aligned "Not Compatible" tag, no Import button.
+    private static void CreateIncompatibleCard(InstalledModInfo mod) {
+        var row = GenerateUI.Row(listContainer, 50f);
+
+        HorizontalLayoutGroup rowLayout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+        rowLayout.spacing = 12f;
+        rowLayout.padding = new RectOffset(16, 12, 0, 0);
+        rowLayout.childControlWidth = true;
+        rowLayout.childControlHeight = true;
+        rowLayout.childForceExpandWidth = false;
+        rowLayout.childForceExpandHeight = true;
+        rowLayout.childAlignment = TextAnchor.MiddleLeft;
+
+        var label = GenerateUI.AddText(row, noPad: true);
+        label.overflowMode = TextOverflowModes.Ellipsis;
+        label.color = new Color(1f, 1f, 1f, 0.55f);
+        label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1f;
+        label.text = mod.Label;
+
+        var tag = GenerateUI.AddText(row, noPad: true);
+        tag.fontSize = 17f;
+        tag.alignment = TextAlignmentOptions.MidlineRight;
+        tag.color = new Color(1f, 1f, 1f, 0.4f);
+        LayoutElement tagLe = tag.gameObject.AddComponent<LayoutElement>();
+        tagLe.preferredWidth = 170f;
+        tagLe.minWidth = 170f;
+        tagLe.flexibleWidth = 0f;
+        GenerateUI.Localize(tag, "IMPORT_NOT_COMPATIBLE", "Not Compatible");
     }
 
     private static void CreateOptionCard(SettingsImportOption option) {
