@@ -12,6 +12,16 @@ namespace Quartz.Features.Judgement;
 public sealed class JudgementSettings : ISettingsFile {
     public bool Enabled = true;
 
+    // Render the whole row as ONE rich-text label (per-slot <color> spans joined by
+    // <space> gaps) instead of nine separate TextMeshPro labels in a
+    // HorizontalLayoutGroup. One label = one mesh / one draw and, crucially, no
+    // 9-cell layout solve on every hit (the multi-label row force-rebuilds its
+    // layout each time a count changes). Defaults on as the cheaper path; set false
+    // to fall back to the nine-label row if the single-label spacing looks off on a
+    // given font. The two render the same digits, colors and centering — only the
+    // inter-count gap differs (glyph-advance <space> vs layout-group spacing).
+    public bool CompactRow = true;
+
     // When the XPerfect mod is active, split the Perfect slot into
     // +Perfect / X / -Perfect. Off collapses it back to a single combined
     // Perfect count even while XPerfect is installed.
@@ -45,6 +55,7 @@ public sealed class JudgementSettings : ISettingsFile {
     public JToken Serialize() {
         return new JObject {
             [nameof(Enabled)] = Enabled,
+            [nameof(CompactRow)] = CompactRow,
             [nameof(ShowXPerfect)] = ShowXPerfect,
             [nameof(OffsetX)] = OffsetX,
             [nameof(OffsetY)] = OffsetY,
@@ -63,6 +74,7 @@ public sealed class JudgementSettings : ISettingsFile {
 
     public void Deserialize(JToken token) {
         Enabled = IOUtils.Read(token, nameof(Enabled), Enabled);
+        CompactRow = IOUtils.Read(token, nameof(CompactRow), CompactRow);
         ShowXPerfect = IOUtils.Read(token, nameof(ShowXPerfect), ShowXPerfect);
         OffsetX = IOUtils.Read(token, nameof(OffsetX), OffsetX);
         OffsetY = IOUtils.Read(token, nameof(OffsetY), OffsetY);
