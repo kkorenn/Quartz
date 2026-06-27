@@ -127,6 +127,15 @@ public static class ChatterBlocker {
                     count++;
                 }
             } else if(value is AsyncKeyCode asyncKey) {
+                // Async keys are normally blocked at the SkyHook hook (it swallows the
+                // event), but that only works where the OS hook can SUPPRESS — on macOS
+                // the tap observes without reliably suppressing, so a disallowed key
+                // still reaches the game's async input and was counted unconditionally
+                // here, defeating the limiter. Apply the same allow-list check the hook
+                // uses so the key is dropped regardless of whether it was suppressed.
+                if(KeyLimiter.KeyLimiter.ShouldBlockAsyncKeyFromHook(asyncKey.key, asyncKey.label)) {
+                    continue;
+                }
                 RecordKeyStats(controller, asyncKey);
                 count++;
             }
