@@ -34,6 +34,17 @@ internal static class QuartzNativeLibrary {
     [DllImport("kernel32", EntryPoint = "LoadLibraryExW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr LoadLibraryExW(string path, IntPtr hFile, uint flags);
 
+    // Adds a directory to the process DLL search path. Needed because the bundled
+    // FFmpeg dlls depend on EACH OTHER (avformat -> avcodec -> avutil, ...) and
+    // LOAD_WITH_ALTERED_SEARCH_PATH only steers the search for koren_encoder.dll's
+    // own imports — those transitive FFmpeg-to-FFmpeg loads fall back to the default
+    // search order (which doesn't include native/win/) and fail with win32 error 126.
+    // Pointing the search at native/win/ for the duration of the load covers the
+    // whole graph; we clear it again immediately after.
+    [DllImport("kernel32", EntryPoint = "SetDllDirectoryW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetDllDirectoryW(string path);
+
     [DllImport("kernel32", EntryPoint = "GetProcAddress", CharSet = CharSet.Ansi, SetLastError = true)]
     private static extern IntPtr GetProcAddress(IntPtr module, string name);
 
@@ -66,12 +77,22 @@ internal static class QuartzNativeLibrary {
 
     public static IntPtr Open(string absolutePath) {
         if(IsWindows) {
-            IntPtr h = LoadLibraryExW(absolutePath, IntPtr.Zero, LOAD_WITH_ALTERED_SEARCH_PATH);
-            if(h == IntPtr.Zero) {
-                throw new DllNotFoundException(
-                    $"LoadLibrary failed for '{absolutePath}' (win32 error {Marshal.GetLastWin32Error()})");
+            // Put native/win/ on the DLL search path so the FFmpeg dlls' inter-
+            // dependencies resolve (see SetDllDirectoryW note), then restore it.
+            string dir = System.IO.Path.GetDirectoryName(absolutePath);
+            bool dirAdded = !string.IsNullOrEmpty(dir) && SetDllDirectoryW(dir);
+            try {
+                IntPtr h = LoadLibraryExW(absolutePath, IntPtr.Zero, LOAD_WITH_ALTERED_SEARCH_PATH);
+                if(h == IntPtr.Zero) {
+                    throw new DllNotFoundException(
+                        $"LoadLibrary failed for '{absolutePath}' (win32 error {Marshal.GetLastWin32Error()})");
+                }
+                return h;
+            } finally {
+                if(dirAdded) {
+                    SetDllDirectoryW(null);   // restore the default search path
+                }
             }
-            return h;
         }
 
         // Clear any stale error, then report dlopen's own message on failure.
