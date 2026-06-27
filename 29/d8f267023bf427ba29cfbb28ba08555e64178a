@@ -1,0 +1,28 @@
+Quartz/Features/Interop/SettingsImporter.cs
+  s_29da6f6e4d4ba0::t_782090e3a67a4c 69-76
+  s_29da6f6e4d4ba0::t_28a25f4969b613 181-203
+  s_29da6f6e4d4ba0::t_d77360c6cec3b3 204-205
+Quartz/UI/Factory/Page/PageImport.cs
+  s_29da6f6e4d4ba0::t_8386dca9b28676 195-198,202-235
+  s_29da6f6e4d4ba0::t_b60344394be851 163-179
+Quartz/Resource/Export/Lang/ko-KR.json
+  s_29da6f6e4d4ba0::t_a5258729d7f73e 768
+Quartz/Resource/Export/Lang/en-US.json
+  s_29da6f6e4d4ba0::t_cf95a8265d5528 768
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "29d8f267023bf427ba29cfbb28ba08555e64178a",
+  "prompts": {},
+  "sessions": {
+    "s_29da6f6e4d4ba0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3bcb6387-d9b5-45ea-b2ea-04eb11973cf8",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "koren <131921956+kkorenn@users.noreply.github.com>"
+    }
+  }
+}
