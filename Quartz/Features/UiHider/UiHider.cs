@@ -84,8 +84,19 @@ public static partial class UiHider {
         bool hideNoFail = profile != null && (hideEverything || profile.HideNoFailIcon);
         bool hideBeta = profile != null && (hideEverything || profile.HideBeta);
         bool hideTitle = profile != null && (hideEverything || profile.HideTitle);
+        bool hideMeter = profile != null && (hideEverything || profile.HideHitErrorMeter);
 
         try { RDC.noHud = hideEverything; } catch { }
+
+        // The hit-error meter must reconcile BOTH ways here, before the
+        // scrUIController guard below — it lives on scrController and is the one
+        // hidden element the game re-activates on its own (its `paused` setter
+        // flips it on at every unpause). The hide patches are one-way, so a meter
+        // hidden while a profile/flag asked for it (or by a stray recording-mode
+        // flip / settings import) stayed dead for the rest of the session: nothing
+        // ever turned it back on once the flag cleared, and Restore() / disabling
+        // the mod didn't bring it back either. Restoring here closes that gap.
+        ReconcileHitErrorMeter(hideMeter);
 
         scrUIController uiController = scrUIController.instance;
         if(uiController == null) {
@@ -301,6 +312,40 @@ public static partial class UiHider {
             }
         } catch {
         }
+    }
+
+    // Two-way reconcile for the game's hit-error meter. The hide patches
+    // (UiHiderPatches) keep it flash-free on the events where the game re-shows
+    // it; this puts it BACK whenever the active profile no longer hides it. We
+    // touch only the top object the game's pause logic owns and mirror the game's
+    // own visibility gate (gameworld + unpaused + meter size not Off), so we never
+    // fight its freeroam / results / pause / meter-size-off handling.
+    private static void ReconcileHitErrorMeter(bool hide) {
+        scrController controller = scrController.instance;
+        if(controller == null || !controller.gameworld) {
+            return;
+        }
+
+        GameObject errorMeter = GetGameObject(GetMemberValue(controller, "errorMeter"));
+        if(errorMeter == null) {
+            return;
+        }
+
+        if(hide) {
+            if(errorMeter.activeSelf) {
+                errorMeter.SetActive(false);
+            }
+            return;
+        }
+
+        if(!controller.paused && HitErrorMeterEnabledInGame() && !errorMeter.activeSelf) {
+            errorMeter.SetActive(true);
+        }
+    }
+
+    private static bool HitErrorMeterEnabledInGame() {
+        try { return Persistence.hitErrorMeterSize != ErrorMeterSize.Off; }
+        catch { return true; }
     }
 
     private static bool HasSteamBranchName() {
